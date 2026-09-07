@@ -440,7 +440,7 @@
   }
 
   // ----------------------------------------------------------- dialogs
-  const PICKER_CATS = [['all', 'All', 'fa-list'], ['key', 'Keystroke', 'fa-keyboard'], ['media', 'Media', 'fa-play'], ['window', 'Window', 'fa-window-maximize'], ['ws', 'Workspaces', 'fa-table-cells-large'], ['cmd', 'Command', 'fa-terminal'], ['device', 'Device', 'fa-computer-mouse']];
+  const PICKER_CATS = [['all', 'All', 'fa-list'], ['key', 'Keystroke', 'fa-keyboard'], ['media', 'Media', 'fa-play'], ['window', 'Window', 'fa-window-maximize'], ['ws', 'Workspaces', 'fa-table-cells-large'], ['cmd', 'Command', 'fa-terminal'], ['app', 'Apps', 'fa-rocket'], ['device', 'Device', 'fa-computer-mouse']];
   const CAT_OF = { media: ['volume_up', 'volume_down', 'mute', 'mic_mute', 'play_pause', 'next_track', 'prev_track', 'brightness_up', 'brightness_down'],
     window: ['close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'show_desktop', 'app_switcher', 'screenshot', 'screenshot_area', 'lock', 'terminal', 'calculator', 'emoji_picker', 'emoji', 'context_menu', 'copy', 'paste', 'undo', 'redo', 'zoom_in', 'zoom_out', 'tab_next', 'tab_prev'],
     ws: ['overview', 'workspace_next', 'workspace_prev'],
@@ -475,13 +475,18 @@
     } else if (p.cat === 'cmd') {
       body = sec('Shell command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}"><div class="hint">Runs in the user session with your environment. Non-interactive.</div>`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
-        sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`) +
-        sec('Launch application',
-          ((S.running || []).filter(a => a.id).length
-            ? `<div class="sub" style="margin-bottom:6px">Running now</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${(S.running || []).filter(a => a.id).map(a =>
-                `<button class="btn sm ${p.launch === a.id ? 'primary' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class)}"><i class="fa-solid fa-window-maximize"></i>${esc(a.name)}</button>`).join('')}</div>`
-            : '') +
-          `<select class="sel" data-field="launch" style="width:100%"><option value="">Choose an application…</option>${(S.apps || []).map(a => `<option value="${esc(a.id)}" ${p.launch === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>`);
+        sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`);
+    } else if (p.cat === 'app') {
+      const q = (p.q || '').toLowerCase();
+      const match = a => !q || (a.name || '').toLowerCase().includes(q);
+      const row = a => `<button class="act ${p.launch === a.id ? 'on' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class || a.id)}"><i class="fa-solid fa-rocket ic"></i><span class="t">${esc(a.name)}</span></button>`;
+      const running = (S.running || []).filter(a => a.id && match(a));
+      const runningIds = new Set(running.map(a => a.id));
+      const rest = (S.apps || []).filter(a => match(a) && !runningIds.has(a.id));
+      body = (S.running === null ? '<div class="hint">Looking for open windows…</div>' : '') +
+        (running.length ? sec('Running now', `<div class="acts">${running.map(row).join('')}</div>`) : '') +
+        (rest.length ? sec(running.length ? 'All applications' : 'Applications', `<div class="acts">${rest.map(row).join('')}</div>`) : '') +
+        (!running.length && !rest.length ? '<div class="empty-note hint">No application matches that search.</div>' : '');
     } else {
       const items = pickerItems(p);
       body = `<div class="acts">${items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'}</div>`;
@@ -490,7 +495,7 @@
       <div class="dlg-head">Choose action · ${esc(p.label)}<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="dlg-body">
         <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input data-field="q" placeholder="Search actions" value="${esc(p.q || '')}"></div>
-        <div class="cats">${PICKER_CATS.filter(([k]) => !(p.section === 'thumbwheel' && ['key', 'media', 'window', 'ws'].includes(k))).map(([k, l, i]) => `<button class="pill ${p.cat === k ? 'on' : ''}" data-act="pick-cat" data-key="${k}"><i class="fa-solid ${i}"></i>${l}</button>`).join('')}</div>
+        <div class="cats">${PICKER_CATS.filter(([k]) => !(p.section === 'thumbwheel' && ['key', 'media', 'window', 'ws', 'app'].includes(k))).map(([k, l, i]) => `<button class="pill ${p.cat === k ? 'on' : ''}" data-act="pick-cat" data-key="${k}"><i class="fa-solid ${i}"></i>${l}</button>`).join('')}</div>
         ${body}
       </div>
       <div class="dlg-foot"><button class="btn flat" data-act="pick-default" title="Back to what this control does out of the box"><i class="fa-solid fa-rotate-left"></i>Reset to default</button><button class="btn flat danger" data-act="pick-disable">${p.section === 'gesture' ? 'Do nothing' : 'Disable ' + (p.section === 'keys' ? 'key' : p.section === 'thumbwheel' ? 'wheel' : 'button')}</button><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="pick-assign">Assign</button></div></div>
@@ -587,7 +592,7 @@
     });
     root.querySelectorAll('[data-field]').forEach(i => {
       i.onclick = e => e.stopPropagation();
-      i.oninput = () => { if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
+      i.oninput = () => { if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') render(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
       i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } };
     });
     if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording) armRecorder();
@@ -676,7 +681,12 @@
       case 'pick-assign': {
         const p = S.picker;
         if (p.cat === 'key') { const t = (p.typed || '').trim(); if (t) return assignPicked({ type: 'keystroke', keys: t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) }); return toast('Record or type a keystroke first', true); }
-        if (p.cat === 'cmd') { if (p.cmd) return assignPicked({ type: 'command', cmd: p.cmd, label: 'Run: ' + p.cmd }); if (p.text) return assignPicked({ type: 'type_text', text: p.text }); if (p.open) return assignPicked({ type: 'open', target: p.open, label: 'Open ' + p.open.replace(/^https?:\/\//, '').slice(0, 24) }); if (p.launch) { const a = (S.apps || []).find(x => x.id === p.launch); return assignPicked({ type: 'launch', app: p.launch, label: a ? a.name : p.launch }); } return toast('Enter a command, text, target or application', true); }
+        if (p.cat === 'cmd') { if (p.cmd) return assignPicked({ type: 'command', cmd: p.cmd, label: 'Run: ' + p.cmd }); if (p.text) return assignPicked({ type: 'type_text', text: p.text }); if (p.open) return assignPicked({ type: 'open', target: p.open, label: 'Open ' + p.open.replace(/^https?:\/\//, '').slice(0, 24) }); return toast('Enter a command, text or target', true); }
+        if (p.cat === 'app') {
+          if (!p.launch) return toast('Pick an application first', true);
+          const a = (S.apps || []).concat(S.running || []).find(x => x.id === p.launch);
+          return assignPicked({ type: 'launch', app: p.launch, label: a ? a.name : p.launch });
+        }
         if (p.sel) return assignPicked(p.sel);
         return toast('Pick an action first', true);
       }
