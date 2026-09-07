@@ -601,7 +601,7 @@
   function appTabHtml(p) {
     const q = (p.q || '').toLowerCase();
     const match = a => !q || (a.name || '').toLowerCase().includes(q) || (a.wm_class || '').toLowerCase().includes(q) || (a.id || '').toLowerCase().includes(q);
-    const row = a => `<button class="act ${p.launch === a.id ? 'on' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class || a.id)}"><i class="fa-solid fa-rocket ic"></i><span class="t">${esc(a.name)}</span></button>`;
+    const row = a => `<button class="act ${p.launch === a.id ? 'on' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class || a.id)}"><i class="fa-solid ${a.source === 'steam' ? 'fa-gamepad' : 'fa-rocket'} ic"></i><span class="t">${esc(a.name)}</span>${a.source === 'steam' ? '<span class="m">Steam</span>' : ''}</button>`;
     const running = (S.running || []).filter(a => a.id && match(a));
     const runningIds = new Set(running.map(a => a.id));
     const rest = (S.apps || []).filter(a => match(a) && !runningIds.has(a.id));
@@ -702,6 +702,7 @@
         if (p.cat === 'app') {
           if (!p.launch) return toast('Pick an application first', true);
           const a = (S.apps || []).concat(S.running || []).find(x => x.id === p.launch);
+          if (a && a.url) return assignPicked({ type: 'open', target: a.url, label: a.name });
           return assignPicked({ type: 'launch', app: p.launch, label: a ? a.name : p.launch });
         }
         if (p.sel) return assignPicked(p.sel);
