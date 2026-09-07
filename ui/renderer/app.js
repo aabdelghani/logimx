@@ -477,16 +477,7 @@
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
         sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`);
     } else if (p.cat === 'app') {
-      const q = (p.q || '').toLowerCase();
-      const match = a => !q || (a.name || '').toLowerCase().includes(q);
-      const row = a => `<button class="act ${p.launch === a.id ? 'on' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class || a.id)}"><i class="fa-solid fa-rocket ic"></i><span class="t">${esc(a.name)}</span></button>`;
-      const running = (S.running || []).filter(a => a.id && match(a));
-      const runningIds = new Set(running.map(a => a.id));
-      const rest = (S.apps || []).filter(a => match(a) && !runningIds.has(a.id));
-      body = (S.running === null ? '<div class="hint">Looking for open windows…</div>' : '') +
-        (running.length ? sec('Running now', `<div class="acts">${running.map(row).join('')}</div>`) : '') +
-        (rest.length ? sec(running.length ? 'All applications' : 'Applications', `<div class="acts">${rest.map(row).join('')}</div>`) : '') +
-        (!running.length && !rest.length ? '<div class="empty-note hint">No application matches that search.</div>' : '');
+      body = `<div class="applist">${appTabHtml(p)}</div>`;
     } else {
       const items = pickerItems(p);
       body = `<div class="acts">${items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'}</div>`;
@@ -592,13 +583,39 @@
     });
     root.querySelectorAll('[data-field]').forEach(i => {
       i.onclick = e => e.stopPropagation();
-      i.oninput = () => { if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') render(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
+      i.oninput = () => { if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
       i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } };
     });
     if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording) armRecorder();
-    const q = root.querySelector('[data-field="q"]'); if (q && S.dlg === 'picker' && S.picker.cat !== 'key') setTimeout(() => q.focus(), 20);
+    // A re-render replaces the search box, and focusing it again would drop the caret to the
+    // start, so anything typed next lands in front of what is already there.
+    const q = root.querySelector('[data-field="q"]');
+    if (q && S.dlg === 'picker' && S.picker.cat !== 'key') setTimeout(() => {
+      if (document.activeElement === q) return;
+      q.focus();
+      const n = q.value.length;
+      try { q.setSelectionRange(n, n); } catch (e) {}
+    }, 20);
   }
   function fmtOut(k, v) { if (k === 'pspeed' || k === 'sst' || k === 'dpi' || k === 'tws') return String(v); if (k === 'thr') return v + '%'; if (k === 'dur') return (v / 1000).toFixed(1) + ' s'; return String(v); }
+  function appTabHtml(p) {
+    const q = (p.q || '').toLowerCase();
+    const match = a => !q || (a.name || '').toLowerCase().includes(q) || (a.wm_class || '').toLowerCase().includes(q) || (a.id || '').toLowerCase().includes(q);
+    const row = a => `<button class="act ${p.launch === a.id ? 'on' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class || a.id)}"><i class="fa-solid fa-rocket ic"></i><span class="t">${esc(a.name)}</span></button>`;
+    const running = (S.running || []).filter(a => a.id && match(a));
+    const runningIds = new Set(running.map(a => a.id));
+    const rest = (S.apps || []).filter(a => match(a) && !runningIds.has(a.id));
+    if (!running.length && !rest.length) return `<div class="row hint">${S.apps ? 'No application matches that search.' : 'Loading applications…'}</div>`;
+    return (running.length ? sec('Running now', `<div class="acts">${running.map(row).join('')}</div>`) : '') +
+      (rest.length ? sec(running.length ? 'All applications' : 'Applications', `<div class="acts">${rest.map(row).join('')}</div>`) : '');
+  }
+  // Replace only the list, so the search box keeps focus and the caret stays at the end.
+  function renderAppList() {
+    const wrap = root.querySelector('.applist');
+    if (!wrap) return;
+    wrap.innerHTML = appTabHtml(S.picker);
+    wrap.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.stopPropagation(); onAction('pick-launch', b); });
+  }
   function renderPickerList() { const p = S.picker; const list = root.querySelector('.acts'); if (!list) return; const items = pickerItems(p); const curKey = typeof p.current === 'string' ? p.current : (p.current && p.current.preset); list.innerHTML = items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'; list.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.stopPropagation(); onAction('pick-item', b); }); }
   function armRecorder() {
     startRecorder((chord, cancelled) => { S.picker.chord = chord; if (cancelled) { S.picker.recording = false; render(); return; } const box = root.querySelector('.recbox .keys'); if (box) box.innerHTML = chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') || '<span style="opacity:.5">…</span>'; },
@@ -606,7 +623,7 @@
   }
   function openPicker(t) {
     // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
-    window.agent.call('running_apps').then(r => { S.running = r; if (S.picker) render(); }).catch(() => { S.running = []; });
+    window.agent.call('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
     const d = t.dev || dev();
     const section = t.section, cid = t.cid;
     const current = section === 'gesture' ? null : assignment(d, section, cid, t.profile);
@@ -666,7 +683,7 @@
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
       case 'pick-item': S.picker.sel = key; root.querySelectorAll('.act').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return;
       case 'rec-start': S.picker.recording = true; render(); return;
-      case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; render(); return; }
+      case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
