@@ -11,6 +11,67 @@
 
 namespace apps {
 
+static int quietHandler(Display*, XErrorEvent*) { return 0; }
+
+// X11: every window listed in _NET_CLIENT_LIST, by WM_CLASS.
+static std::vector<std::string> x11WindowClasses() {
+    std::vector<std::string> out;
+    Display* dpy = XOpenDisplay(nullptr);
+    if (!dpy) return out;
+    XSetErrorHandler(quietHandler);
+    Window root = DefaultRootWindow(dpy);
+    Atom list = XInternAtom(dpy, "_NET_CLIENT_LIST", True);
+    if (list != None) {
+        Atom type; int fmt; unsigned long n = 0, after; unsigned char* data = nullptr;
+        if (XGetWindowProperty(dpy, root, list, 0, 4096, False, XA_WINDOW, &type, &fmt, &n, &after, &data) == Success && data) {
+            Window* wins = reinterpret_cast<Window*>(data);
+            for (unsigned long i = 0; i < n; ++i) {
+                XClassHint ch{};
+                if (XGetClassHint(dpy, wins[i], &ch)) {
+                    if (ch.res_class && *ch.res_class) out.push_back(ch.res_class);
+                    if (ch.res_class) XFree(ch.res_class);
+                    if (ch.res_name) XFree(ch.res_name);
+                }
+            }
+            XFree(data);
+        }
+    }
+    XCloseDisplay(dpy);
+    return out;
+}
+
+// Sway and compatible compositors answer over their own IPC.
+static std::vector<std::string> swayWindowClasses() {
+    std::vector<std::string> out;
+    FILE* p = popen("swaymsg -t get_tree -r 2>/dev/null", "r");
+    if (!p) return out;
+    std::string all; char buf[8192]; size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), p)) > 0) all.append(buf, n);
+    pclose(p);
+    // pull every "app_id" and window_properties "class" out of the tree
+    for (const char* key : {"\"app_id\":\"", "\"class\":\""}) {
+        size_t i = 0, kl = strlen(key);
+        while ((i = all.find(key, i)) != std::string::npos) {
+            i += kl;
+            size_t e = all.find('"', i);
+            if (e == std::string::npos) break;
+            std::string v = all.substr(i, e - i);
+            if (!v.empty() && v != "null") out.push_back(v);
+            i = e;
+        }
+    }
+    return out;
+}
+
+std::vector<std::string> runningWindowClasses() {
+    const char* s = getenv("XDG_SESSION_TYPE");
+    std::string t = s ? s : "";
+    if (getenv("SWAYSOCK")) return swayWindowClasses();
+    if (t == "x11" || (t.empty() && getenv("DISPLAY"))) return x11WindowClasses();
+    if (getenv("DISPLAY")) return x11WindowClasses();   // XWayland still answers for X clients
+    return {};
+}
+
 Tracker::~Tracker() { stop(); }
 
 void Tracker::start() {

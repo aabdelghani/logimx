@@ -4,8 +4,13 @@
 #include <functional>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace apps {
+
+// Window classes of everything currently open, most recently mapped last.
+// X11 and Sway report the real list; GNOME on Wayland exposes nothing usable, so it returns empty.
+std::vector<std::string> runningWindowClasses();
 
 class Tracker {
   public:

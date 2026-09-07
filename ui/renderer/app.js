@@ -8,7 +8,7 @@
     devices: [], presets: null, apps: null, general: {}, conflicts: [], status: {}, connected: false, appInfo: {},
     theme: 'light', mode: 'app', page: 'buttons', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
     pair: { step: 1, found: [] }, ob: { step: 1, preset: 'gnome' }, appDetail: null, conflictDismissed: false,
-    thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false,
+    thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
   const VERSION = '0.3.0';
@@ -476,7 +476,12 @@
       body = sec('Shell command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}"><div class="hint">Runs in the user session with your environment. Non-interactive.</div>`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
         sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`) +
-        sec('Launch application', `<select class="sel" data-field="launch" style="width:100%"><option value="">Choose an application…</option>${(S.apps || []).map(a => `<option value="${esc(a.id)}" ${p.launch === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>`);
+        sec('Launch application',
+          ((S.running || []).filter(a => a.id).length
+            ? `<div class="sub" style="margin-bottom:6px">Running now</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${(S.running || []).filter(a => a.id).map(a =>
+                `<button class="btn sm ${p.launch === a.id ? 'primary' : ''}" data-act="pick-launch" data-key="${esc(a.id)}" title="${esc(a.wm_class)}"><i class="fa-solid fa-window-maximize"></i>${esc(a.name)}</button>`).join('')}</div>`
+            : '') +
+          `<select class="sel" data-field="launch" style="width:100%"><option value="">Choose an application…</option>${(S.apps || []).map(a => `<option value="${esc(a.id)}" ${p.launch === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>`);
     } else {
       const items = pickerItems(p);
       body = `<div class="acts">${items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'}</div>`;
@@ -595,6 +600,8 @@
       keys => { S.picker.chord = keys; S.picker.recording = false; assignPicked({ type: 'keystroke', keys }); });
   }
   function openPicker(t) {
+    // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
+    window.agent.call('running_apps').then(r => { S.running = r; if (S.picker) render(); }).catch(() => { S.running = []; });
     const d = t.dev || dev();
     const section = t.section, cid = t.cid;
     const current = section === 'gesture' ? null : assignment(d, section, cid, t.profile);
@@ -654,6 +661,7 @@
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
       case 'pick-item': S.picker.sel = key; root.querySelectorAll('.act').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return;
       case 'rec-start': S.picker.recording = true; render(); return;
+      case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;

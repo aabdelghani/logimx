@@ -1,4 +1,5 @@
 #include "daemon.h"
+#include "apps/tracker.h"
 #include "tables.gen.h"
 
 #include <signal.h>
@@ -373,6 +374,16 @@ bool Daemon::linkAlive(ManagedDevice& md) {
     } catch (...) {
         return false;
     }
+}
+
+static json listApplications();
+
+static json cachedApplications() {
+    static json cache;
+    static std::chrono::steady_clock::time_point at{};
+    auto now = std::chrono::steady_clock::now();
+    if (cache.is_null() || now - at > 60s) { cache = listApplications(); at = now; }
+    return cache;
 }
 
 Daemon::DevPtr Daemon::find(const std::string& id) {
@@ -985,12 +996,28 @@ json Daemon::rpc(const std::string& method, const json& p) {
         std::lock_guard<std::mutex> lk(gLogMutex);
         return json(std::vector<std::string>(gLogRing.begin(), gLogRing.end()));
     }
-    if (method == "applications") {
-        static json cache;
-        static std::chrono::steady_clock::time_point at{};
-        auto now = std::chrono::steady_clock::now();
-        if (cache.is_null() || now - at > 60s) { cache = listApplications(); at = now; }
-        return cache;
+    if (method == "applications") return cachedApplications();
+    if (method == "running_apps") {
+        // window classes of everything open, matched against the installed desktop entries so
+        // the caller gets a name and an icon rather than a bare class
+        json all = cachedApplications();
+        auto lower = [](std::string v) { for (auto& c : v) c = static_cast<char>(tolower(c)); return v; };
+        std::vector<std::string> classes = apps::runningWindowClasses();
+        std::set<std::string> added;
+        json out = json::array();
+        for (auto& cls : classes) {
+            std::string lc = lower(cls);
+            if (lc.empty() || added.count(lc)) continue;
+            added.insert(lc);
+            const json* hit = nullptr;
+            for (auto& a : all) {
+                if (lower(a.value("wm_class", "")) == lc || lower(a.value("id", "")) == lc || lower(a.value("name", "")) == lc) { hit = &a; break; }
+            }
+            if (hit) { json e = *hit; e["wm_class"] = cls; out.push_back(e); }
+            else out.push_back({{"id", ""}, {"name", cls}, {"icon", ""}, {"wm_class", cls}});
+        }
+        std::sort(out.begin(), out.end(), [](const json& a, const json& b) { return a.value("name", "") < b.value("name", ""); });
+        return out;
     }
     if (method == "set_general") {
         static const std::map<std::string, std::string> kinds = {
