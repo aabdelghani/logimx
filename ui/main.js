@@ -447,7 +447,32 @@ ipcMain.handle('install-udev', async () => {
   const r = await run('pkexec', ['sh', '-c', script]);
   return r.ok ? { ok: true } : { ok: false, error: r.error || 'cancelled' };
 });
+// Artefacts left by an older name of the project: a stale enabled unit points at a binary
+// that no longer exists and quietly fails at login.
+const LEGACY_NAMES = ['openoptions'];
+function cleanupLegacyAutostart() {
+  const autostartDir = path.join(os.homedir(), '.config', 'autostart');
+  const unitDir = path.join(os.homedir(), '.config', 'systemd', 'user');
+  for (const n of LEGACY_NAMES) {
+    try { fs.unlinkSync(path.join(autostartDir, n + '.desktop')); } catch (e) {}
+    const u = path.join(unitDir, n + '.service');
+    try { if (!fs.existsSync(u)) continue; } catch (e) { continue; }
+    execFile('systemctl', ['--user', 'disable', '--now', n + '.service'], () => {
+      try { fs.unlinkSync(u); } catch (e) {}
+      execFile('systemctl', ['--user', 'daemon-reload'], () => {});
+    });
+  }
+}
+
+// Re-apply the login setting every time the app starts, so a rename, a moved checkout or a
+// hand-edited unit cannot leave 'start at login' switched on but broken.
+function ensureAutostart() {
+  cleanupLegacyAutostart();
+  try { if (loadUi().autostart) setAutostart(true); } catch (e) {}
+}
+
 function setAutostart(on) {
+  cleanupLegacyAutostart();
   const unitDir = path.join(os.homedir(), '.config', 'systemd', 'user');
   const agentBin = fs.existsSync(path.join(os.homedir(), '.local', 'bin', 'logimx-agent')) ? path.join(os.homedir(), '.local', 'bin', 'logimx-agent') : path.join(__dirname, '..', 'agent', 'build', 'logimx-agent');
   const unit = `[Unit]\nDescription=LogiMX agent for MX Master and MX Keys devices\nAfter=graphical-session.target\nPartOf=graphical-session.target\n\n[Service]\nType=simple\nExecStart=${agentBin}\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=graphical-session.target\n`;
@@ -595,6 +620,7 @@ if (!single) {
   });
   app.whenReady().then(() => {
     ensureDesktopEntry();
+    ensureAutostart();
     setTimeout(() => { startAgent().catch(() => {}); }, 600);
     uiSettings = loadUi();
     if (uiSettings.tray !== false) createTray();
