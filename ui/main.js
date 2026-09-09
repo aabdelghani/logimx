@@ -477,16 +477,64 @@ function cleanupLegacyAutostart() {
 // hand-edited unit cannot leave 'start at login' switched on but broken.
 function ensureAutostart() {
   cleanupLegacyAutostart();
+  // a unit written by an AppImage points into a mount that no longer exists: rewrite or drop it
+  try {
+    const unitPath = path.join(os.homedir(), '.config', 'systemd', 'user', 'logimx.service');
+    const cur = fs.readFileSync(unitPath, 'utf8');
+    const m = /^ExecStart=(.*)$/m.exec(cur);
+    if (m && !fs.existsSync(m[1].trim())) { fs.unlinkSync(unitPath); execFile('systemctl', ['--user', 'daemon-reload'], () => {}); }
+  } catch (e) {}
   try { if (loadUi().autostart) setAutostart(true); } catch (e) {}
+}
+
+// A path that will still exist at the next login. The agent inside an AppImage lives on a
+// temporary mount that disappears when the app quits, so it can never go into a unit file.
+function stableAgentBin() {
+  const c = ['/usr/bin/logimx-agent', '/usr/local/bin/logimx-agent', path.join(os.homedir(), '.local', 'bin', 'logimx-agent')];
+  if (!PACKAGED) c.push(path.join(__dirname, '..', 'agent', 'build', 'logimx-agent'));
+  else if (!APPIMAGE) c.push(resPath('agent', 'logimx-agent'));
+  for (const p of c) { try { fs.accessSync(p, fs.constants.X_OK); return p; } catch (e) {} }
+  return null;
+}
+
+// true when a unit exists but its ExecStart no longer resolves, e.g. one written by a previous
+// AppImage run into a mount that is long gone
+function unitPointsAtMissingBinary(unitPath) {
+  try {
+    const m = /^ExecStart=(.*)$/m.exec(fs.readFileSync(unitPath, 'utf8'));
+    if (!m) return true;
+    fs.accessSync(m[1].trim(), fs.constants.X_OK);
+    return false;
+  } catch (e) {
+    return fs.existsSync(unitPath);
+  }
+}
+
+function removeAgentUnit(unitPath) {
+  execFile('systemctl', ['--user', 'disable', '--now', 'logimx.service'], () => {
+    try { fs.unlinkSync(unitPath); } catch (e) {}
+    execFile('systemctl', ['--user', 'daemon-reload'], () => {});
+  });
 }
 
 function setAutostart(on) {
   cleanupLegacyAutostart();
   const unitDir = path.join(os.homedir(), '.config', 'systemd', 'user');
-  const agentBin = fs.existsSync(path.join(os.homedir(), '.local', 'bin', 'logimx-agent')) ? path.join(os.homedir(), '.local', 'bin', 'logimx-agent') : path.join(__dirname, '..', 'agent', 'build', 'logimx-agent');
-  const unit = `[Unit]\nDescription=LogiMX agent for MX Master and MX Keys devices\nAfter=graphical-session.target\nPartOf=graphical-session.target\n\n[Service]\nType=simple\nExecStart=${agentBin}\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=graphical-session.target\n`;
-  try { fs.mkdirSync(unitDir, { recursive: true }); fs.writeFileSync(path.join(unitDir, 'logimx.service'), unit); } catch (e) { return; }
-  execFile('systemctl', ['--user', 'daemon-reload'], () => execFile('systemctl', ['--user', on ? 'enable' : 'disable', 'logimx.service'], () => {}));
+  const unitPath = path.join(unitDir, 'logimx.service');
+  const agentBin = on ? stableAgentBin() : null;
+  if (agentBin) {
+    const unit = `[Unit]\nDescription=LogiMX agent for MX Master and MX Keys devices\nAfter=graphical-session.target\nPartOf=graphical-session.target\n\n[Service]\nType=simple\nExecStart=${agentBin}\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=graphical-session.target\n`;
+    try {
+      fs.mkdirSync(unitDir, { recursive: true });
+      fs.writeFileSync(unitPath, unit);
+      execFile('systemctl', ['--user', 'daemon-reload'], () => execFile('systemctl', ['--user', 'enable', 'logimx.service'], () => {}));
+    } catch (e) {}
+  } else if (unitPointsAtMissingBinary(unitPath)) {
+    // nothing durable to point a unit at, and the one on disk is already broken. The desktop
+    // entry starts the app, which starts its own agent, so drop the unit rather than let it
+    // fail at every login. A unit that still resolves belongs to another install: leave it.
+    removeAgentUnit(unitPath);
+  }
   const autostartDir = path.join(os.homedir(), '.config', 'autostart'), desktop = path.join(autostartDir, 'logimx.desktop');
   if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=LogiMX\nIcon=logimx\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
   else { try { fs.unlinkSync(desktop); } catch (e) {} }
