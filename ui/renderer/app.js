@@ -80,6 +80,7 @@
     return CODE_MAP[code] || null;
   }
   let recorder = null;
+  let agentGrab = false, recordDone = null, recordPartial = null;
   function startRecorder(onUpdate, onDone) {
     stopRecorder();
     const st = { mods: [], key: null, down: new Set() };
@@ -102,6 +103,7 @@
     document.addEventListener('keyup', onUp, true);
   }
   function stopRecorder() {
+    if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; window.agent.call('record_cancel').catch(() => {}); }
     if (!recorder) return;
     document.removeEventListener('keydown', recorder.onDown, true);
     document.removeEventListener('keyup', recorder.onUp, true);
@@ -617,9 +619,31 @@
     wrap.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.stopPropagation(); onAction('pick-launch', b); });
   }
   function renderPickerList() { const p = S.picker; const list = root.querySelector('.acts'); if (!list) return; const items = pickerItems(p); const curKey = typeof p.current === 'string' ? p.current : (p.current && p.current.preset); list.innerHTML = items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'; list.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.stopPropagation(); onAction('pick-item', b); }); }
+  // The window manager reserves Alt+Tab, Super and Ctrl+Alt+arrow, and acts on them before any
+  // window sees them. The agent can grab the keyboard at the X level, which overrides that, so
+  // ask it first and fall back to listening in the page (Wayland, or no X display).
   function armRecorder() {
-    startRecorder((chord, cancelled) => { S.picker.chord = chord; if (cancelled) { S.picker.recording = false; render(); return; } const box = root.querySelector('.recbox .keys'); if (box) box.innerHTML = chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') || '<span style="opacity:.5">…</span>'; },
-      keys => { S.picker.chord = keys; S.picker.recording = false; assignPicked({ type: 'keystroke', keys }); });
+    stopRecorder();
+    const onPartial = chord => {
+      S.picker.chord = chord;
+      const box = root.querySelector('.recbox .keys');
+      if (box) box.innerHTML = chord.map(k => `<span>${esc(keyName(k))}</span>`).join('');
+    };
+    const onFinal = keys => {
+      agentGrab = false;
+      S.picker.chord = keys;
+      S.picker.recording = false;
+      if (keys && keys.length) assignPicked({ type: 'keystroke', keys });
+      else render();
+    };
+    window.agent.call('record_start').then(() => { agentGrab = true; recordDone = onFinal; recordPartial = onPartial; })
+      .catch(() => {
+        agentGrab = false;
+        startRecorder((chord, cancelled) => {
+          if (cancelled) { S.picker.chord = chord; S.picker.recording = false; render(); return; }
+          onPartial(chord);
+        }, onFinal);
+      });
   }
   function openPicker(t) {
     // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
@@ -828,6 +852,11 @@
     else if (event === 'app') { S.status.app = data.app || ''; }
     else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) d.profile = data.profile; }
     else if (event === 'backlight') { const d = S.devices.find(x => x.id === data.id); if (d && d.state && d.state.backlight) { d.state.backlight.current_level = data.level; if (S.page === 'backlight') render(); } }
+    else if (event === 'record') {
+      if (!agentGrab || !S.picker) return;
+      if (data.done) { const f = recordDone; recordDone = recordPartial = null; agentGrab = false; if (f) f(data.keys || []); }
+      else if (recordPartial) recordPartial(data.keys || []);
+    }
     else if (event === 'pair') { if (S.dlg === 'pair') { if (data.status === 'discovering' || data.status === 'found') S.pair.passkey = null; if (data.found) S.pair.found = data.found; if (data.error) S.pair.error = data.error; if (data.passkey) S.pair.passkey = data.passkey; if (data.done) { S.pair.step = 3; S.pair.done = data.done; } if (data.timeout !== undefined) S.pair.timeout = data.timeout; if (data.status === 'cancelled') S.pair.error = S.pair.error || 'Cancelled'; render(); } }
   });
   render();

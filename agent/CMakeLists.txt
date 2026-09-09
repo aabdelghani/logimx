@@ -17,7 +17,7 @@ add_library(oo_core STATIC
   src/hidpp/discovery.cpp
   src/actions/injector.cpp
   src/actions/engine.cpp
-  src/apps/tracker.cpp
+  src/apps/tracker.cpp src/apps/recorder.cpp
   src/config.cpp
   src/ipc.cpp)
 target_include_directories(oo_core PUBLIC src third_party)
