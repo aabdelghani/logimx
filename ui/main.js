@@ -68,9 +68,18 @@ function notify(channel, data) {
 }
 
 // ------------------------------------------------------------------ battery
+const lastPercent = new Map();
 function checkBattery(d) {
   const b = d.battery;
   if (!b) return;
+  // The first reading after a device links is what the firmware stored before sleeping, and the
+  // agent replaces it a few seconds later. Alerting on it produces a warning about a battery
+  // that is actually full.
+  if (b.confirmed === false) return;
+  const seen = lastPercent.get(d.id);
+  lastPercent.set(d.id, b.percent);
+  // a battery does not fall thirty points between two readings: wait for the next one
+  if (seen !== undefined && !b.charging && seen - b.percent > 30) return;
   if (general.notify_low === false) return;
   const low = general.notify_low_threshold || LOW;
   const prev = alerted.get(d.id);

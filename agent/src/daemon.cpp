@@ -83,6 +83,13 @@ void ManagedDevice::refreshConfig() {
     profile_ = profs.contains(profileName_) ? profs[profileName_] : profs.value("default", json::object());
 }
 
+json ManagedDevice::batteryJson() const {
+    if (!battery_) return json();
+    json j = battery_->toJson();
+    j["confirmed"] = batteryConfirmed_;
+    return j;
+}
+
 json ManagedDevice::summary() {
     std::lock_guard<std::recursive_mutex> lk(m_);
     json controls = json::array();
@@ -105,7 +112,7 @@ json ManagedDevice::summary() {
     return {{"id", id()}, {"pid", pid_}, {"name", dev_->name()}, {"friendly_name", dev_->friendlyName()},
             {"kind", kind_}, {"firmware", dev_->firmware()}, {"serial", dev_->serial().empty() ? serial_ : dev_->serial()},
             {"transport", hidpp::kReceivers.count(t_.info().product) ? "bolt" : "bluetooth"},
-            {"index", dev_->index()}, {"battery", battery_ ? battery_->toJson() : json()},
+            {"index", dev_->index()}, {"battery", batteryJson()},
             {"profile", profileName_}, {"features", feats}, {"controls", controls}, {"state", state_},
             {"config", cfg_}};
 }
@@ -115,6 +122,7 @@ json ManagedDevice::readState(bool full) {
     json st = json::object();
     try {
         battery_ = dev_->battery();
+        batteryConfirmed_ = false;   // confirmed by the re-read a few seconds from now
         if (auto ss = dev_->smartshift())
             st["smartshift"] = {{"mode", ss->mode == 2 ? "ratchet" : "freespin"}, {"threshold", ss->threshold}, {"default_threshold", ss->defaultThreshold}};
         if (auto hr = dev_->hires())
@@ -286,7 +294,8 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
     } else if (ev.kind == "battery") {
         battery_ = hidpp::Battery{ev.data["percent"].get<int>(), ev.data["level"].get<std::string>(),
                                   ev.data["charging"].get<bool>(), ev.data["external_power"].get<bool>()};
-        daemon_.broadcast("battery", {{"id", id()}, {"battery", ev.data}});
+        batteryConfirmed_ = true;
+        daemon_.broadcast("battery", {{"id", id()}, {"battery", batteryJson()}});
     } else if (ev.kind == "wireless") {
         if (ev.data.value("reconnect", false)) {
             INFO("%s: reconnected, re-applying", dev_->name().c_str());
@@ -449,8 +458,8 @@ int Daemon::run() {
         if (now - lastPoll > 30s && !pairing_.load()) {
             for (auto& md : snapshot()) {
                 try {
-                    md->setBattery(md->dev().battery());
-                    if (auto b = md->battery()) { recordBattery(md->id(), b->percent, b->charging); broadcast("battery", {{"id", md->id()}, {"battery", b->toJson()}}); }
+                    md->setBattery(md->dev().battery(), true);
+                    if (auto b = md->battery()) { recordBattery(md->id(), b->percent, b->charging); broadcast("battery", {{"id", md->id()}, {"battery", md->batteryJson()}}); }
                 } catch (...) {
                 }
             }
@@ -621,9 +630,9 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
             try {
                 auto b = md->dev().battery();
                 if (b) {
-                    md->setBattery(b);
+                    md->setBattery(b, true);
                     recordBattery(md->id(), b->percent, b->charging);
-                    broadcast("battery", {{"id", md->id()}, {"battery", b->toJson()}});
+                    broadcast("battery", {{"id", md->id()}, {"battery", md->batteryJson()}});
                 }
             } catch (...) {
             }
