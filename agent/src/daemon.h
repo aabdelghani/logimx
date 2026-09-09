@@ -28,6 +28,7 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     hidpp::Device& dev() { return *dev_; }
     hidpp::Transport& transport() { return t_; }
     json summary();
+    json batteryJson() const;
     json readState(bool full = true);
     void applySettings(const std::string& only = "");
     void applyAssignments();
@@ -40,7 +41,10 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     void applyPointerSpeed(double v);
     const std::string& profileName() const { return profileName_; }
     std::optional<hidpp::Battery> battery() const { return battery_; }
-    void setBattery(std::optional<hidpp::Battery> b) { battery_ = b; }
+    // The first battery answer after a link is whatever the firmware stored before it slept,
+    // so it is provisional until a later read confirms it. Alerts must not fire on it.
+    void setBattery(std::optional<hidpp::Battery> b, bool confirmed = true) { battery_ = b; batteryConfirmed_ = confirmed; }
+    bool batteryConfirmed() const { return batteryConfirmed_; }
 
   private:
     json actionFor(int cid);
@@ -53,6 +57,7 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     json cfg_, profile_;
     std::string profileName_ = "default";
     std::optional<hidpp::Battery> battery_;
+    bool batteryConfirmed_ = false;
     std::set<int> down_, diverted_;
     json state_;
     json hostsCache_;
