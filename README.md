@@ -125,7 +125,7 @@ every time a version tag is pushed, so each asset can be traced back to a public
 **Debian / Ubuntu (.deb)**: agent, CLI, udev rule, systemd user unit, desktop entry and the app.
 
 ```
-sudo apt install ./logimx_0.3.0_amd64.deb
+sudo apt install ./logimx_0.4.0_amd64.deb
 systemctl --user enable --now logimx      # agent for the current session (automatic after the next login)
 logimx                                    # or launch LogiMX from the app grid
 ```
@@ -134,8 +134,8 @@ logimx                                    # or launch LogiMX from the app grid
 wizard installs the udev rule with pkexec.
 
 ```
-chmod +x LogiMX-0.3.0-x86_64.AppImage
-./LogiMX-0.3.0-x86_64.AppImage
+chmod +x LogiMX-0.4.0-x86_64.AppImage
+./LogiMX-0.4.0-x86_64.AppImage
 ```
 
 Build the packages yourself with `packaging/deb/build.sh` and `cd ui && npm run dist:appimage`.
