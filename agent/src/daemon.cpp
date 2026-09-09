@@ -1,5 +1,6 @@
 #include "daemon.h"
 #include "apps/tracker.h"
+#include "apps/recorder.h"
 #include "tables.gen.h"
 
 #include <signal.h>
@@ -1075,6 +1076,16 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return json(std::vector<std::string>(gLogRing.begin(), gLogRing.end()));
     }
     if (method == "applications") return cachedApplications();
+    if (method == "record_start") {
+        // grab the keyboard so combinations the window manager reserves (Alt+Tab, Super,
+        // Ctrl+Alt+arrow) reach the recorder instead of switching windows
+        bool ok = recorder_.start(
+            [this](const std::vector<std::string>& chord) { broadcast("record", {{"keys", chord}, {"done", false}}); },
+            [this](const std::vector<std::string>& chord) { broadcast("record", {{"keys", chord}, {"done", true}}); });
+        if (!ok) throw std::runtime_error("cannot grab the keyboard on this session");
+        return json{{"ok", true}};
+    }
+    if (method == "record_cancel") { recorder_.cancel(); return json{{"ok", true}}; }
     if (method == "running_apps") {
         // window classes of everything open, matched against the installed desktop entries so
         // the caller gets a name and an icon rather than a bare class

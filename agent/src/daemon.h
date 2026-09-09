@@ -12,6 +12,7 @@
 #include "actions/engine.h"
 #include "actions/injector.h"
 #include "apps/tracker.h"
+#include "apps/recorder.h"
 #include "config.h"
 #include "hidpp/discovery.h"
 #include "hidpp/protocol.h"
@@ -114,6 +115,7 @@ class Daemon {
     std::map<std::string, DevPtr> devices_;  // by id (pid hex)
     std::mutex attachMutex_;                 // serialises attach() calls
     std::mutex scanMutex_;
+    apps::Recorder recorder_;
     std::atomic<bool> pairing_{false};
     std::string appClass_;
     std::atomic<bool> stop_{false};
