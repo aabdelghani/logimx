@@ -127,7 +127,7 @@
     easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
     apps: ['Applications', 'fa-window-restore'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
-  const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer', 'thumb', 'easy', 'info'] : ['keys', 'backlight', 'easy', 'info'];
+  const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer', 'easy', 'info'] : ['keys', 'backlight', 'easy', 'info'];
   const generalPages = ['apps', 'notif', 'backup', 'settings', 'about'];
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
@@ -198,7 +198,7 @@
       case 'buttons': return d ? pageButtons(d) : '';
       case 'gestures': return d ? pageGestures(d) : '';
       case 'pointer': return d ? pagePointer(d) : '';
-      case 'thumb': return d ? pageThumb(d) : '';
+      case 'thumb': return d ? pageButtons(d) : '';   // merged into Buttons
       case 'easy': return d ? pageEasy(d) : '';
       case 'info': return d ? pageInfo(d) : '';
       case 'keys': return d ? pageKeys(d) : '';
@@ -235,9 +235,14 @@
       return `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${label}</span>${drop(a, `data-act="pick" data-section="buttons" data-cid="${cid}" data-label="${esc(label)}"`)}</div>`;
     }).join('');
     const tw = assignment(d, 'thumbwheel');
+    const twInvert = !!((d.config.settings || {}).thumbwheel || {}).invert;
+    const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
+    const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
     const twRow = d.controls.length ? `<div class="row"><span class="num">6</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
     return `<div class="photo-col"><div class="photo-card">${mousePhoto(d)}</div>
-      ${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Applications</a>.</div>`)}</div>`;
+      <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Applications</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
+        row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
+        `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
   }
 
   const SLOTS = { tap: ['Tap', 'click'], up: ['Swipe up', 'up'], down: ['Swipe down', 'down'], left: ['Swipe left', 'left'], right: ['Swipe right', 'right'] };
@@ -291,16 +296,6 @@
   }
 
   const WHEEL_ACTIONS = [['hscroll', 'Horizontal scroll'], ['vscroll', 'Vertical scroll'], ['zoom_wheel', 'Zoom'], ['volume_wheel', 'Volume'], ['tabs_wheel', 'Switch tabs'], ['workspaces_wheel', 'Workspaces'], ['brightness_wheel', 'Brightness']];
-  function pageThumb(d) {
-    const tw = assignment(d, 'thumbwheel'); const inv = !!((d.config.settings || {}).thumbwheel || {}).invert;
-    const gain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
-    const speed = Math.max(1, Math.min(10, Math.round(gain / 1.6)));
-    return sec('Thumb wheel', card(
-      `<div class="row"><span class="grow lbl">Action</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` +
-      row('Invert direction', '', sw(inv, 'data-act="setting" data-path="thumbwheel.invert"')) +
-      `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', speed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${speed}</span></div>`)) +
-      sec('Available actions', card(WHEEL_ACTIONS.map(([k, l]) => `<div class="row click" data-act="assign-thumb" data-key="${k}"><i class="fa-solid ${PRESET_ICON[k]}" style="width:20px;text-align:center;color:${(typeof tw === 'string' ? tw : (tw && tw.preset)) === k ? 'var(--acc)' : 'var(--dim)'}"></i><span class="grow lbl" style="${(typeof tw === 'string' ? tw : (tw && tw.preset)) === k ? 'color:var(--acc)' : ''}">${l}</span>${(typeof tw === 'string' ? tw : (tw && tw.preset)) === k ? '<i class="fa-solid fa-check" style="color:var(--acc)"></i>' : ''}</div>`).join('')));
-  }
 
   function pageEasy(d) {
     const h = (d.state || {}).hosts;
