@@ -96,8 +96,7 @@ function checkBattery(d) {
     if (general.notify_low !== false && Notification.isSupported()) {
       new Notification({
         title: `${d.name} is charging`,
-        body: `${b.percent}% and charging.`,
-        icon: path.join(__dirname, 'assets', 'icon.png'),
+        icon: path.join(__dirname, 'assets', d.kind === 'keyboard' ? 'charging-keyboard.png' : 'charging-mouse.png'),
       }).show();
     }
     return;
