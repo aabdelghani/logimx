@@ -69,6 +69,12 @@ function notify(channel, data) {
 
 // ------------------------------------------------------------------ battery
 const lastPercent = new Map();
+const lowNotice = new Map();      // the warning we showed, so it can be taken down again
+const wasCharging = new Map();
+function dropLowNotice(id) {
+  const n = lowNotice.get(id);
+  if (n) { try { n.close(); } catch (e) {} lowNotice.delete(id); }
+}
 function checkBattery(d) {
   const b = d.battery;
   if (!b) return;
@@ -80,20 +86,39 @@ function checkBattery(d) {
   lastPercent.set(d.id, b.percent);
   // a battery does not fall thirty points between two readings: wait for the next one
   if (seen !== undefined && !b.charging && seen - b.percent > 30) return;
+  // Plugging in answers the warning: take it off screen and say what is happening instead of
+  // leaving 'battery critical' sitting there while the device charges.
+  const before = wasCharging.get(d.id);
+  wasCharging.set(d.id, b.charging);
+  if (b.charging && before === false) {
+    dropLowNotice(d.id);
+    alerted.delete(d.id);
+    if (general.notify_low !== false && Notification.isSupported()) {
+      new Notification({
+        title: `${d.name} is charging`,
+        body: `${b.percent}% and charging.`,
+        icon: path.join(__dirname, 'assets', 'icon.png'),
+      }).show();
+    }
+    return;
+  }
   if (general.notify_low === false) return;
   const low = general.notify_low_threshold || LOW;
   const prev = alerted.get(d.id);
-  if (b.charging || b.percent > low) { if (prev) alerted.delete(d.id); return; }
+  if (b.charging || b.percent > low) { dropLowNotice(d.id); if (prev) alerted.delete(d.id); return; }
   const level = b.percent <= CRITICAL ? 'critical' : 'low';
   if (prev === level || (prev === 'critical' && level === 'low')) return;
   alerted.set(d.id, level);
   if (Notification.isSupported()) {
-    new Notification({
+    dropLowNotice(d.id);
+    const n = new Notification({
       title: `${d.name}: battery ${level}`,
       body: `${b.percent}% left. ${d.kind === 'keyboard' ? 'Plug in the USB-C cable to charge.' : 'Charge it soon.'}`,
       urgency: level === 'critical' ? 'critical' : 'normal',
       icon: path.join(__dirname, 'assets', 'icon.png'),
-    }).show();
+    });
+    n.show();
+    lowNotice.set(d.id, n);
   }
 }
 
