@@ -114,7 +114,7 @@ function checkBattery(d) {
       title: `${d.name}: battery ${level}`,
       body: `${b.percent}% left. ${d.kind === 'keyboard' ? 'Plug in the USB-C cable to charge.' : 'Charge it soon.'}`,
       urgency: level === 'critical' ? 'critical' : 'normal',
-      icon: path.join(__dirname, 'assets', 'icon.png'),
+      icon: path.join(__dirname, 'assets', d.kind === 'keyboard' ? 'low-keyboard.png' : 'low-mouse.png'),
     });
     n.show();
     lowNotice.set(d.id, n);
