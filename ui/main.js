@@ -71,6 +71,12 @@ function notify(channel, data) {
 const lastPercent = new Map();
 const lowNotice = new Map();      // the warning we showed, so it can be taken down again
 const wasCharging = new Map();
+const chargeNotice = new Map();   // the 'is charging' notice, superseded once it is full
+const fullNotice = new Map();     // told them it is full, until the cable comes out
+function dropChargeNotice(id) {
+  const n = chargeNotice.get(id);
+  if (n) { try { n.close(); } catch (e) {} chargeNotice.delete(id); }
+}
 function dropLowNotice(id) {
   const n = lowNotice.get(id);
   if (n) { try { n.close(); } catch (e) {} lowNotice.delete(id); }
@@ -90,14 +96,35 @@ function checkBattery(d) {
   // leaving 'battery critical' sitting there while the device charges.
   const before = wasCharging.get(d.id);
   wasCharging.set(d.id, b.charging);
+  // A device at 100% usually stops charging with the cable still in, reporting charging false
+  // and external power true, so either flag counts as plugged in.
+  const plugged = !!(b.charging || b.external_power);
+  if (!plugged) { fullNotice.delete(d.id); dropChargeNotice(d.id); }
+  else if (b.percent >= 100 && !fullNotice.get(d.id)) {
+    fullNotice.set(d.id, true);
+    dropLowNotice(d.id);
+    dropChargeNotice(d.id);
+    alerted.delete(d.id);
+    if (general.notify_low !== false && Notification.isSupported()) {
+      new Notification({
+        title: `${d.name} is fully charged`,
+        body: 'You can unplug the charger.',
+        icon: path.join(__dirname, 'assets', d.kind === 'keyboard' ? 'full-keyboard.png' : 'full-mouse.png'),
+      }).show();
+    }
+    return;
+  }
   if (b.charging && before === false) {
     dropLowNotice(d.id);
     alerted.delete(d.id);
     if (general.notify_low !== false && Notification.isSupported()) {
-      new Notification({
+      dropChargeNotice(d.id);
+      const c = new Notification({
         title: `${d.name} is charging`,
         icon: path.join(__dirname, 'assets', d.kind === 'keyboard' ? 'charging-keyboard.png' : 'charging-mouse.png'),
-      }).show();
+      });
+      c.show();
+      chargeNotice.set(d.id, c);
     }
     return;
   }
