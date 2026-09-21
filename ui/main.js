@@ -71,6 +71,7 @@ function notify(channel, data) {
 const lastPercent = new Map();
 const lowNotice = new Map();      // the warning we showed, so it can be taken down again
 const wasCharging = new Map();
+const lowStreak = new Map();      // consecutive low readings, so one stale value cannot warn
 const chargeNotice = new Map();   // the 'is charging' notice, superseded once it is full
 const fullNotice = new Map();     // told them it is full, until the cable comes out
 function dropChargeNotice(id) {
@@ -131,7 +132,14 @@ function checkBattery(d) {
   if (general.notify_low === false) return;
   const low = general.notify_low_threshold || LOW;
   const prev = alerted.get(d.id);
-  if (b.charging || b.percent > low) { dropLowNotice(d.id); if (prev) alerted.delete(d.id); return; }
+  if (b.charging || b.percent > low) { lowStreak.delete(d.id); dropLowNotice(d.id); if (prev) alerted.delete(d.id); return; }
+  // A device waking from sleep can report the level it stored before it slept, and on the first
+  // reading after a start there is no earlier value to compare against, so the implausible-drop
+  // check above cannot catch it. A real low battery is still low on the next reading; a stale one
+  // is not. Wait for a second low reading before saying anything.
+  const streak = (lowStreak.get(d.id) || 0) + 1;
+  lowStreak.set(d.id, streak);
+  if (streak < 2) return;
   const level = b.percent <= CRITICAL ? 'critical' : 'low';
   if (prev === level || (prev === 'critical' && level === 'low')) return;
   alerted.set(d.id, level);
