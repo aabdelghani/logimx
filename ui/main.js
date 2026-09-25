@@ -148,7 +148,7 @@ function checkBattery(d) {
     const n = new Notification({
       title: `${d.name}: battery ${level}`,
       body: `${b.percent}% left. ${d.kind === 'keyboard' ? 'Plug in the USB-C cable to charge.' : 'Charge it soon.'}`,
-      urgency: level === 'critical' ? 'critical' : 'normal',
+      urgency: 'normal',
       icon: path.join(__dirname, 'assets', d.kind === 'keyboard' ? 'low-keyboard.png' : 'low-mouse.png'),
     });
     n.show();
