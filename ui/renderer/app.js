@@ -468,7 +468,7 @@
     let body = '';
     if (p.cat === 'key') {
       body = `<div class="recbox"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? 'Press the keys to record' : 'Click here, then press the keys'}</div><div class="keys">${(p.chord || []).length ? p.chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">Release to finish. Esc cancels.</div>${p.recording ? '' : '<button class="btn primary" data-act="rec-start">Start recording</button>'}</div>
-        <div class="hint">Or type it: <input class="text" data-field="keys" placeholder="ctrl+shift+t" style="width:200px;margin-left:8px" value="${esc(p.typed || '')}"></div>`;
+        <div class="hint">Or type it: <input class="text" data-field="typed" placeholder="ctrl+alt+shift+z" style="width:200px;margin-left:8px" value="${esc(p.typed || '')}"></div>`;
     } else if (p.cat === 'cmd') {
       body = sec('Shell command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}"><div class="hint">Runs in the user session with your environment. Non-interactive.</div>`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
