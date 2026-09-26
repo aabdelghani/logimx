@@ -4,6 +4,10 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# the default token is read-only; creating the release and attaching files needs write
+permissions:
+  contents: write
+
 jobs:
   linux:
     runs-on: ubuntu-22.04
