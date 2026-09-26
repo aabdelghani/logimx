@@ -57,19 +57,19 @@ void Recorder::cancel() { stop_.store(true); }
 
 void Recorder::loop(Update onUpdate, Done onDone) {
     Display* dpy = XOpenDisplay(nullptr);
-    if (!dpy) { active_.store(false); onDone({}); return; }
+    if (!dpy) { active_.store(false); onDone({}, false); return; }
     Window root = DefaultRootWindow(dpy);
     // GrabModeAsync on both so the rest of the session keeps running while we hold the keyboard
     if (XGrabKeyboard(dpy, root, True, GrabModeAsync, GrabModeAsync, CurrentTime) != GrabSuccess) {
         XCloseDisplay(dpy);
         active_.store(false);
-        onDone({});
+        onDone({}, false);
         return;
     }
     std::vector<std::string> mods;
     std::string key;
     int held = 0;
-    bool cancelled = false, finished = false;
+    bool cancelled = false, finished = false, timedOut = false;
     // Never hold the keyboard indefinitely: if the caller walks away, give it back rather than
     // leaving the session unable to type.
     const int kIdleGiveUpMs = 15000, kTickMs = 15;
@@ -102,7 +102,9 @@ void Recorder::loop(Update onUpdate, Done onDone) {
         }
         if (finished) break;
         idleMs = sawEvent ? 0 : idleMs + kTickMs;
-        if (idleMs >= kIdleGiveUpMs) { cancelled = true; break; }
+        // Keys held with no release in sight (another application took the focus on the press):
+        // hand back what was pressed rather than throwing it away.
+        if (idleMs >= kIdleGiveUpMs) { timedOut = !mods.empty() || !key.empty(); cancelled = !timedOut; break; }
         usleep(kTickMs * 1000);
     }
     XUngrabKeyboard(dpy, CurrentTime);
@@ -114,7 +116,7 @@ void Recorder::loop(Update onUpdate, Done onDone) {
         chord = mods;
         if (!key.empty()) chord.push_back(key);
     }
-    onDone(chord);
+    onDone(chord, timedOut);
 }
 
 }  // namespace apps
