@@ -1068,7 +1068,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
                 if (it != hidpp::kReceivers.end() && seen.insert(t->info().product).second) recv += (recv.empty() ? "" : ", ") + it->second + " receiver";
             }
         }
-        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.4.1"},
+        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.4.2"},
                 {"conflicts", conflictingTools()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
     }
     if (method == "logs") {
@@ -1081,7 +1081,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
         // Ctrl+Alt+arrow) reach the recorder instead of switching windows
         bool ok = recorder_.start(
             [this](const std::vector<std::string>& chord) { broadcast("record", {{"keys", chord}, {"done", false}}); },
-            [this](const std::vector<std::string>& chord) { broadcast("record", {{"keys", chord}, {"done", true}}); });
+            [this](const std::vector<std::string>& chord, bool timeout) { broadcast("record", {{"keys", chord}, {"done", true}, {"timeout", timeout}}); });
         if (!ok) throw std::runtime_error("cannot grab the keyboard on this session");
         return json{{"ok", true}};
     }

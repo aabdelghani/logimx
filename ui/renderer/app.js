@@ -11,7 +11,7 @@
     thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
-  const VERSION = '0.4.1';
+  const VERSION = '0.4.2';
 
   // ------------------------------------------------------------------ rpc
   async function call(method, params) {
@@ -93,22 +93,36 @@
       if (MODS.has(k)) { if (!st.mods.includes(k)) st.mods.push(k); } else st.key = k;
       onUpdate(chord(), false);
     };
+    const finish = () => { const keys = chord(); stopRecorder(); onDone(keys); };
     const onUp = e => {
       e.preventDefault(); e.stopPropagation();
       const k = codeToKey(e.code); if (k) st.down.delete(k);
-      if (st.key || st.down.size === 0) { const keys = chord(); stopRecorder(); if (keys.length) onDone(keys); }
+      // A release with nothing recorded (a stray keyup, or the press went elsewhere) is not a
+      // result; keep listening rather than silently stopping with the box still saying "recording".
+      if (!chord().length) return;
+      if (st.key || st.down.size === 0) finish();
     };
-    recorder = { onDown, onUp };
+    // When the shortcut also belongs to another application (Wayland: nothing stops it), that
+    // application may take focus on the press and the release never reaches this window.
+    // Treat losing focus as letting go.
+    const onBlur = () => {
+      if (st.key) finish();
+      else { st.mods = []; st.down.clear(); onUpdate([], false); }
+    };
+    recorder = { onDown, onUp, onBlur };
     document.addEventListener('keydown', onDown, true);
     document.addEventListener('keyup', onUp, true);
+    window.addEventListener('blur', onBlur);
   }
   function stopRecorder() {
     if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; window.agent.call('record_cancel').catch(() => {}); }
     if (!recorder) return;
     document.removeEventListener('keydown', recorder.onDown, true);
     document.removeEventListener('keyup', recorder.onUp, true);
+    window.removeEventListener('blur', recorder.onBlur);
     recorder = null;
   }
+  function recorderActive() { return !!recorder || agentGrab; }
 
   // ------------------------------------------------------------ helpers
   const sw = (on, attrs = '') => `<button class="switch ${on ? 'on' : ''}" ${attrs}></button>`;
@@ -467,7 +481,7 @@
     const curKey = typeof cur === 'string' ? cur : (cur && cur.preset);
     let body = '';
     if (p.cat === 'key') {
-      body = `<div class="recbox"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? 'Press the keys to record' : 'Click here, then press the keys'}</div><div class="keys">${(p.chord || []).length ? p.chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">Release to finish. Esc cancels.</div>${p.recording ? '' : '<button class="btn primary" data-act="rec-start">Start recording</button>'}</div>
+      body = `<div class="recbox" data-act="rec-start"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? 'Press the keys to record' : 'Click here, then press the keys'}</div><div class="keys">${(p.chord || []).length ? p.chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">Release to finish. Esc cancels.</div>${p.recording ? '' : '<button class="btn primary" data-act="rec-start">Start recording</button>'}</div>
         <div class="hint">Or type it: <input class="text" data-field="typed" placeholder="ctrl+alt+shift+z" style="width:200px;margin-left:8px" value="${esc(p.typed || '')}"></div>`;
     } else if (p.cat === 'cmd') {
       body = sec('Shell command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}"><div class="hint">Runs in the user session with your environment. Non-interactive.</div>`) +
@@ -583,7 +597,20 @@
       i.oninput = () => { if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
       i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } };
     });
-    if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording) armRecorder();
+    if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording && !recorderActive()) armRecorder();
+    const typed = root.querySelector('[data-field="typed"]');
+    if (typed) {
+      // The recorder swallows every key while it is armed (the agent grab takes them before the
+      // page, the in-page fallback preventDefaults them), so typing needs it out of the way.
+      typed.onfocus = () => {
+        if (!S.picker || !S.picker.recording) return;
+        stopRecorder(); S.picker.recording = false;
+        const t = root.querySelector('.recbox .t'); if (t) t.textContent = 'Click here, then press the keys';
+        const box = root.querySelector('.recbox');
+        if (box && !box.querySelector('[data-act="rec-start"]')) { const b = document.createElement('button'); b.className = 'btn primary'; b.dataset.act = 'rec-start'; b.textContent = 'Start recording'; b.onclick = e => { e.stopPropagation(); onAction('rec-start', b, e); }; box.appendChild(b); }
+      };
+      typed.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); onAction('pick-assign', typed); } };
+    }
     // A re-render replaces the search box, and focusing it again would drop the caret to the
     // start, so anything typed next lands in front of what is already there.
     const q = root.querySelector('[data-field="q"]');
@@ -618,7 +645,9 @@
   // window sees them. The agent can grab the keyboard at the X level, which overrides that, so
   // ask it first and fall back to listening in the page (Wayland, or no X display).
   function armRecorder() {
-    stopRecorder();
+    // Re-renders happen for unrelated reasons (a battery tick every 30 s); restarting the recorder
+    // then would drop the keys already held and leave the next release with nothing to finish.
+    if (recorderActive()) return;
     const onPartial = chord => {
       S.picker.chord = chord;
       const box = root.querySelector('.recbox .keys');
@@ -701,7 +730,7 @@
       case 'pick-gesture': openPicker({ dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
       case 'pick-item': S.picker.sel = key; root.querySelectorAll('.act').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return;
-      case 'rec-start': S.picker.recording = true; render(); return;
+      case 'rec-start': if (S.picker.recording) return; S.picker.recording = true; render(); return;
       case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'pick-default': {
@@ -716,7 +745,13 @@
       }
       case 'pick-assign': {
         const p = S.picker;
-        if (p.cat === 'key') { const t = (p.typed || '').trim(); if (t) return assignPicked({ type: 'keystroke', keys: t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) }); return toast('Record or type a keystroke first', true); }
+        if (p.cat === 'key') {
+          const t = (p.typed || '').trim();
+          if (t) { stopRecorder(); return assignPicked({ type: 'keystroke', keys: t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) }); }
+          // whatever the box shows is what the user wants, whether or not the recorder saw a release
+          if ((p.chord || []).length) { stopRecorder(); p.recording = false; return assignPicked({ type: 'keystroke', keys: p.chord.slice() }); }
+          return toast('Record or type a keystroke first', true);
+        }
         if (p.cat === 'cmd') { if (p.cmd) return assignPicked({ type: 'command', cmd: p.cmd, label: 'Run: ' + p.cmd }); if (p.text) return assignPicked({ type: 'type_text', text: p.text }); if (p.open) return assignPicked({ type: 'open', target: p.open, label: 'Open ' + p.open.replace(/^https?:\/\//, '').slice(0, 24) }); return toast('Enter a command, text or target', true); }
         if (p.cat === 'app') {
           if (!p.launch) return toast('Pick an application first', true);
@@ -849,7 +884,8 @@
     else if (event === 'backlight') { const d = S.devices.find(x => x.id === data.id); if (d && d.state && d.state.backlight) { d.state.backlight.current_level = data.level; if (S.page === 'backlight') render(); } }
     else if (event === 'record') {
       if (!agentGrab || !S.picker) return;
-      if (data.done) { const f = recordDone; recordDone = recordPartial = null; agentGrab = false; if (f) f(data.keys || []); }
+      if (data.done && data.timeout) { recordDone = recordPartial = null; agentGrab = false; S.picker.chord = data.keys || []; S.picker.recording = false; render(); }
+      else if (data.done) { const f = recordDone; recordDone = recordPartial = null; agentGrab = false; if (f) f(data.keys || []); }
       else if (recordPartial) recordPartial(data.keys || []);
     }
     else if (event === 'pair') { if (S.dlg === 'pair') { if (data.status === 'discovering' || data.status === 'found') S.pair.passkey = null; if (data.found) S.pair.found = data.found; if (data.error) S.pair.error = data.error; if (data.passkey) S.pair.passkey = data.passkey; if (data.done) { S.pair.step = 3; S.pair.done = data.done; } if (data.timeout !== undefined) S.pair.timeout = data.timeout; if (data.status === 'cancelled') S.pair.error = S.pair.error || 'Cancelled'; render(); } }

@@ -14,9 +14,10 @@ namespace apps {
 
 class Recorder {
   public:
-    // update: the chord so far. done: the finished chord, empty when cancelled with Escape.
+    // update: the chord so far. done: the finished chord, empty when cancelled with Escape;
+    // timeout is set when the grab was given up with keys still held (no release ever came).
     using Update = std::function<void(const std::vector<std::string>&)>;
-    using Done = std::function<void(const std::vector<std::string>&)>;
+    using Done = std::function<void(const std::vector<std::string>&, bool timeout)>;
     ~Recorder();
     bool start(Update onUpdate, Done onDone);   // false when X11 is unavailable or the grab fails
     void cancel();
