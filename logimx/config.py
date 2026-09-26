@@ -32,9 +32,9 @@ CID = {
     "dictation": 0x103, "emoji": 0x108, "screenshot": 0x10A, "mic_mute": 0x11C,
     # the rest of the MX keyboard family (MX Keys, MX Keys Mini, Craft): the app lays the F row out
     # from the position each control reports, so it only needs a name and a label for them
-    "mission_control": 0xE0, "launchpad": 0xE1, "show_desktop": 0xFE, "app_switch": 0x109,
-    "app_switch_dashboard": 0xFF, "search": 0xD4, "home": 0xD5, "virtual_keyboard": 0xD6,
-    "language_switch": 0xDD, "voice_assistant": 0x11D, "open_apps": 0xCA, "all_apps": 0xCB, "switch_app": 0xCC,
+    "mission_control": 0xE0, "launchpad": 0xE1, "show_desktop": 0x6E, "home_show_desktop": 0xFE, "app_switch": 0x109,
+    "app_switch_dashboard": 0xFF, "search": 0xD4, "home": 0xD5, "virtual_keyboard": 0xD6, "screen_capture": 0xBF, "eject": 0x0D,
+    "language_switch": 0xDD, "do_not_disturb": 0x11D, "open_apps": 0xCA, "all_apps": 0xCB, "switch_app": 0xCC,
     "emoji_heart_eyes": 0x104, "emoji_crying": 0x105, "emoji_smiley": 0x106, "emoji_tears": 0x107,
 }
 CID_NAMES = {v: k for k, v in CID.items()}
@@ -46,7 +46,8 @@ CONTROL_LABELS = {
     0xE2: "Backlight down", 0xE3: "Backlight up", 0xE4: "Previous track", 0xE5: "Play / Pause", 0xE6: "Next track",
     0xE7: "Mute", 0xE8: "Volume down", 0xE9: "Volume up", 0xEA: "Context menu",
     0x103: "Dictation", 0x108: "Emoji", 0x10A: "Screen capture", 0x11C: "Mute microphone",
-    0xEF: "Fn lock", 0x100: "Show desktop", 0xA1: "Search", 0x11D: "Voice assistant",
+    0xEF: "Fn lock", 0x100: "Show desktop", 0x6E: "Show desktop", 0xA1: "Search", 0x11D: "Do not disturb",
+    0xBF: "Screen capture", 0x0D: "Eject",
     0xE0: "Mission control / Task view", 0xE1: "Launchpad / Action center", 0xFE: "Show desktop", 0x109: "App switch / Launchpad",
     0xFF: "App switch / Dashboard", 0xD4: "Search", 0xD5: "Home / Mission control", 0xD6: "Virtual keyboard / Launchpad",
     0xDD: "Language switch", 0xCA: "Open apps", 0xCB: "All apps", 0xCC: "Switch app",
@@ -107,9 +108,31 @@ MX_KEYS_S = {
     },
 }
 
+def _keyboard(keys, **overrides):
+    """Keyboard defaults: backlight on automatic, F row sending its printed functions, every
+    listed control left to the device unless an override names one of our presets."""
+    return {
+        "settings": {"backlight": {"enabled": True, "mode": "auto", "level": 0}, "fn_swap": True},
+        "profiles": {"default": {"name": "All applications",
+                                 "keys": {str(CID[k]): overrides.get(k, "native") for k in keys}}},
+    }
+
+_MX_KEYS_ROW = ["brightness_down", "brightness_up", "mission_control", "launchpad", "show_desktop", "backlight_down", "backlight_up",
+                "prev_track", "play_pause", "next_track", "mute", "volume_down", "volume_up", "calculator", "screen_capture", "context_menu", "screen_lock"]
+MX_KEYS = _keyboard(_MX_KEYS_ROW)
+MX_KEYS_MAC = _keyboard([k if k != "show_desktop" else "eject" for k in _MX_KEYS_ROW])
+_MINI_ROW = ["backlight_down", "backlight_up", "dictation", "emoji", "screenshot", "mic_mute", "play_pause", "mute", "volume_down", "volume_up"]
+_S_STYLE = {"dictation": "nothing", "emoji": "emoji_picker", "screenshot": "screenshot_area", "mic_mute": "mic_mute"}
+MX_KEYS_MINI = _keyboard(_MINI_ROW, **_S_STYLE)
+MX_KEYS_MINI_MAC = _keyboard(_MINI_ROW + ["do_not_disturb"], **_S_STYLE)
+
 DEFAULTS_BY_PID = {
     0xB034: MX_MASTER_3S, 0xB035: MX_MASTER_3S, 0xB043: MX_MASTER_3S,   # MX Master 3S (Bolt / business / BT)
     0xB378: MX_KEYS_S, 0xB379: MX_KEYS_S, 0xB37A: MX_KEYS_S,            # MX Keys S (Bolt / business / mac)
+    0xB35B: MX_KEYS, 0x408A: MX_KEYS,                                   # MX Keys (Bluetooth / Unifying)
+    0xB361: MX_KEYS_MAC, 0x4092: MX_KEYS_MAC,                           # MX Keys for Mac
+    0xB363: MX_KEYS_S,                                                  # MX Keys for Business (same keys as the S)
+    0xB369: MX_KEYS_MINI, 0xB36E: MX_KEYS_MINI, 0xB36A: MX_KEYS_MINI_MAC,   # MX Keys Mini / for Business / for Mac
 }
 
 GENERIC_MOUSE = {"settings": {}, "profiles": {"default": {"name": "All applications", "buttons": {}, "thumbwheel": "native"}}}

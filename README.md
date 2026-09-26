@@ -6,7 +6,7 @@
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-2dd4bf.svg)](#requirements)
 [![Agent: C++20](https://img.shields.io/badge/agent-C%2B%2B20-2dd4bf.svg)](agent)
 [![UI: Electron](https://img.shields.io/badge/UI-Electron-2dd4bf.svg)](ui)
-[![Devices: MX Master 3S, MX Keys S](https://img.shields.io/badge/devices-MX%20Master%203S%20%C2%B7%20MX%20Keys%20S-2dd4bf.svg)](#features)
+[![Devices: MX Master 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#features)
 
 Third-party configuration app for the MX Master 3S and MX Keys S on Linux. It brings full
 device configuration to GNOME, KDE and other desktops: button and key assignments, gestures,
@@ -55,10 +55,11 @@ Mouse (MX Master 3S)
   toggle action, smooth scrolling, natural scroll direction
 - Battery with 7-day history, firmware, serial, Easy-Switch host cards with one-click switching
 
-Keyboard (MX Keys S)
+Keyboard (MX Keys S; MX Keys, MX Keys for Mac, MX Keys for Business, MX Keys Mini and
+Mini for Mac / for Business have their own photo, layout and defaults but no hardware test yet)
 
-- Function row grid and special keys (calculator, capture, menu, lock, dictation, emoji,
-  mic mute) with clickable keys on a photo of the keyboard
+- Function row and special keys laid out from what the keyboard itself reports, with
+  clickable keys on a photo of that model
 - Built-in emoji picker: the Emoji key opens a searchable picker at the pointer
   (categories, recents, keyboard navigation), Enter pastes into the focused app
 - Smart backlight: on/off, automatic or manual level, hands-away, hands-present and
@@ -202,7 +203,9 @@ Configuration lives in `~/.config/logimx/config.json`. Device ids are the produc
 ## Status
 
 Tested on Ubuntu 24.04 with GNOME on X11, MX Master 3S and MX Keys S on a Bolt receiver.
-Bluetooth connections work the same way as the receiver (tested with the MX Keys S paired directly). GNOME on Wayland
+Bluetooth connections work the same way as the receiver (tested with the MX Keys S paired directly).
+The other MX Keys models are set up from their published key layouts and have not been on this
+bench; reports welcome. GNOME on Wayland
 tracks the focused application through the Shell introspection interface when it is enabled.
 
 Planned: more MX devices, pairing UI, KDE and Sway focus tracking, packaging.
