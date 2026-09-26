@@ -30,6 +30,12 @@ CID = {
     "backlight_down": 0xE2, "backlight_up": 0xE3, "prev_track": 0xE4, "play_pause": 0xE5, "next_track": 0xE6,
     "mute": 0xE7, "volume_down": 0xE8, "volume_up": 0xE9, "context_menu": 0xEA,
     "dictation": 0x103, "emoji": 0x108, "screenshot": 0x10A, "mic_mute": 0x11C,
+    # the rest of the MX keyboard family (MX Keys, MX Keys Mini, Craft): the app lays the F row out
+    # from the position each control reports, so it only needs a name and a label for them
+    "mission_control": 0xE0, "launchpad": 0xE1, "show_desktop": 0xFE, "app_switch": 0x109,
+    "app_switch_dashboard": 0xFF, "search": 0xD4, "home": 0xD5, "virtual_keyboard": 0xD6,
+    "language_switch": 0xDD, "voice_assistant": 0x11D, "open_apps": 0xCA, "all_apps": 0xCB, "switch_app": 0xCC,
+    "emoji_heart_eyes": 0x104, "emoji_crying": 0x105, "emoji_smiley": 0x106, "emoji_tears": 0x107,
 }
 CID_NAMES = {v: k for k, v in CID.items()}
 
@@ -41,6 +47,11 @@ CONTROL_LABELS = {
     0xE7: "Mute", 0xE8: "Volume down", 0xE9: "Volume up", 0xEA: "Context menu",
     0x103: "Dictation", 0x108: "Emoji", 0x10A: "Screen capture", 0x11C: "Mute microphone",
     0xEF: "Fn lock", 0x100: "Show desktop", 0xA1: "Search", 0x11D: "Voice assistant",
+    0xE0: "Mission control / Task view", 0xE1: "Launchpad / Action center", 0xFE: "Show desktop", 0x109: "App switch / Launchpad",
+    0xFF: "App switch / Dashboard", 0xD4: "Search", 0xD5: "Home / Mission control", 0xD6: "Virtual keyboard / Launchpad",
+    0xDD: "Language switch", 0xCA: "Open apps", 0xCB: "All apps", 0xCC: "Switch app",
+    0x104: "Emoji (heart eyes)", 0x105: "Emoji (crying)", 0x106: "Emoji (smiley)", 0x107: "Emoji (tears of joy)",
+    0xD1: "Easy-Switch 1", 0xD2: "Easy-Switch 2", 0xD3: "Easy-Switch 3", 0xDE: "F lock",
 }
 
 MX_MASTER_3S = {

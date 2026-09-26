@@ -81,6 +81,7 @@
   }
   let recorder = null;
   let agentGrab = false, recordDone = null, recordPartial = null;
+  let recGen = 0, armPending = false;   // an arm that is still asking the agent for the grab
   function startRecorder(onUpdate, onDone) {
     stopRecorder();
     const st = { mods: [], key: null, down: new Set() };
@@ -115,6 +116,7 @@
     window.addEventListener('blur', onBlur);
   }
   function stopRecorder() {
+    recGen++;   // a record_start still in flight must not take effect after this
     if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; window.agent.call('record_cancel').catch(() => {}); }
     if (!recorder) return;
     document.removeEventListener('keydown', recorder.onDown, true);
@@ -122,7 +124,7 @@
     window.removeEventListener('blur', recorder.onBlur);
     recorder = null;
   }
-  function recorderActive() { return !!recorder || agentGrab; }
+  function recorderActive() { return !!recorder || agentGrab || armPending; }
 
   // ------------------------------------------------------------ helpers
   const sw = (on, attrs = '') => `<button class="switch ${on ? 'on' : ''}" ${attrs}></button>`;
@@ -233,11 +235,17 @@
     const spots = P.spots.map(([k, x, y, n]) => `<g class="hotspot" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}"><circle class="ring" cx="${x}" cy="${y}" r="40"/><circle class="core" cx="${x}" cy="${y}" r="26"/><text class="n" x="${x}" y="${y + 11}" text-anchor="middle">${n}</text></g>`).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${spots}</svg>`;
   }
+  // The photo is an MX Keys S. Its F row is placed by position (F1 leftmost), so a keyboard that
+  // reports different controls on those keys still lights up the right caps; the keys to the right
+  // of the row are fixed controls that only show when the keyboard has them.
   const KEYBOARD_PHOTO = { src: '../assets/devices/mx-keys-s.png', w: 2172, h: 670, y: 139, kw: 84, kh: 62,
-    keys: [[199, 306], [200, 395], [226, 484], [227, 573], [259, 661], [264, 750], [266, 839], [284, 928], [228, 1017], [229, 1106], [230, 1195], [231, 1283], [232, 1372], [10, 1754], [266, 1842], [234, 1931], [111, 2020]] };
+    frow: [306, 395, 484, 573, 661, 750, 839, 928, 1017, 1106, 1195, 1283], extra: [[233, 1372], [10, 1754], [266, 1842], [234, 1931], [111, 2020]] };
   function keyboardPhoto(d) {
     const P = KEYBOARD_PHOTO;
-    const hot = P.keys.map(([cid, x]) => { const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid); return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'}" data-section="keys" data-cid="${cid}"><title>${esc(ctl ? ctl.label : cid)}: ${esc(presetLabel(a))}</title><rect x="${x - P.kw / 2}" y="${P.y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/>${isNative(a) ? '' : `<circle cx="${x + P.kw / 2 - 10}" cy="${P.y - P.kh / 2 + 10}" r="6"/>`}</g>`; }).join('');
+    const lay = keyLayout(d);
+    const spots = lay.frow.map(k => [k.cid, P.frow[k.pos - 1]]).filter(([, x]) => x !== undefined)
+      .concat(P.extra.filter(([cid]) => d.controls.some(c => c.cid === cid)));
+    const hot = spots.map(([cid, x]) => { const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid); return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'}" data-section="keys" data-cid="${cid}"><title>${esc(ctl ? ctl.label : cid)}: ${esc(presetLabel(a))}</title><rect x="${x - P.kw / 2}" y="${P.y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/>${isNative(a) ? '' : `<circle cx="${x + P.kw / 2 - 10}" cy="${P.y - P.kh / 2 + 10}" r="6"/>`}</g>`; }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${hot}</svg>`;
   }
 
@@ -342,17 +350,32 @@
         row('Firmware update', 'Check with fwupd / LVFS', `<button class="btn sm" data-act="fwupd">Check…</button>`)));
   }
 
-  const FKEYS = [[199, 'F1', 'fa-sun'], [200, 'F2', 'fa-sun'], [226, 'F3', 'fa-lightbulb'], [227, 'F4', 'fa-lightbulb'], [259, 'F5', 'fa-microphone'], [264, 'F6', 'fa-face-smile'], [266, 'F7', 'fa-camera'], [284, 'F8', 'fa-microphone-slash'], [228, 'F9', 'fa-backward-step'], [229, 'F10', 'fa-play'], [230, 'F11', 'fa-forward-step'], [231, 'F12', 'fa-volume-xmark'], [232, 'Vol−', 'fa-volume-low'], [233, 'Vol+', 'fa-volume-high']];
-  const SKEYS = [[10, 'fa-calculator', 'Calculator'], [266, 'fa-camera', 'Capture'], [234, 'fa-bars', 'Menu'], [111, 'fa-lock', 'Lock'], [259, 'fa-microphone', 'Dictation'], [264, 'fa-face-smile', 'Emoji'], [284, 'fa-microphone-slash', 'Mic mute']];
+  const KEY_ICONS = { brightness_down: 'fa-sun', brightness_up: 'fa-sun', backlight_down: 'fa-lightbulb', backlight_up: 'fa-lightbulb', dictation: 'fa-microphone', emoji: 'fa-face-smile', emoji_heart_eyes: 'fa-face-smile', emoji_crying: 'fa-face-smile', emoji_smiley: 'fa-face-smile', emoji_tears: 'fa-face-smile', mic_mute: 'fa-microphone-slash', prev_track: 'fa-backward-step', play_pause: 'fa-play', next_track: 'fa-forward-step', mute: 'fa-volume-xmark', volume_down: 'fa-volume-low', volume_up: 'fa-volume-high', calculator: 'fa-calculator', screenshot: 'fa-camera', context_menu: 'fa-bars', screen_lock: 'fa-lock', mission_control: 'fa-table-cells-large', launchpad: 'fa-grip', show_desktop: 'fa-desktop', app_switch: 'fa-window-restore', app_switch_dashboard: 'fa-window-restore', search: 'fa-magnifying-glass', home: 'fa-house', virtual_keyboard: 'fa-keyboard', language_switch: 'fa-language', voice_assistant: 'fa-comment-dots', open_apps: 'fa-window-restore', all_apps: 'fa-grip', switch_app: 'fa-window-restore' };
+  // What the MX Keys S reports, used only when a keyboard gives no positions for its F row
+  const FROW_FALLBACK = [199, 200, 226, 227, 259, 264, 284, 228, 229, 230, 231, 232];
+  // The F row and the keys beside it come from the keyboard itself: every reprogrammable control
+  // says which F key it sits on (1-12, 0 for a dedicated key). The MX Keys, MX Keys S and Craft all
+  // put different functions on those keys, so nothing here is fixed to one model.
+  function keyLayout(d) {
+    const ctls = (d.controls || []).filter(c => c.divertable);
+    const byPos = ctls.filter(c => c.position >= 1 && c.position <= 12).sort((a, b) => a.position - b.position);
+    const frow = (byPos.length ? byPos : FROW_FALLBACK.map((cid, i) => { const c = ctls.find(x => x.cid === cid); return c && Object.assign({}, c, { position: i + 1 }); }).filter(Boolean))
+      .map(c => ({ cid: c.cid, pos: c.position, k: 'F' + c.position, icon: KEY_ICONS[c.name] || 'fa-keyboard', label: c.label }));
+    const inRow = new Set(frow.map(k => k.cid));
+    const special = ctls.filter(c => !inRow.has(c.cid)).map(c => ({ cid: c.cid, icon: KEY_ICONS[c.name] || 'fa-keyboard', label: c.label }));
+    return { frow, special };
+  }
   function pageKeys(d) {
     const SHORT = { 'Brightness down': 'Bright −', 'Brightness up': 'Bright +', 'Backlight down': 'Light −', 'Backlight up': 'Light +', 'Previous track': 'Previous', 'Play / Pause': 'Play', 'Next track': 'Next', 'Volume down': 'Vol −', 'Volume up': 'Vol +', 'Mute microphone': 'Mic mute', 'Screen capture': 'Capture', 'Screenshot area': 'Capture', 'Screenshot': 'Capture', 'Emoji picker': 'Emoji', 'Emoji (desktop shortcut)': 'Emoji', 'Do nothing': 'Off', 'Open terminal': 'Terminal', 'Context menu': 'Menu', 'Lock screen': 'Lock', 'Mute microphone ': 'Mic mute', 'Dictation (needs a tool)': 'Dictation', 'Show desktop': 'Desktop', 'App switcher': 'Apps', 'Close window': 'Close', 'Maximize window': 'Maximize', 'Minimize window': 'Minimize', 'Zoom in': 'Zoom +', 'Zoom out': 'Zoom −' };
     const shortLabel = t => SHORT[t] || (t.length > 11 ? t.replace(/\s*\(.*\)$/, '').split(' ').slice(0, 2).join(' ') : t);
-    const fk = FKEYS.map(([cid, k, icon]) => { const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid); const full = isNative(a) ? (ctl ? ctl.label : '') : presetLabel(a); return `<button class="fkey ${isNative(a) ? '' : 'assigned'}" data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(ctl ? ctl.label : k)}" title="${esc(full)}"><span class="k">${k}</span><i class="fa-solid ${icon}"></i><span class="a">${esc(shortLabel(full))}</span></button>`; }).join('');
-    const sk = SKEYS.map(([cid, icon, label]) => { const a = assignment(d, 'keys', cid); return `<div class="row"><span class="keycap"><i class="fa-solid ${icon}"></i></span><span class="grow lbl">${label}</span>${drop(a, `data-act="pick" data-section="keys" data-cid="${cid}" data-label="${label}"`)}</div>`; }).join('');
+    const lay = keyLayout(d);
+    const fk = lay.frow.map(({ cid, k, icon, label }) => { const a = assignment(d, 'keys', cid); const full = isNative(a) ? label : presetLabel(a); return `<button class="fkey ${isNative(a) ? '' : 'assigned'}" data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}" title="${esc(full)}"><span class="k">${k}</span><i class="fa-solid ${icon}"></i><span class="a">${esc(shortLabel(full))}</span></button>`; }).join('');
+    const sk = lay.special.map(({ cid, icon, label }) => { const a = assignment(d, 'keys', cid); return `<div class="row"><span class="keycap"><i class="fa-solid ${icon}"></i></span><span class="grow lbl">${esc(shortLabel(label))}</span>${drop(a, `data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}"`)}</div>`; }).join('') || '<div class="row hint">This keyboard reports no dedicated keys</div>';
+    const recCid = (lay.frow.find(k => k.cid === 264) || lay.special[0] || lay.frow[0] || {}).cid;
     const fn = (d.state || {}).fn_swap;
     return `<div class="kb-photo">${keyboardPhoto(d)}</div>` +
       sec('Function row', `<div class="fkeys">${fk}</div>` + card(row('Use F1–F12 as standard function keys', fn === undefined ? 'Not reported by this keyboard' : fn ? 'Off: the keys send their printed functions, hold Fn for F1–F12' : 'On: the keys send F1–F12, hold Fn for the printed functions (or press Fn+Esc)', sw(fn === false, 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"'))), `Fn lock: ${fn === undefined ? 'hardware' : fn ? 'off' : 'on'}`) +
-      sec('Special keys', card(sk) + `<div class="hint"><i class="fa-solid fa-face-smile"></i> The built-in emoji picker opens at the pointer. Type to search, Enter inserts, Esc closes. Assign it with "Emoji picker"; "Emoji (desktop shortcut)" sends Ctrl+. instead.</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="pick" data-section="keys" data-cid="264" data-label="Emoji" data-cat="key"><i class="fa-solid fa-keyboard"></i>Record keystroke…</button><button class="btn" data-act="reset-keys"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div>`);
+      sec('Special keys', card(sk) + `<div class="hint"><i class="fa-solid fa-face-smile"></i> The built-in emoji picker opens at the pointer. Type to search, Enter inserts, Esc closes. Assign it with "Emoji picker"; "Emoji (desktop shortcut)" sends Ctrl+. instead.</div><div style="display:flex;gap:8px;margin-top:8px">${recCid === undefined ? '' : `<button class="btn" data-act="pick" data-section="keys" data-cid="${recCid}" data-label="${esc((d.controls.find(c => c.cid === recCid) || {}).label || '')}" data-cat="key"><i class="fa-solid fa-keyboard"></i>Record keystroke…</button>`}<button class="btn" data-act="reset-keys"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div>`);
   }
 
   function pageBacklight(d) {
@@ -395,7 +418,7 @@
     const groups = S.devices.map(d => {
       const def = profileOf(d, 'default'), p = profileOf(d, key);
       const items = [];
-      const ctls = isMouse(d) ? PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, l]) => ['buttons', cid, l]) : FKEYS.concat().map(([cid, k]) => ['keys', cid, (d.controls.find(c => c.cid === cid) || {}).label || k]).concat(SKEYS.filter(([cid]) => !FKEYS.some(f => f[0] === cid)).map(([cid, , l]) => ['keys', cid, l]));
+      const ctls = isMouse(d) ? PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, l]) => ['buttons', cid, l]) : (l => l.frow.concat(l.special).map(({ cid, label }) => ['keys', cid, label]))(keyLayout(d));
       for (const [secn, cid, label] of ctls) {
         const dv = (def[secn] || {})[String(cid)], v = (p[secn] || {})[String(cid)];
         const ov = !isDef && v !== undefined && JSON.stringify(v) !== JSON.stringify(dv);
@@ -660,8 +683,18 @@
       if (keys && keys.length) assignPicked({ type: 'keystroke', keys });
       else render();
     };
-    window.agent.call('record_start').then(() => { agentGrab = true; recordDone = onFinal; recordPartial = onPartial; })
+    const gen = ++recGen;
+    armPending = true;
+    window.agent.call('record_start').then(() => {
+      armPending = false;
+      // disarmed while the agent was setting the grab up (the typed field took focus): let go
+      // again, or the agent would keep swallowing keys the page no longer wants
+      if (gen !== recGen) { window.agent.call('record_cancel').catch(() => {}); return; }
+      agentGrab = true; recordDone = onFinal; recordPartial = onPartial;
+    })
       .catch(() => {
+        armPending = false;
+        if (gen !== recGen) return;
         agentGrab = false;
         startRecorder((chord, cancelled) => {
           if (cancelled) { S.picker.chord = chord; S.picker.recording = false; render(); return; }
@@ -788,7 +821,7 @@
       case 'check-updates': { const r = await window.agent.checkUpdates(); if (!r.ok) return toast('Update check failed: ' + r.error, true); const cur = S.status.version || VERSION; const newer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) > (y[i] || 0)) return true; if ((x[i] || 0) < (y[i] || 0)) return false; } return false; }; const has = r.latest && newer(r.latest, cur); toast(has ? `Version ${r.latest} is available` : `You are on the latest version (${cur})`); if (has && r.url) window.agent.openExternal(r.url); return; }
       case 'reset-overrides': { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { const keep = { name: profs[key].name, match: profs[key].match }; profs[key] = keep; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } toast('Overrides cleared'); render(); return; }
       case 'reset-buttons': { const defs = ((await window.agent.call('defaults', { id: d.id })).profiles || {}).default || {}; const btns = defs.buttons || {}; for (const cid of Object.keys(btns)) await setAssign(d, 'buttons', cid, btns[cid]); if (defs.thumbwheel) await setAssign(d, 'thumbwheel', null, defs.thumbwheel); toast('Buttons reset to defaults'); render(); return; }
-      case 'reset-keys': { const defs = ((await window.agent.call('defaults', { id: d.id })).profiles || {}).default || {}; const keys = defs.keys || {}; for (const [cid] of FKEYS.concat(SKEYS.map(x => [x[0]]))) await setAssign(d, 'keys', cid, keys[cid] || 'native'); toast('Keys reset to defaults'); render(); return; }
+      case 'reset-keys': { const defs = ((await window.agent.call('defaults', { id: d.id })).profiles || {}).default || {}; const keys = defs.keys || {}; const lay = keyLayout(d); for (const { cid } of lay.frow.concat(lay.special)) await setAssign(d, 'keys', cid, keys[cid] || 'native'); toast('Keys reset to defaults'); render(); return; }
       case 'app-detail': { const p = allProfiles().find(x => x.key === key); S.appDetail = key === 'default' ? { key: 'default', name: 'Default' } : Object.assign({ key }, p || { name: key }); S.menu = null; render(); return; }
       case 'add-app': prompt('Add application', [{ key: 'name', label: 'Name', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }, { key: 'cls', label: 'Window class to match', placeholder: 'firefox', value: S.status.app || '', list: (S.apps || []).filter(a => a.wm_class || a.id).map(a => ({ value: a.wm_class || a.id, label: a.name })) }], v => addProfile(v.name, v.cls), 'Add', S.status.app ? `Currently focused: ${esc(S.status.app)}` : ''); return;
       case 'add-app-quick': await addProfile(b.dataset.name, b.dataset.cls); return;
