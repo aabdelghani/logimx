@@ -46,7 +46,7 @@
     return a.label || a.type;
   };
   const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor' };
-  const PRESET_ICON = { overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
+  const PRESET_ICON = { overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
     copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
     mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
     calculator: 'fa-calculator', emoji: 'fa-face-smile', emoji_picker: 'fa-face-smile', context_menu: 'fa-bars', dictation: 'fa-microphone', terminal: 'fa-terminal', close_window: 'fa-xmark', maximize: 'fa-window-maximize', minimize: 'fa-window-minimize', tile_left: 'fa-table-columns', tile_right: 'fa-table-columns',
@@ -235,17 +235,27 @@
     const spots = P.spots.map(([k, x, y, n]) => `<g class="hotspot" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}"><circle class="ring" cx="${x}" cy="${y}" r="40"/><circle class="core" cx="${x}" cy="${y}" r="26"/><text class="n" x="${x}" y="${y + 11}" text-anchor="middle">${n}</text></g>`).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${spots}</svg>`;
   }
-  // The photo is an MX Keys S. Its F row is placed by position (F1 leftmost), so a keyboard that
-  // reports different controls on those keys still lights up the right caps; the keys to the right
-  // of the row are fixed controls that only show when the keyboard has them.
-  const KEYBOARD_PHOTO = { src: '../assets/devices/mx-keys-s.png', w: 2172, h: 670, y: 139, kw: 84, kh: 62,
-    frow: [306, 395, 484, 573, 661, 750, 839, 928, 1017, 1106, 1195, 1283], extra: [[233, 1372], [10, 1754], [266, 1842], [234, 1931], [111, 2020]] };
+  // One photo per keyboard model, keyed by the device id the agent uses (its product id in hex:
+  // the Bluetooth pid, or the receiver-side pid when it comes through a receiver). Each spot is a
+  // control id with the centre of its key cap in photo pixels; only the controls the connected
+  // keyboard reports are drawn. A keyboard with no entry here gets no photo, only the key tiles.
+  const KEYBOARD_PHOTOS = (() => {
+    const s = { src: '../assets/devices/mx-keys-s.png', w: 2172, h: 670, kw: 84, kh: 62, spots: [[199, 306, 139], [200, 395, 139], [226, 484, 139], [227, 573, 139], [259, 661, 139], [264, 750, 139], [284, 839, 139], [228, 928, 139], [229, 1017, 139], [230, 1106, 139], [231, 1195, 139], [232, 1283, 139], [233, 1372, 139], [10, 1754, 139], [266, 1842, 139], [234, 1931, 139], [111, 2020, 139]] };
+    const keys = { src: '../assets/devices/mx-keys.png', w: 2004, h: 618, kw: 76, kh: 57, spots: [[199, 222, 109], [200, 310, 109], [224, 399, 109], [225, 488, 109], [110, 575, 109], [226, 665, 109], [227, 753, 109], [228, 842, 109], [229, 931, 109], [230, 1019, 109], [231, 1108, 109], [232, 1194, 109], [233, 1284, 109], [10, 1665, 109], [191, 1755, 109], [234, 1844, 109], [111, 1932, 109]] };
+    const mac = { src: '../assets/devices/mx-keys-mac.png', w: 2004, h: 618, kw: 76, kh: 57, spots: [[199, 222, 109], [200, 310, 109], [224, 399, 109], [225, 488, 109], [226, 575, 109], [227, 665, 109], [228, 753, 109], [229, 842, 109], [230, 931, 109], [231, 1019, 109], [232, 1108, 109], [233, 1194, 109], [13, 1284, 109], [10, 1665, 109], [191, 1755, 109], [234, 1844, 109], [111, 1932, 109]] };
+    const business = { src: '../assets/devices/mx-keys-b.png', w: 2004, h: 618, kw: 76, kh: 57, spots: [[199, 222, 109], [200, 310, 109], [226, 399, 109], [227, 488, 109], [259, 575, 109], [264, 665, 109], [284, 753, 109], [228, 842, 109], [229, 931, 109], [230, 1019, 109], [231, 1108, 109], [232, 1194, 109], [233, 1284, 109], [10, 1665, 109], [266, 1755, 109], [234, 1844, 109], [111, 1932, 109]] };
+    const mini = { src: '../assets/devices/mx-keys-mini.png', w: 1382, h: 616, kw: 77, kh: 58, spots: [[226, 424, 114], [227, 513, 114], [259, 602, 114], [264, 689, 114], [266, 778, 114], [284, 866, 114], [229, 955, 114], [231, 1043, 114], [232, 1132, 114], [233, 1220, 114]] };
+    const miniMac = { src: '../assets/devices/mx-keys-mini-mac.png', w: 1634, h: 725, kw: 91, kh: 68, spots: [[226, 498, 125], [227, 604, 125], [259, 709, 125], [264, 815, 125], [266, 918, 125], [284, 1023, 125], [229, 1129, 125], [231, 1233, 125], [232, 1338, 125], [233, 1444, 125], [285, 1548, 125]] };
+    const miniBusiness = { src: '../assets/devices/mx-keys-mini-b.png', w: 1382, h: 616, kw: 77, kh: 58, spots: [[226, 424, 114], [227, 513, 114], [259, 602, 114], [264, 689, 114], [266, 778, 114], [284, 866, 114], [229, 955, 114], [231, 1043, 115], [232, 1132, 114], [233, 1220, 114]] };
+    return { b378: s, b379: s, b37a: s, b35b: keys, '408a': keys, b361: mac, '4092': mac, b363: business, b369: mini, b36e: miniBusiness, b36a: miniMac };
+  })();
   function keyboardPhoto(d) {
-    const P = KEYBOARD_PHOTO;
-    const lay = keyLayout(d);
-    const spots = lay.frow.map(k => [k.cid, P.frow[k.pos - 1]]).filter(([, x]) => x !== undefined)
-      .concat(P.extra.filter(([cid]) => d.controls.some(c => c.cid === cid)));
-    const hot = spots.map(([cid, x]) => { const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid); return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'}" data-section="keys" data-cid="${cid}"><title>${esc(ctl ? ctl.label : cid)}: ${esc(presetLabel(a))}</title><rect x="${x - P.kw / 2}" y="${P.y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/>${isNative(a) ? '' : `<circle cx="${x + P.kw / 2 - 10}" cy="${P.y - P.kh / 2 + 10}" r="6"/>`}</g>`; }).join('');
+    const P = KEYBOARD_PHOTOS[d.id];
+    if (!P) return '';
+    const hot = P.spots.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, x, y]) => {
+      const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid);
+      return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'}" data-section="keys" data-cid="${cid}"><title>${esc(ctl ? ctl.label : cid)}: ${esc(presetLabel(a))}</title><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/></g>`;
+    }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${hot}</svg>`;
   }
 
@@ -350,7 +360,7 @@
         row('Firmware update', 'Check with fwupd / LVFS', `<button class="btn sm" data-act="fwupd">Check…</button>`)));
   }
 
-  const KEY_ICONS = { brightness_down: 'fa-sun', brightness_up: 'fa-sun', backlight_down: 'fa-lightbulb', backlight_up: 'fa-lightbulb', dictation: 'fa-microphone', emoji: 'fa-face-smile', emoji_heart_eyes: 'fa-face-smile', emoji_crying: 'fa-face-smile', emoji_smiley: 'fa-face-smile', emoji_tears: 'fa-face-smile', mic_mute: 'fa-microphone-slash', prev_track: 'fa-backward-step', play_pause: 'fa-play', next_track: 'fa-forward-step', mute: 'fa-volume-xmark', volume_down: 'fa-volume-low', volume_up: 'fa-volume-high', calculator: 'fa-calculator', screenshot: 'fa-camera', context_menu: 'fa-bars', screen_lock: 'fa-lock', mission_control: 'fa-table-cells-large', launchpad: 'fa-grip', show_desktop: 'fa-desktop', app_switch: 'fa-window-restore', app_switch_dashboard: 'fa-window-restore', search: 'fa-magnifying-glass', home: 'fa-house', virtual_keyboard: 'fa-keyboard', language_switch: 'fa-language', voice_assistant: 'fa-comment-dots', open_apps: 'fa-window-restore', all_apps: 'fa-grip', switch_app: 'fa-window-restore' };
+  const KEY_ICONS = { brightness_down: 'fa-sun', brightness_up: 'fa-sun', backlight_down: 'fa-lightbulb', backlight_up: 'fa-lightbulb', dictation: 'fa-microphone', emoji: 'fa-face-smile', emoji_heart_eyes: 'fa-face-smile', emoji_crying: 'fa-face-smile', emoji_smiley: 'fa-face-smile', emoji_tears: 'fa-face-smile', mic_mute: 'fa-microphone-slash', prev_track: 'fa-backward-step', play_pause: 'fa-play', next_track: 'fa-forward-step', mute: 'fa-volume-xmark', volume_down: 'fa-volume-low', volume_up: 'fa-volume-high', calculator: 'fa-calculator', screenshot: 'fa-camera', context_menu: 'fa-bars', screen_lock: 'fa-lock', mission_control: 'fa-table-cells-large', launchpad: 'fa-grip', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switch: 'fa-window-restore', app_switch_dashboard: 'fa-window-restore', search: 'fa-magnifying-glass', home: 'fa-house', virtual_keyboard: 'fa-keyboard', language_switch: 'fa-language', voice_assistant: 'fa-comment-dots', open_apps: 'fa-window-restore', all_apps: 'fa-grip', switch_app: 'fa-window-restore' };
   // What the MX Keys S reports, used only when a keyboard gives no positions for its F row
   const FROW_FALLBACK = [199, 200, 226, 227, 259, 264, 284, 228, 229, 230, 231, 232];
   // The F row and the keys beside it come from the keyboard itself: every reprogrammable control
@@ -373,7 +383,8 @@
     const sk = lay.special.map(({ cid, icon, label }) => { const a = assignment(d, 'keys', cid); return `<div class="row"><span class="keycap"><i class="fa-solid ${icon}"></i></span><span class="grow lbl">${esc(shortLabel(label))}</span>${drop(a, `data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}"`)}</div>`; }).join('') || '<div class="row hint">This keyboard reports no dedicated keys</div>';
     const recCid = (lay.frow.find(k => k.cid === 264) || lay.special[0] || lay.frow[0] || {}).cid;
     const fn = (d.state || {}).fn_swap;
-    return `<div class="kb-photo">${keyboardPhoto(d)}</div>` +
+    const photo = keyboardPhoto(d);
+    return (photo ? `<div class="kb-photo">${photo}</div>` : '') +
       sec('Function row', `<div class="fkeys">${fk}</div>` + card(row('Use F1–F12 as standard function keys', fn === undefined ? 'Not reported by this keyboard' : fn ? 'Off: the keys send their printed functions, hold Fn for F1–F12' : 'On: the keys send F1–F12, hold Fn for the printed functions (or press Fn+Esc)', sw(fn === false, 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"'))), `Fn lock: ${fn === undefined ? 'hardware' : fn ? 'off' : 'on'}`) +
       sec('Special keys', card(sk) + `<div class="hint"><i class="fa-solid fa-face-smile"></i> The built-in emoji picker opens at the pointer. Type to search, Enter inserts, Esc closes. Assign it with "Emoji picker"; "Emoji (desktop shortcut)" sends Ctrl+. instead.</div><div style="display:flex;gap:8px;margin-top:8px">${recCid === undefined ? '' : `<button class="btn" data-act="pick" data-section="keys" data-cid="${recCid}" data-label="${esc((d.controls.find(c => c.cid === recCid) || {}).label || '')}" data-cat="key"><i class="fa-solid fa-keyboard"></i>Record keystroke…</button>`}<button class="btn" data-act="reset-keys"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div>`);
   }
