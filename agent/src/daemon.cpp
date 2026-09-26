@@ -101,7 +101,7 @@ json ManagedDevice::summary() {
         char hx[16];
         snprintf(hx, sizeof(hx), "Control 0x%X", cid);
         controls.push_back({{"cid", cid}, {"name", names.value(k, "cid_" + k)}, {"label", labels.value(k, hx)},
-                            {"divertable", c.divertable()}, {"raw_xy", c.rawXY()}, {"fkey", c.isFKey()},
+                            {"divertable", c.divertable()}, {"raw_xy", c.rawXY()}, {"fkey", c.isFKey()}, {"position", c.position},
                             {"diverted", diverted_.count(cid) > 0}});
     }
     json feats = json::array();
