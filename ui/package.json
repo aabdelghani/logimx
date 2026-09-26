@@ -1,7 +1,7 @@
 {
   "name": "logimx-ui",
   "productName": "LogiMX",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "LogiMX: third-party configuration app for MX Master and MX Keys devices on Linux",
   "homepage": "https://github.com/aabdelghani/logimx",
   "author": "aabdelghany",
