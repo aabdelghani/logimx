@@ -35,6 +35,7 @@ CID = {
     "mission_control": 0xE0, "launchpad": 0xE1, "show_desktop": 0x6E, "home_show_desktop": 0xFE, "app_switch": 0x109,
     "app_switch_dashboard": 0xFF, "search": 0xD4, "home": 0xD5, "virtual_keyboard": 0xD6, "screen_capture": 0xBF, "eject": 0x0D,
     "language_switch": 0xDD, "do_not_disturb": 0x11D, "open_apps": 0xCA, "all_apps": 0xCB, "switch_app": 0xCC,
+    "right_arrow": 0xEB, "left_arrow": 0xEC,
     "emoji_heart_eyes": 0x104, "emoji_crying": 0x105, "emoji_smiley": 0x106, "emoji_tears": 0x107,
 }
 CID_NAMES = {v: k for k, v in CID.items()}
@@ -47,7 +48,7 @@ CONTROL_LABELS = {
     0xE7: "Mute", 0xE8: "Volume down", 0xE9: "Volume up", 0xEA: "Context menu",
     0x103: "Dictation", 0x108: "Emoji", 0x10A: "Screen capture", 0x11C: "Mute microphone",
     0xEF: "Fn lock", 0x100: "Show desktop", 0x6E: "Show desktop", 0xA1: "Search", 0x11D: "Do not disturb",
-    0xBF: "Screen capture", 0x0D: "Eject",
+    0xBF: "Screen capture", 0x0D: "Eject", 0xEB: "Right arrow (Fn)", 0xEC: "Left arrow (Fn)",
     0xE0: "Mission control / Task view", 0xE1: "Launchpad / Action center", 0xFE: "Show desktop", 0x109: "App switch / Launchpad",
     0xFF: "App switch / Dashboard", 0xD4: "Search", 0xD5: "Home / Mission control", 0xD6: "Virtual keyboard / Launchpad",
     0xDD: "Language switch", 0xCA: "Open apps", 0xCB: "All apps", 0xCC: "Switch app",

@@ -31,6 +31,13 @@
   const isNative = a => !a || a === 'native';
   const profileOf = (d, key) => (((d.config || {}).profiles || {})[key || 'default']) || {};
   const assignment = (d, section, cid, prof) => section === 'thumbwheel' ? profileOf(d, prof).thumbwheel : ((profileOf(d, prof)[section] || {})[String(cid)]);
+  // Icon for an assignment: the preset's own icon, else its type's, and the key's printed
+  // function only while the key is left to the device.
+  const assignIcon = (a, native) => {
+    if (!a || a === 'native') return native;
+    if (typeof a === 'string') return PRESET_ICON[a] || ICON[(S.presets && S.presets.all[a] || {}).type] || native;
+    return ICON[a.type] || native;
+  };
   const presetLabel = a => {
     if (!a || a === 'native') return 'Default';
     if (typeof a === 'string') return (S.presets && S.presets.all[a] || {}).label || a;
@@ -377,9 +384,10 @@
   }
   function pageKeys(d) {
     const SHORT = { 'Brightness down': 'Bright −', 'Brightness up': 'Bright +', 'Backlight down': 'Light −', 'Backlight up': 'Light +', 'Previous track': 'Previous', 'Play / Pause': 'Play', 'Next track': 'Next', 'Volume down': 'Vol −', 'Volume up': 'Vol +', 'Mute microphone': 'Mic mute', 'Screen capture': 'Capture', 'Screenshot area': 'Capture', 'Screenshot': 'Capture', 'Emoji picker': 'Emoji', 'Emoji (desktop shortcut)': 'Emoji', 'Do nothing': 'Off', 'Open terminal': 'Terminal', 'Context menu': 'Menu', 'Lock screen': 'Lock', 'Mute microphone ': 'Mic mute', 'Dictation (needs a tool)': 'Dictation', 'Show desktop': 'Desktop', 'App switcher': 'Apps', 'Close window': 'Close', 'Maximize window': 'Maximize', 'Minimize window': 'Minimize', 'Zoom in': 'Zoom +', 'Zoom out': 'Zoom −' };
-    const shortLabel = t => SHORT[t] || (t.length > 11 ? t.replace(/\s*\(.*\)$/, '').split(' ').slice(0, 2).join(' ') : t);
+    // a chord keeps every key and wraps after the plus signs; anything else is cut to two words
+    const shortLabel = t => SHORT[t] || (t.includes(' + ') ? t.replace(/ \+ /g, '+\u200b') : t.length > 11 ? t.replace(/\s*\(.*\)$/, '').split(' ').slice(0, 2).join(' ') : t);
     const lay = keyLayout(d);
-    const fk = lay.frow.map(({ cid, k, icon, label }) => { const a = assignment(d, 'keys', cid); const full = isNative(a) ? label : presetLabel(a); return `<button class="fkey ${isNative(a) ? '' : 'assigned'}" data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}" title="${esc(full)}"><span class="k">${k}</span><i class="fa-solid ${icon}"></i><span class="a">${esc(shortLabel(full))}</span></button>`; }).join('');
+    const fk = lay.frow.map(({ cid, k, icon, label }) => { const a = assignment(d, 'keys', cid); const full = isNative(a) ? label : presetLabel(a); return `<button class="fkey ${isNative(a) ? '' : 'assigned'}" data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}" title="${esc(full)}"><span class="k">${k}</span><i class="fa-solid ${assignIcon(a, icon)}"></i><span class="a">${esc(shortLabel(full))}</span></button>`; }).join('');
     const sk = lay.special.map(({ cid, icon, label }) => { const a = assignment(d, 'keys', cid); return `<div class="row"><span class="keycap"><i class="fa-solid ${icon}"></i></span><span class="grow lbl">${esc(shortLabel(label))}</span>${drop(a, `data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}"`)}</div>`; }).join('') || '<div class="row hint">This keyboard reports no dedicated keys</div>';
     const recCid = (lay.frow.find(k => k.cid === 264) || lay.special[0] || lay.frow[0] || {}).cid;
     const fn = (d.state || {}).fn_swap;
