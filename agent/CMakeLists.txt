@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(logimx-agent VERSION 0.4.4 LANGUAGES CXX)
+project(logimx-agent VERSION 0.4.5 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
