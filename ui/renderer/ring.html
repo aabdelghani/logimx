@@ -5,33 +5,30 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self';">
   <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
   <style>
-    :root, [data-theme="light"], [data-theme="ubuntu"] { --disc: rgba(250,250,252,.96); --fg: rgba(0,0,0,.85); --dim: rgba(0,0,0,.5); --sep: rgba(0,0,0,.08); --hov: rgba(53,132,228,.16); --acc: #3584e4; --shadow: 0 18px 50px rgba(0,0,0,.28); --hub: #fff; }
-    [data-theme="dark"], [data-theme="ubuntu-dark"] { --disc: rgba(40,40,44,.96); --fg: #fff; --dim: rgba(255,255,255,.5); --sep: rgba(255,255,255,.1); --hov: rgba(53,132,228,.32); --acc: #6aa9ff; --shadow: 0 18px 50px rgba(0,0,0,.6); --hub: #2e2e32; }
-    [data-theme="ubuntu"] { --acc: #e95420; --hov: rgba(233,84,32,.16); }
-    [data-theme="ubuntu-dark"] { --acc: #ff8a5b; --hov: rgba(233,84,32,.34); }
+    :root, [data-theme="light"], [data-theme="ubuntu"] { --bub: #111214; --bub-fg: #fff; --card: #fff; --card-fg: #1b1c1f; --card-brd: rgba(0,0,0,.08); --hub: #ececee; --hub-fg: #2a2b2f; --acc: #2dd4bf; --acc-fg: #052e2b; }
+    [data-theme="dark"], [data-theme="ubuntu-dark"] { --bub: #f4f4f6; --bub-fg: #141517; --card: #2b2c31; --card-fg: #fff; --card-brd: rgba(255,255,255,.1); --hub: #3a3b41; --hub-fg: #fff; --acc: #2dd4bf; --acc-fg: #052e2b; }
     html, body { margin: 0; background: transparent; height: 100%; overflow: hidden; }
-    body { font: 12px Cantarell, "Adwaita Sans", "Noto Sans", Inter, system-ui, sans-serif; color: var(--fg); user-select: none; -webkit-user-select: none; cursor: default; }
-    #ring { position: absolute; inset: 0; }
-    svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 12px 30px rgba(0,0,0,.35)); }
-    svg .wedge { fill: var(--disc); stroke: var(--sep); stroke-width: 1; transition: fill .08s; }
-    svg .wedge.on { fill: var(--hov); }
-    svg .wedge.empty { fill: var(--disc); }
-    svg .hub { fill: var(--hub); stroke: var(--sep); }
-    .slot { position: absolute; width: 74px; margin-left: -37px; margin-top: -24px; text-align: center; pointer-events: none; }
-    .slot i { display: block; font-size: 17px; margin-bottom: 5px; color: var(--fg); }
-    .slot span { display: block; font-size: 10.5px; line-height: 1.15; color: var(--dim); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-    .slot.on i, .slot.on span { color: var(--acc); }
-    .slot.empty i, .slot.empty span { opacity: .32; }
-    #hub { position: absolute; left: 50%; top: 50%; width: 96px; margin-left: -48px; margin-top: -30px; height: 60px; text-align: center; pointer-events: none; display: flex; flex-direction: column; justify-content: center; }
-    #hub .t { font-size: 11.5px; font-weight: 600; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-    #hub .s { font-size: 10px; color: var(--dim); margin-top: 2px; }
+    body { font: 500 14px Cantarell, "Adwaita Sans", "Noto Sans", Inter, system-ui, sans-serif; user-select: none; -webkit-user-select: none; cursor: default; }
     /* held on a button that steers the ring: the pointer is frozen underneath, so it is hidden;
-       the highlighted wedge shows where the hand has moved to */
+       the highlighted bubble shows where the hand has moved to */
     body.raw, body.raw * { cursor: none !important; }
+    #ring { position: absolute; inset: 0; }
+    .bub { position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--bub); color: var(--bub-fg); display: flex; align-items: center; justify-content: center; font-size: 21px; box-shadow: 0 6px 18px rgba(0,0,0,.28); transition: transform .09s ease-out, background .09s, color .09s; }
+    /* the nub that points from the chosen bubble at its label */
+    .bub::after { content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px 9px 4px 9px; background: inherit; transform: rotate(var(--a)) translateX(24px) rotate(45deg) scale(0); transition: transform .09s ease-out; z-index: -1; }
+    .bub.on { background: var(--acc); color: var(--acc-fg); transform: scale(1.14); }
+    .bub.on::after { transform: rotate(var(--a)) translateX(24px) rotate(45deg) scale(1); }
+    .bub.empty { background: transparent; color: var(--card); border: 2px dashed rgba(255,255,255,.75); box-shadow: 0 0 0 1px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.25); box-sizing: border-box; font-size: 15px; opacity: .7; text-shadow: 0 0 3px rgba(0,0,0,.6); }
+    .bub.empty.on { opacity: 1; transform: scale(1.06); background: transparent; }
+    .bub.empty::after { display: none; }
+    .lab { position: absolute; padding: 9px 15px; border-radius: 7px; background: var(--card); color: var(--card-fg); border: 1px solid var(--card-brd); box-shadow: 0 4px 14px rgba(0,0,0,.2); white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; transition: box-shadow .09s, transform .09s; }
+    .lab.on { box-shadow: 0 0 0 2px var(--acc), 0 6px 18px rgba(0,0,0,.28); }
+    #hub { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--hub); color: var(--hub-fg); display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.2); transition: transform .09s; }
+    #hub.on { transform: scale(1.12); }
   </style>
 </head>
 <body>
-  <div id="ring"><svg id="svg" viewBox="0 0 340 340"></svg><div id="slots"></div><div id="hub"><div class="t">Action ring</div><div class="s">Esc closes</div></div></div>
+  <div id="ring"><div id="slots"></div><div id="hub"><i class="fa-solid fa-xmark"></i></div></div>
   <script src="ring.js"></script>
 </body>
 </html>

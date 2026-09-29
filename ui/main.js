@@ -436,11 +436,11 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // reports the picked slot, and the action runs through the agent like any assignment would.
 let ringWin = null, ringSlots = [], ringDevice = null, ringOpening = false, ringReleasedEarly = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
-const RING_S = 340;
+const RING_W = 560, RING_H = 460;   // room for the labels outside the buttons
 function ensureRing() {
   if (ringWin && !ringWin.isDestroyed()) return ringWin;
   ringWin = new BrowserWindow({
-    width: RING_S, height: RING_S, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false,
+    width: RING_W, height: RING_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   ringWin.setAlwaysOnTop(true, 'pop-up-menu');
@@ -469,8 +469,8 @@ async function showRing(deviceId, raw) {
   ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
   const pt = await cursorPoint();
   const a = screen.getDisplayNearestPoint(pt).workArea;
-  const X = Math.round(Math.max(a.x, Math.min(a.x + a.width - RING_S, pt.x - RING_S / 2)));
-  const Y = Math.round(Math.max(a.y, Math.min(a.y + a.height - RING_S, pt.y - RING_S / 2)));
+  const X = Math.round(Math.max(a.x, Math.min(a.x + a.width - RING_W, pt.x - RING_W / 2)));
+  const Y = Math.round(Math.max(a.y, Math.min(a.y + a.height - RING_H, pt.y - RING_H / 2)));
   const place = () => { if (w.isDestroyed()) return; const [cx, cy] = w.getPosition(); if (cx !== X || cy !== Y) w.setPosition(X, Y); };
   const send = () => {
     w.setPosition(X, Y); w.show(); place(); w.focus();
