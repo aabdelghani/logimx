@@ -7,7 +7,8 @@
   const N = 8, W = 560, H = 460, CX = W / 2, CY = H / 2;
   const RR = 104, B = 28;          // ring radius to the bubble centres, bubble radius
   const NEAR = 38, FAR = 250;      // pointer mode: inside NEAR is the close button, beyond FAR is outside
-  const GAIN = 1, DEAD = 10, LIMIT = 36;
+  const GAIN = 1;
+  let DEAD = 30, LIMIT = 60;       // travel before a button is chosen, and where the point saturates (set per show)
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -62,6 +63,7 @@
     if (look.font) document.body.style.fontFamily = `"${look.font}", system-ui, sans-serif`;
     slots = Array.from({ length: N }, (_, i) => (msg.slots || [])[i] || null);
     shownAt = Date.now(); last = null; vx = vy = 0;
+    DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on');
     setRaw(!!msg.raw);
     build();

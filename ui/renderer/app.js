@@ -492,7 +492,9 @@
     const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
     const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">Hold the button and nudge the mouse toward an action, then let go to run it; or tap the button and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
     const rows = slots.map((sl, i) => `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
-    return sec('Action ring', card(preview)) + sec('Slots', card(rows), 'clockwise from the top');
+    const travel = (S.general.ring || {}).travel || 30;
+    const feel = `<div class="row"><div class="grow"><div class="lbl">Travel before it picks</div><div class="sub">How far the mouse moves before an action is chosen: lower is snappier, higher is calmer</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
+    return sec('Action ring', card(preview + feel)) + sec('Slots', card(rows), 'clockwise from the top');
   }
   function pageSettings() {
     const u = S.ui || {};
@@ -758,7 +760,7 @@
     if (p.section === 'ring') {
       const slots = ringSlots();
       slots[p.cid] = { action, label: presetLabel(action), icon: actionIcon(action) };
-      await setGeneral({ ring: { slots } });
+      await setGeneral({ ring: Object.assign({}, S.general.ring, { slots }) });
       S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
     }
     if (p.section === 'gesture') {
@@ -814,10 +816,11 @@
       case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
-      case 'ring-clear': await setGeneral({ ring: { slots: [] } }); toast('Action ring cleared'); render(); return;
+      case 'ring-travel': await setGeneral({ ring: Object.assign({}, S.general.ring, { travel: Number(b.value) }) }); return;
+      case 'ring-clear': await setGeneral({ ring: Object.assign({}, S.general.ring, { slots: [] }) }); toast('Action ring cleared'); render(); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
-        if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await setGeneral({ ring: { slots } }); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); render(); return; }
+        if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await setGeneral({ ring: Object.assign({}, S.general.ring, { slots }) }); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); render(); return; }
         const defs = ((await window.agent.call('defaults', { id: dd.id })).profiles || {}).default || {};
         let a = 'native';
         if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';
