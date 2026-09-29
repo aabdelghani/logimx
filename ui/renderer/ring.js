@@ -1,15 +1,14 @@
 // Action ring overlay: eight wedges around the pointer. Hover picks a wedge, click or 1-8 runs
 // it, Esc or a click outside closes. Held on a button that steers it (raw mode), the pointer is
-// hidden and frozen, the mouse's movement drives a knob that cannot leave the ring, and letting
-// go runs the wedge the knob is on. Slots come from the main process with a label and icon
+// hidden and frozen and the mouse's movement moves an unseen point that cannot leave the ring;
+// the highlighted wedge is the only indicator, and letting go runs it. Slots come from the main process with a label and icon
 // already resolved, so this window knows nothing about presets.
 (() => {
   const N = 8, S = 340, C = S / 2, R = 158, r = 52, GAP = 3;
-  const GAIN = 0.3, LIMIT = R - 24;   // mouse counts to ring pixels, and how far out the knob may go
-  const svg = document.getElementById('svg'), slotsEl = document.getElementById('slots'), hub = document.getElementById('hub'), knob = document.getElementById('knob');
+  const GAIN = 1, LIMIT = R - 24;   // one mouse count is one pixel, as the pointer itself moves; LIMIT keeps the point in the ring
+  const svg = document.getElementById('svg'), slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
-  function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } placeKnob(); }
-  function placeKnob() { knob.style.left = (C + vx) + 'px'; knob.style.top = (C + vy) + 'px'; }
+  function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const rad = deg => (deg - 90) * Math.PI / 180;    // 0° at the top, clockwise
   const pt = (rr, deg) => [C + rr * Math.cos(rad(deg)), C + rr * Math.sin(rad(deg))];
@@ -44,7 +43,7 @@
   document.addEventListener('mousemove', e => { if (raw) return; last = [e.clientX, e.clientY]; const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i); });
   document.addEventListener('mouseleave', () => { if (!raw) setHover(-1); });
   document.addEventListener('mousedown', e => {
-    if (raw) { if (hover >= 0 && slots[hover]) window.ring.pick(hover); return; }   // a click while steering picks what the knob is on
+    if (raw) { if (hover >= 0 && slots[hover]) window.ring.pick(hover); return; }   // a click while steering picks the highlighted wedge
     const i = at(e.clientX, e.clientY);
     if (i < 0) { if (Math.hypot(e.clientX - C, e.clientY - C) > R) window.ring.close(); return; }
     if (slots[i]) window.ring.pick(i); else window.ring.close();
@@ -65,8 +64,7 @@
     if (!raw) setRaw(true);
     vx += dx * GAIN; vy += dy * GAIN;
     const d = Math.hypot(vx, vy);
-    if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // the knob never leaves the ring
-    placeKnob();
+    if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
     const i = at(C + vx, C + vy);
     if (i !== hover) setHover(i);
   });
