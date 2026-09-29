@@ -1085,7 +1085,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
                 if (it != hidpp::kReceivers.end() && seen.insert(t->info().product).second) recv += (recv.empty() ? "" : ", ") + it->second + " receiver";
             }
         }
-        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.4.16"},
+        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.4.17"},
                 {"conflicts", conflictingTools()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
     }
     if (method == "logs") {
@@ -1103,6 +1103,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return json{{"ok", true}};
     }
     if (method == "record_cancel") { recorder_.cancel(); return json{{"ok", true}}; }
+    if (method == "skip_taskbar") return json{{"ok", apps::skipTaskbar(static_cast<unsigned long>(p.value("xid", 0.0)))}};
     if (method == "running_apps") {
         // window classes of everything open, matched against the installed desktop entries so
         // the caller gets a name and an icon rather than a bare class
