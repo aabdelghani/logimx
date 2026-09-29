@@ -21,8 +21,9 @@
     .bub.empty { background: transparent; color: var(--card); border: 2px dashed rgba(255,255,255,.75); box-shadow: 0 0 0 1px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.25); box-sizing: border-box; font-size: 15px; opacity: .7; text-shadow: 0 0 3px rgba(0,0,0,.6); }
     .bub.empty.on { opacity: 1; transform: scale(1.06); background: transparent; }
     .bub.empty::after { display: none; }
-    .lab { position: absolute; padding: 9px 15px; border-radius: 7px; background: var(--card); color: var(--card-fg); border: 1px solid var(--card-brd); box-shadow: 0 4px 14px rgba(0,0,0,.2); white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; transition: box-shadow .09s, transform .09s; }
-    .lab.on { box-shadow: 0 0 0 2px var(--acc), 0 6px 18px rgba(0,0,0,.28); }
+    .lab { position: absolute; padding: 9px 15px; border-radius: 7px; background: var(--card); color: var(--card-fg); border: 1px solid var(--card-brd); box-shadow: 0 4px 14px rgba(0,0,0,.2); white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .1s; pointer-events: none; }
+    /* only the chosen action says its name */
+    .lab.on { opacity: 1; box-shadow: 0 0 0 2px var(--acc), 0 6px 18px rgba(0,0,0,.28); }
     #hub { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--hub); color: var(--hub-fg); display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.2); transition: transform .09s; }
     #hub.on { transform: scale(1.12); }
   </style>
