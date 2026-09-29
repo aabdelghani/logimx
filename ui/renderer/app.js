@@ -146,7 +146,7 @@
 
   // ------------------------------------------------------------- nav
   const PAGES = {
-    buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
+    buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
     easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
     apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
