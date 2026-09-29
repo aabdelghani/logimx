@@ -208,4 +208,24 @@ void Tracker::swayLoop() {
     }
 }
 
+
+bool skipTaskbar(unsigned long xid) {
+    if (!xid || !getenv("DISPLAY")) return false;
+    Display* dpy = XOpenDisplay(nullptr);
+    if (!dpy) return false;
+    XEvent e{};
+    e.xclient.type = ClientMessage;
+    e.xclient.window = static_cast<Window>(xid);
+    e.xclient.message_type = XInternAtom(dpy, "_NET_WM_STATE", False);
+    e.xclient.format = 32;
+    e.xclient.data.l[0] = 1;   // add
+    e.xclient.data.l[1] = static_cast<long>(XInternAtom(dpy, "_NET_WM_STATE_SKIP_TASKBAR", False));
+    e.xclient.data.l[2] = static_cast<long>(XInternAtom(dpy, "_NET_WM_STATE_SKIP_PAGER", False));
+    e.xclient.data.l[3] = 1;   // from an application
+    XSendEvent(dpy, DefaultRootWindow(dpy), False, SubstructureRedirectMask | SubstructureNotifyMask, &e);
+    XFlush(dpy);
+    XCloseDisplay(dpy);
+    return true;
+}
+
 }  // namespace apps
