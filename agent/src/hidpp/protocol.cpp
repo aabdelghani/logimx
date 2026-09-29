@@ -153,16 +153,68 @@ std::optional<SmartShiftState> Device::smartshift() {
         return SmartShiftState{r[0], r[1], r[2]};
     }
     if (has(SMART_SHIFT_ENHANCED)) {
+        // capabilities: flags (bit 0 = torque can be tuned), default threshold, default torque
+        Bytes cap = req(SMART_SHIFT_ENHANCED, 0);
         Bytes r = req(SMART_SHIFT_ENHANCED, 1);
-        return SmartShiftState{r[0], r[1], r[2]};
+        SmartShiftState s;
+        s.mode = r[0]; s.threshold = r[1]; s.torque = r[2];
+        s.tunable = (cap[0] & 0x01) != 0; s.defaultThreshold = cap[1]; s.defaultTorque = cap[2];
+        return s;
     }
     return std::nullopt;
 }
 
-void Device::setSmartshift(int mode, int threshold) {
-    Bytes p = {static_cast<uint8_t>(mode), static_cast<uint8_t>(threshold), 0};
-    if (has(SMART_SHIFT)) req(SMART_SHIFT, 1, p);
+void Device::setSmartshift(int mode, int threshold, int torque) {
+    // zero leaves a field as it is
+    Bytes p = {static_cast<uint8_t>(mode), static_cast<uint8_t>(threshold), static_cast<uint8_t>(torque)};
+    if (has(SMART_SHIFT)) req(SMART_SHIFT, 1, {p[0], p[1], 0});
     else if (has(SMART_SHIFT_ENHANCED)) req(SMART_SHIFT_ENHANCED, 2, p);
+}
+
+std::optional<HapticState> Device::haptic() {
+    if (!has(HAPTIC)) return std::nullopt;
+    Bytes cap = req(HAPTIC, 0);
+    Bytes cfg = req(HAPTIC, 1);
+    HapticState h;
+    h.waveforms = (static_cast<uint32_t>(cap[4]) << 24) | (static_cast<uint32_t>(cap[5]) << 16) | (static_cast<uint32_t>(cap[6]) << 8) | cap[7];
+    h.enabled = (cfg[0] & 0x01) != 0;
+    h.level = cfg[1];
+    h.discrete = (cfg[2] & 0x01) != 0;
+    return h;
+}
+
+void Device::setHaptic(bool enabled, int level) {
+    if (!has(HAPTIC)) return;
+    level = std::max(1, std::min(100, level));   // the level is kept while feedback is off
+    req(HAPTIC, 2, {static_cast<uint8_t>(enabled ? 1 : 0), static_cast<uint8_t>(level)});
+}
+
+void Device::playHaptic(int waveform) {
+    if (!has(HAPTIC)) return;
+    req(HAPTIC, 4, {static_cast<uint8_t>(waveform)});
+}
+
+std::vector<ForceButton> Device::forceButtons() {
+    std::vector<ForceButton> out;
+    if (!has(FORCE_BUTTON)) return out;
+    int n = req(FORCE_BUTTON, 0)[0];
+    for (int i = 0; i < n && i < 8; ++i) {
+        Bytes info = req(FORCE_BUTTON, 1, {static_cast<uint8_t>(i)});
+        Bytes cur = req(FORCE_BUTTON, 2, {static_cast<uint8_t>(i)});
+        auto u16 = [](const Bytes& b, size_t o) { return (static_cast<int>(b[o]) << 8) | b[o + 1]; };
+        ForceButton f;
+        f.index = i;
+        f.changeable = (u16(info, 0) & 0x01) != 0;
+        f.def = u16(info, 2); f.max = u16(info, 4); f.min = u16(info, 6);
+        f.current = u16(cur, 0);
+        out.push_back(f);
+    }
+    return out;
+}
+
+void Device::setForce(int index, int value) {
+    if (!has(FORCE_BUTTON)) return;
+    req(FORCE_BUTTON, 3, {static_cast<uint8_t>(index), static_cast<uint8_t>(value >> 8), static_cast<uint8_t>(value)});
 }
 
 std::optional<HiResState> Device::hires() {

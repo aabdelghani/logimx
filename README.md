@@ -6,7 +6,7 @@
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-2dd4bf.svg)](#requirements)
 [![Agent: C++20](https://img.shields.io/badge/agent-C%2B%2B20-2dd4bf.svg)](agent)
 [![UI: Electron](https://img.shields.io/badge/UI-Electron-2dd4bf.svg)](ui)
-[![Devices: MX Master 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#features)
+[![Devices: MX Master 3S and 4, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%203S%20%2F%204%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#features)
 
 Third-party configuration app for the MX Master 3S and MX Keys S on Linux. It brings full
 device configuration to GNOME, KDE and other desktops: button and key assignments, gestures,
@@ -43,7 +43,7 @@ below the compositor.
 
 ## Features
 
-Mouse (MX Master 3S)
+Mouse (MX Master 3S, MX Master 4)
 
 - Assign any action to the middle, back, forward, gesture and mode shift buttons, with
   numbered callouts on a photo of the device
@@ -54,6 +54,10 @@ Mouse (MX Master 3S)
 - DPI 200 to 8000, desktop pointer speed, SmartShift on/off and sensitivity, a SmartShift
   toggle action, smooth scrolling, natural scroll direction
 - Battery with 7-day history, firmware, serial, Easy-Switch host cards with one-click switching
+- MX Master 4: the haptic panel as a button of its own (it opens the action ring out of the
+  box), haptic feedback on or off with its strength, a tick as the ring moves and a thud when an
+  action runs, a tick on gestures, sixteen patterns to try, how hard the panel has to be
+  pressed, and the ratchet force of the wheel
 - Action ring: eight actions of your choice around the pointer. It shares the gesture button with
   gestures ("Gestures & action ring" page: Gestures, Action ring or Off). Hold the button, nudge the mouse toward
   an action and let go to run it, or tap and click; or keep the pointer visible and free and
@@ -136,7 +140,7 @@ every time a version tag is pushed, so each asset can be traced back to a public
 **Debian / Ubuntu (.deb)**: agent, CLI, udev rule, systemd user unit, desktop entry and the app.
 
 ```
-sudo apt install ./logimx_0.4.18_amd64.deb
+sudo apt install ./logimx_0.5.0_amd64.deb
 systemctl --user enable --now logimx      # agent for the current session (automatic after the next login)
 logimx                                    # or launch LogiMX from the app grid
 ```
@@ -145,8 +149,8 @@ logimx                                    # or launch LogiMX from the app grid
 wizard installs the udev rule with pkexec.
 
 ```
-chmod +x LogiMX-0.4.18-x86_64.AppImage
-./LogiMX-0.4.18-x86_64.AppImage
+chmod +x LogiMX-0.5.0-x86_64.AppImage
+./LogiMX-0.5.0-x86_64.AppImage
 ```
 
 Build the packages yourself with `packaging/deb/build.sh` and `cd ui && npm run dist:appimage`.
@@ -208,11 +212,11 @@ logimxctl presets
 ```
 
 Configuration lives in `~/.config/logimx/config.json`. Device ids are the product ids
-(`b034` MX Master 3S, `b378` MX Keys S), controls are HID++ control ids.
+(`b034` MX Master 3S, `b042` MX Master 4, `b378` MX Keys S), controls are HID++ control ids.
 
 ## Status
 
-Tested on Ubuntu 24.04 with GNOME on X11, MX Master 3S and MX Keys S on a Bolt receiver.
+Tested on Ubuntu 24.04 with GNOME on X11, MX Master 3S, MX Master 4 and MX Keys S on a Bolt receiver.
 Bluetooth connections work the same way as the receiver (tested with the MX Keys S paired directly).
 The other MX Keys models are set up from their published key layouts and have not been on this
 bench; reports welcome. GNOME on Wayland

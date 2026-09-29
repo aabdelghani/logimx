@@ -523,10 +523,15 @@ async function showRing(deviceId, raw) {
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
 }
 ipcMain.on('ring-close', () => { if (ringWin && !ringWin.isDestroyed()) ringWin.hide(); });
+// haptic feedback on the mouse that opened the ring; mice without it, and rings opened from the
+// page, simply get none
+const ringCue = cue => { if (ringDevice) rpc('haptic_cue', { id: ringDevice, cue }).catch(() => {}); };
+ipcMain.on('ring-hover', () => ringCue('ring_hover'));
 ipcMain.on('ring-pick', async (_e, { index }) => {
   if (ringWin && !ringWin.isDestroyed()) ringWin.hide();
   const slot = ringSlots[index];
   if (!slot || !slot.action) return;
+  ringCue('ring_run');
   const params = { action: slot.action };
   if (ringDevice) params.id = ringDevice;
   try { await rpc('run_action', params); }

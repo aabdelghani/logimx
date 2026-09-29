@@ -4,5 +4,6 @@ contextBridge.exposeInMainWorld('ring', {
   onRelease: cb => ipcRenderer.on('ring-release', () => cb()),
   onMove: cb => ipcRenderer.on('ring-move', (_e, msg) => cb(msg)),
   pick: index => ipcRenderer.send('ring-pick', { index }),
+  hover: index => ipcRenderer.send('ring-hover', { index }),
   close: () => ipcRenderer.send('ring-close'),
 });

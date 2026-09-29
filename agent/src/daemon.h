@@ -31,6 +31,9 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     json summary();
     // run one action through this device's engine (its host switching, DPI and SmartShift ops)
     void play(const json& a) { engine_->play(a); }
+    // haptic feedback for something the user just did (ring_hover, ring_run, gesture); false when
+    // the device has no haptics or the setting for that kind of cue is off
+    bool cue(const std::string& name);
     json batteryJson() const;
     json readState(bool full = true);
     void applySettings(const std::string& only = "");

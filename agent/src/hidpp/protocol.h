@@ -15,7 +15,7 @@ using json = nlohmann::json;
 enum Feature : uint16_t {
     ROOT = 0x0000, FEATURE_SET = 0x0001, DEVICE_FW = 0x0003, DEVICE_NAME = 0x0005, FRIENDLY_NAME = 0x0007,
     CONFIG_CHANGE = 0x0020, UNIFIED_BATTERY = 0x1004, CHANGE_HOST = 0x1814, HOSTS_INFO = 0x1815,
-    BACKLIGHT2 = 0x1982, SPECIAL_KEYS = 0x1B04, WIRELESS_STATUS = 0x1D4B, SMART_SHIFT = 0x2110,
+    BACKLIGHT2 = 0x1982, HAPTIC = 0x19B0, FORCE_BUTTON = 0x19C0, SPECIAL_KEYS = 0x1B04, WIRELESS_STATUS = 0x1D4B, SMART_SHIFT = 0x2110,
     SMART_SHIFT_ENHANCED = 0x2111, HIRES_WHEEL = 0x2121, THUMB_WHEEL = 0x2150, ADJUSTABLE_DPI = 0x2201,
     FN_INVERSION_K375S = 0x40A3, MULTIPLATFORM = 0x4531,
 };
@@ -41,7 +41,12 @@ struct Battery {
     bool charging = false, externalPower = false;
     json toJson() const { return {{"percent", percent}, {"level", level}, {"charging", charging}, {"external_power", externalPower}}; }
 };
-struct SmartShiftState { int mode = 0, threshold = 0, defaultThreshold = 0; };
+// torque: how hard the ratchet is to turn, on wheels that can tune it (0x2111)
+struct SmartShiftState { int mode = 0, threshold = 0, defaultThreshold = 0, torque = 0, defaultTorque = 0; bool tunable = false; };
+// waveforms is a bit per waveform id the device can play
+struct HapticState { bool enabled = false, discrete = false; int level = 0; uint32_t waveforms = 0; };
+// a button that triggers at a press force, in the device's own units
+struct ForceButton { int index = 0, min = 0, max = 0, def = 0, current = 0; bool changeable = false; };
 struct HiResState { bool hidppTarget = false, hires = false, invert = false; int multiplier = 1; bool hasInvert = false, hasRatchetSwitch = false; };
 struct ThumbWheelState { bool diverted = false, invert = false; int nativeRes = 0, divertedRes = 0, capabilities = 0; };
 struct DpiState { int dpi = 0, def = 0; std::vector<int> levels; bool stepped = false; };
@@ -82,7 +87,12 @@ class Device {
     std::pair<uint8_t, uint16_t> getReporting(uint16_t cid);
     void setReporting(uint16_t cid, std::optional<bool> divert, std::optional<bool> rawXY, uint16_t remap = 0);
     std::optional<SmartShiftState> smartshift();
-    void setSmartshift(int mode, int threshold);
+    void setSmartshift(int mode, int threshold, int torque = 0);
+    std::optional<HapticState> haptic();
+    void setHaptic(bool enabled, int level);
+    void playHaptic(int waveform);
+    std::vector<ForceButton> forceButtons();
+    void setForce(int index, int value);
     std::optional<HiResState> hires();
     void setHires(bool hidppTarget, bool hires, bool invert);
     std::optional<ThumbWheelState> thumbwheel();
