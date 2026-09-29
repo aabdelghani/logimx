@@ -56,8 +56,10 @@ Mouse (MX Master 3S)
 - Battery with 7-day history, firmware, serial, Easy-Switch host cards with one-click switching
 - Action ring: eight actions of your choice around the pointer. It shares the gesture button with
   gestures ("Gestures & action ring" page: Gestures, Action ring or Off). Hold the button, nudge the mouse toward
-  an action and let go to run it, or tap and click. It takes the desktop's light or dark, accent
-  colour and font, so it looks at home on Ubuntu, Fedora and the rest
+  an action and let go to run it, or tap and click; or keep the pointer visible and free and
+  simply point at the action. Several profiles of eight actions can be kept and switched. It
+  takes the desktop's light or dark, accent colour and font, so it looks at home on Ubuntu,
+  Fedora and the rest
 
 Keyboard (MX Keys S; MX Keys, MX Keys for Mac, MX Keys for Business, MX Keys Mini and
 Mini for Mac / for Business have their own photo, layout and defaults but no hardware test yet)

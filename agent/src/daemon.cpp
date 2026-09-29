@@ -219,7 +219,11 @@ void ManagedDevice::applyAssignments() {
         if (!ctl.divertable()) continue;
         bool want = wanted.count(cid) > 0;
         // gestures and the action ring both take the mouse's movement while the control is held
-        bool steers = want && (wanted[cid].value("type", "") == "gesture" || (wanted[cid].value("type", "") == "ui" && wanted[cid].value("event", "") == "ring"));
+        // (the ring can be told to leave the pointer alone: general.ring.free_pointer)
+        const json& general = daemon_.config().data()["general"];
+        bool freeRing = general.is_object() && general.contains("ring") && general["ring"].is_object() && general["ring"].value("free_pointer", false);
+        bool ringHere = wanted.count(cid) && wanted[cid].value("type", "") == "ui" && wanted[cid].value("event", "") == "ring";
+        bool steers = want && (wanted[cid].value("type", "") == "gesture" || (ringHere && !freeRing));
         bool raw = steers && ctl.rawXY();
         bool isDiverted = diverted_.count(cid) > 0, isRaw = rawDiverted_.count(cid) > 0;
         // raw XY must be written whenever it changes, not only when the diversion does: a button
@@ -1138,6 +1142,8 @@ json Daemon::rpc(const std::string& method, const json& p) {
             else config_.data()["general"][k] = v;
         }
         config_.save();
+        // whether the ring takes the mouse's movement is part of its settings: apply it at once
+        if (p.contains("ring")) for (auto& md : snapshot()) { try { md->applyAssignments(); } catch (...) {} }
         return config_.data()["general"];
     }
     if (method == "set_host_name") {

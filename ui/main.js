@@ -490,8 +490,11 @@ async function showRing(deviceId, raw) {
   if (ringOpening) return;
   uiSettings = uiSettings || loadUi();
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
-  ringSlots = ((general || {}).ring || {}).slots || [];
-  ringTravel = ((general || {}).ring || {}).travel || 30;   // kept fresh by refreshGeneral, no round trip here
+  const rs = (general || {}).ring || {};   // kept fresh by refreshGeneral, no round trip here
+  const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
+  ringSlots = (prof && prof.slots) || rs.slots || [];
+  ringTravel = rs.travel || 30;
+  if (rs.free_pointer) raw = false;   // the pointer stays free: the ring follows it instead of taking the mouse
   ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
   const [pt, look] = await Promise.all([cursorPoint(), systemLook()]);
   const a = screen.getDisplayNearestPoint(pt).workArea;
