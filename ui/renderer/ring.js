@@ -55,7 +55,11 @@
     if (n >= 1 && n <= N && slots[n - 1]) window.ring.pick(n - 1);
   });
   window.ring.onShow(msg => {
-    document.documentElement.dataset.theme = msg.theme || 'light';
+    // dressed like the desktop it opens on: its light or dark, its accent colour, its font
+    const look = msg.look || {}, root = document.documentElement;
+    root.dataset.theme = look.dark ? 'dark' : 'light';
+    if (look.accent) { root.style.setProperty('--acc', look.accent); root.style.setProperty('--acc-fg', look.accentFg || '#fff'); }
+    if (look.font) document.body.style.fontFamily = `"${look.font}", system-ui, sans-serif`;
     slots = Array.from({ length: N }, (_, i) => (msg.slots || [])[i] || null);
     shownAt = Date.now(); last = null; vx = vy = 0;
     hub.classList.remove('on');

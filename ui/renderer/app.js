@@ -151,7 +151,8 @@
     apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer', 'easy', 'info'] : ['keys', 'backlight', 'easy', 'info'];
-  const generalPages = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
+  const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
+  const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
   // ============================================================ render
@@ -177,7 +178,7 @@
       for (const p of devicePages(x)) nav += `<button class="nav-item ${S.page === p && S.dev === x.id && !S.appDetail ? 'active' : ''}" data-page="${p}" data-dev="${x.id}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`;
     }
     nav += `<div class="nav-head"><span>General</span><span></span></div>`;
-    for (const p of generalPages) nav += `<button class="nav-item ${S.page === p ? 'active' : ''}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`;
+    for (const p of generalPages()) nav += `<button class="nav-item ${S.page === p ? 'active' : ''}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`;
     const b = d && d.battery;
     const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
     const cname = conflict ? S.conflicts[0].name : '';
@@ -287,20 +288,31 @@
 
   const SLOTS = { tap: ['Tap', 'click'], up: ['Swipe up', 'up'], down: ['Swipe down', 'down'], left: ['Swipe left', 'left'], right: ['Swipe right', 'right'] };
   const gestureCapable = d => d.controls.filter(c => c.divertable && c.raw_xy && c.cid !== 0xD7);
+  const isRingAction = a => a === 'action_ring' || (!!a && typeof a === 'object' && a.type === 'ui' && a.event === 'ring');
+  // the button that is held: the one carrying gestures or the action ring (they share it, one at a time)
   function gestureControl(d) {
-    for (const c of gestureCapable(d)) { const a = assignment(d, 'buttons', c.cid); const r = typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {}); if (r.type === 'gesture') return c.cid; }
+    for (const c of gestureCapable(d)) { const a = assignment(d, 'buttons', c.cid); const r = typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {}); if (r.type === 'gesture' || isRingAction(a)) return c.cid; }
     return 195;
   }
   function gestureObject(d, cid) {
     const a = assignment(d, 'buttons', cid);
     const src = typeof a === 'string' ? S.presets.all[a] : a;
     if (src && src.type === 'gesture') return JSON.parse(JSON.stringify(src));
+    const kept = ((S.ui || {}).savedGesture || {})[d.id];   // what the button did before the ring took it
+    if (kept && kept.type === 'gesture') return JSON.parse(JSON.stringify(kept));
     const o = JSON.parse(JSON.stringify(S.presets.all.gesture_navigation)); o.label = 'Custom gestures'; return o;
   }
   function pageGestures(d) {
     const cid = gestureControl(d), g = gestureObject(d, cid), slot = SLOTS[S.dir][1];
     const a = assignment(d, 'buttons', cid); const active = (typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {})).type === 'gesture';
+    const mode = isRingAction(a) ? 'ring' : active ? 'gestures' : 'off';
     const sens = Math.max(1, Math.min(10, Math.round((165 - (g.threshold ?? 60)) / 15)));
+    const seg = (k, l) => `<button class="${mode === k ? 'on' : ''}" data-act="hold-mode" data-key="${k}">${l}</button>`;
+    // gestures and the action ring share the held button: choosing one turns the other off
+    const holdRows = `<div class="row"><div class="grow"><div class="lbl">When held</div><div class="sub">${mode === 'ring' ? 'Opens the action ring; gestures are off' : mode === 'gestures' ? 'Swipes run gestures; the action ring is off' : 'The button does what the mouse does by itself'}</div></div><span class="seg">${seg('gestures', 'Gestures')}${seg('ring', 'Action ring')}${seg('off', 'Off')}</span></div>` +
+      `<div class="row"><span class="grow lbl">Button</span><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${c.cid === 195 ? ' (thumb)' : ''}</option>`).join('')}</select></div>`;
+    if (mode === 'ring') return sec('Gesture button', card(holdRows)) + pageRing();
+    if (mode === 'off') return sec('Gesture button', card(holdRows)) + `<div class="hint" style="margin-top:12px">Pick Gestures or Action ring to give the button something to do while it is held.</div>`;
     const cell = (k, txt, cls = '') => `<button class="${cls} ${S.dir === k ? 'on' : ''}" data-act="dir" data-key="${k}">${txt}</button>`;
     const grid = `<div class="gest-grid"><div></div>${cell('up', '↑')}<div></div>${cell('left', '←')}${cell('tap', 'Tap', 'tap')}${cell('right', '→')}<div></div>${cell('down', '↓')}<div></div></div>`;
     const presetsRow = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(S.presets.all[k].label.replace('Gestures: ', ''))}</button>`).join('');
@@ -309,9 +321,7 @@
         ${sec(SLOTS[S.dir][0], card(
           `<div class="row"><span class="grow lbl">Action</span>${drop(g[slot] && g[slot].preset ? g[slot].preset : (g[slot] || { type: 'nothing' }), `data-act="pick-gesture" data-slot="${slot}"`)}</div>` +
           `<div class="row"><span class="grow lbl">Mode</span><span class="seg"><button class="${g.continuous ? '' : 'on'}" data-act="gest-mode" data-key="once">One-shot</button><button class="${g.continuous ? 'on' : ''}" data-act="gest-mode" data-key="continuous">Continuous</button></span></div>`))}
-        ${sec('Gesture button', card(
-          `<div class="row"><span class="grow lbl">Enabled</span>${sw(active, 'data-act="gest-enable"')}</div>` +
-          `<div class="row"><span class="grow lbl">Button</span><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${c.cid === 195 ? ' (thumb)' : ''}</option>`).join('')}</select></div>` +
+        ${sec('Gesture button', card(holdRows +
           `<div class="row"><span class="grow lbl">Sensitivity</span>${range('data-act="gest-sens"', sens, 1, 10, 1)}<span class="val" style="width:24px;text-align:right">${sens}</span></div>` +
           (g.continuous ? `<div class="row"><span class="grow lbl">Repeat distance</span>${range('data-act="gest-step"', g.step ?? 40, 5, 120, 5)}<span class="val" style="width:24px;text-align:right">${g.step ?? 40}</span></div>` : '')))}
         ${sec('Presets', `<div class="chips">${presetsRow}</div>`)}
@@ -480,7 +490,7 @@
     const filled = slots.filter(Boolean).length;
     // preview: the same geometry as the overlay, icons on a disc
     const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
-    const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">Assign "Action ring" to any button or key. Hold it and nudge the mouse toward an action, then let go to run it; or tap it and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
+    const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">Hold the button and nudge the mouse toward an action, then let go to run it; or tap the button and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
     const rows = slots.map((sl, i) => `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
     return sec('Action ring', card(preview)) + sec('Slots', card(rows), 'clockwise from the top');
   }
@@ -838,7 +848,18 @@
       case 'gesture-preset': await setAssign(d, 'buttons', gestureControl(d), key); render(); return;
       case 'gest-mode': { const cid = gestureControl(d), g = gestureObject(d, cid); g.continuous = key === 'continuous'; if (g.continuous && !g.step) g.step = 40; g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); render(); return; }
       case 'gest-enable': { const cid = gestureControl(d); const on = !b.classList.contains('on'); if (on) { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); } else await setAssign(d, 'buttons', cid, 'native'); render(); return; }
-      case 'gest-button': { const old = gestureControl(d), n = Number(b.value); if (n !== old) { const g = gestureObject(d, old); await setAssign(d, 'buttons', old, 'native'); g.type = 'gesture'; await setAssign(d, 'buttons', n, g); } render(); return; }
+      case 'gest-button': { const old = gestureControl(d), n = Number(b.value); if (n !== old) { if (isRingAction(assignment(d, 'buttons', old))) { await setAssign(d, 'buttons', old, 'native'); await setAssign(d, 'buttons', n, 'action_ring'); } else { const g = gestureObject(d, old); await setAssign(d, 'buttons', old, 'native'); g.type = 'gesture'; await setAssign(d, 'buttons', n, g); } } render(); return; }
+      case 'hold-mode': {
+        // one button, one job: taking the ring keeps the gestures aside so they come back as they were
+        const cid = gestureControl(d), cur = assignment(d, 'buttons', cid);
+        const curType = (typeof cur === 'string' ? (S.presets.all[cur] || {}) : (cur || {})).type;
+        if (curType === 'gesture') S.ui = await window.agent.uiSettings({ savedGesture: Object.assign({}, (S.ui || {}).savedGesture, { [d.id]: gestureObject(d, cid) }) }) || S.ui;
+        if (key === 'ring') await setAssign(d, 'buttons', cid, 'action_ring');
+        else if (key === 'gestures') { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); }
+        else await setAssign(d, 'buttons', cid, 'native');
+        toast(key === 'ring' ? 'Action ring on, gestures off' : key === 'gestures' ? 'Gestures on, action ring off' : 'Gesture button left to the mouse');
+        render(); return;
+      }
       case 'gest-sens': { const cid = gestureControl(d), g = gestureObject(d, cid); g.threshold = 165 - 15 * Number(b.value); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); return; }
       case 'gest-step': { const cid = gestureControl(d), g = gestureObject(d, cid); g.step = Number(b.value); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); return; }
       case 'dpi': await setSetting(d, ['dpi'], Number(b.value)); return;
@@ -928,7 +949,7 @@
       ]);
       S.devices = devices; S.status = status; S.presets = presets;
       S.general = status.general || {}; S.conflicts = status.conflicts || [];
-      if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPages.includes(S.page)) S.page = devicePages(S.devices[0])[0]; }
+      if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPagesAll.includes(S.page)) S.page = devicePages(S.devices[0])[0]; }
       S.connected = true; S.loaded = true;
       render();
       // the rest is not needed to show the device, so let it arrive afterwards

@@ -450,6 +450,31 @@ function ensureRing() {
 }
 // The button that opened the ring was let go: the page runs the hovered slot, or stays open when
 // the press was only a tap so the slot can be clicked.
+// The ring belongs to the desktop, not to the app's own theme: light or dark, the accent colour
+// and the interface font are read from the desktop's settings each time it opens.
+const GNOME_ACCENTS = { blue: '#3584e4', teal: '#2190a4', green: '#3a944a', yellow: '#c88800', orange: '#ed5b00', red: '#e62d42', pink: '#d56199', purple: '#9141ac', slate: '#6f8396' };
+const YARU_ACCENTS = { '': '#e95420', bark: '#787859', sage: '#657b69', olive: '#4b8501', viridian: '#03875b', prussiangreen: '#308280', blue: '#0073e5', purple: '#7764d8', magenta: '#b34cb3', red: '#da3450' };
+function gsetting(key) {
+  // Electron renames the desktop in its own environment (Unity, for the tray), which makes gsettings
+  // skip the distribution's per-desktop defaults such as Ubuntu's font and theme: ask as the real one
+  const env = Object.assign({}, process.env, { XDG_CURRENT_DESKTOP: process.env.ORIGINAL_XDG_CURRENT_DESKTOP || process.env.XDG_CURRENT_DESKTOP || '' });
+  return new Promise(resolve => execFile('gsettings', ['get', 'org.gnome.desktop.interface', key], { timeout: 700, env }, (err, out) => resolve(err ? '' : String(out).trim().replace(/^'|'$/g, ''))));
+}
+let lookCache = null, lookAt = 0;
+async function systemLook() {
+  if (lookCache && Date.now() - lookAt < 4000) return lookCache;
+  const [scheme, gtk, accentName, font] = await Promise.all(['color-scheme', 'gtk-theme', 'accent-color', 'font-name'].map(gsetting));
+  const known = scheme || gtk;
+  const dark = known ? /dark/i.test(scheme) || /-dark$/i.test(gtk) : nativeTheme.shouldUseDarkColors;
+  let accent = GNOME_ACCENTS[accentName];
+  if (!accent) { const m = /^Yaru(?:-([a-z]+?))?(?:-dark)?$/i.exec(gtk); if (m) accent = YARU_ACCENTS[(m[1] || '').toLowerCase()] || YARU_ACCENTS['']; }
+  if (!accent) accent = GNOME_ACCENTS.blue;
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(accent.slice(i, i + 2), 16));
+  const accentFg = (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#1b1c1f' : '#ffffff';
+  lookCache = { dark, accent, accentFg, font: font.replace(/\s+[\d.]+$/, '') };
+  lookAt = Date.now();
+  return lookCache;
+}
 function releaseRing() {
   if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-release');
   else if (ringOpening) ringReleasedEarly = true;   // let go before the ring was even placed: a tap
@@ -467,7 +492,7 @@ async function showRing(deviceId, raw) {
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
   ringSlots = ((general || {}).ring || {}).slots || [];   // kept fresh by refreshGeneral, no round trip here
   ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
-  const pt = await cursorPoint();
+  const [pt, look] = await Promise.all([cursorPoint(), systemLook()]);
   const a = screen.getDisplayNearestPoint(pt).workArea;
   const X = Math.round(Math.max(a.x, Math.min(a.x + a.width - RING_W, pt.x - RING_W / 2)));
   const Y = Math.round(Math.max(a.y, Math.min(a.y + a.height - RING_H, pt.y - RING_H / 2)));
@@ -475,7 +500,7 @@ async function showRing(deviceId, raw) {
   const send = () => {
     w.setPosition(X, Y); w.show(); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);
-    w.webContents.send('ring-show', { theme: uiSettings.theme || 'light', slots: ringSlots, raw: !!raw });
+    w.webContents.send('ring-show', { look, slots: ringSlots, raw: !!raw });
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }
