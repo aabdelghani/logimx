@@ -315,7 +315,7 @@ function handleEvent(event, data) {
     devices = devices.filter(x => x.id !== data.id); alerted.delete(data.id); updateTray();
     if (d && general.notify_connect && Notification.isSupported()) new Notification({ title: `${d.name} disconnected`, icon: path.join(__dirname, 'assets', 'icon.png') }).show();
   }
-  else if (event === 'action') { if (data.kind === 'emoji') showEmoji(`${data.device || 'Keyboard'} · Emoji key`); else showOsd(data); }
+  else if (event === 'action') { if (data.kind === 'emoji') showEmoji(`${data.device || 'Keyboard'} · Emoji key`); else if (data.kind === 'ring') showRing(data.id); else if (data.kind === 'ring_release') releaseRing(); else showOsd(data); }
   else if (event === 'paused') { paused = !!data.paused; updateTray(); }
   else if (event === 'battery') {
     const d = devices.find(x => x.id === data.id);
@@ -428,6 +428,58 @@ ipcMain.on('emoji-pick', async (_e, { ch }) => {
   setTimeout(() => { try { if (clipboard.readText() === ch && previous) clipboard.writeText(previous); } catch (e) {} }, 800);
 });
 ipcMain.handle('emoji-show', () => showEmoji('Preview'));
+
+// ------------------------------------------------------------- action ring
+// Eight actions around the pointer, opened by the "Action ring" preset on any button or key.
+// The window is a transparent square centred on the pointer; the page draws the wedges and
+// reports the picked slot, and the action runs through the agent like any assignment would.
+let ringWin = null, ringSlots = [], ringDevice = null;
+const RING_S = 340;
+function ensureRing() {
+  if (ringWin && !ringWin.isDestroyed()) return ringWin;
+  ringWin = new BrowserWindow({
+    width: RING_S, height: RING_S, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false,
+    webPreferences: { preload: path.join(__dirname, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  ringWin.setAlwaysOnTop(true, 'pop-up-menu');
+  ringWin.loadFile(path.join(__dirname, 'renderer', 'ring.html'));
+  ringWin.on('blur', () => { if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.hide(); });
+  return ringWin;
+}
+// The button that opened the ring was let go: the page runs the hovered slot, or stays open when
+// the press was only a tap so the slot can be clicked.
+function releaseRing() {
+  if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-release');
+}
+async function showRing(deviceId) {
+  const w = ensureRing();
+  if (w.isVisible()) { w.hide(); return; }
+  uiSettings = uiSettings || loadUi();
+  ringDevice = typeof deviceId === 'string' ? deviceId : null;
+  try { const st = await rpc('status', {}); ringSlots = (((st || {}).general || {}).ring || {}).slots || []; } catch (e) { ringSlots = []; }
+  const pt = await cursorPoint();
+  const a = screen.getDisplayNearestPoint(pt).workArea;
+  const X = Math.round(Math.max(a.x, Math.min(a.x + a.width - RING_S, pt.x - RING_S / 2)));
+  const Y = Math.round(Math.max(a.y, Math.min(a.y + a.height - RING_S, pt.y - RING_S / 2)));
+  const place = () => { if (w.isDestroyed()) return; const [cx, cy] = w.getPosition(); if (cx !== X || cy !== Y) w.setPosition(X, Y); };
+  const send = () => {
+    w.setPosition(X, Y); w.show(); place(); w.focus();
+    setTimeout(place, 40); setTimeout(place, 160);
+    w.webContents.send('ring-show', { theme: uiSettings.theme || 'light', slots: ringSlots });
+  };
+  if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
+}
+ipcMain.on('ring-close', () => { if (ringWin && !ringWin.isDestroyed()) ringWin.hide(); });
+ipcMain.on('ring-pick', async (_e, { index }) => {
+  if (ringWin && !ringWin.isDestroyed()) ringWin.hide();
+  const slot = ringSlots[index];
+  if (!slot || !slot.action) return;
+  const params = { action: slot.action };
+  if (ringDevice) params.id = ringDevice;
+  try { await rpc('run_action', params); }
+  catch (e) { if (Notification.isSupported()) new Notification({ title: 'Action ring', body: `${slot.label || 'Action'} did not run: ${e.message}` }).show(); }
+});
+ipcMain.handle('ring-show', () => showRing(null));
 ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), displays: screen.getAllDisplays().map(d => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })), picker: emojiWin && !emojiWin.isDestroyed() ? { visible: emojiWin.isVisible(), bounds: emojiWin.getBounds() } : null }));
 ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 ipcMain.handle('general-changed', async () => { await refreshGeneral(); updateTray(); });

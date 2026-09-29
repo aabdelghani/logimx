@@ -3,6 +3,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,7 @@ class Engine {
     std::mutex m_;
     std::map<int, Gesture> gestures_;
     std::map<int, std::vector<std::string>> held_;
+    std::set<int> ringHeld_;   // controls holding the action ring open until they are released
     double wheelAcc_ = 0;
 };
 

@@ -53,7 +53,7 @@
     return a.label || a.type;
   };
   const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor' };
-  const PRESET_ICON = { overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
+  const PRESET_ICON = { action_ring: 'fa-circle-notch', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
     copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
     mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
     calculator: 'fa-calculator', emoji: 'fa-face-smile', emoji_picker: 'fa-face-smile', context_menu: 'fa-bars', dictation: 'fa-microphone', terminal: 'fa-terminal', close_window: 'fa-xmark', maximize: 'fa-window-maximize', minimize: 'fa-window-minimize', tile_left: 'fa-table-columns', tile_right: 'fa-table-columns',
@@ -148,10 +148,10 @@
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
     easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
-    apps: ['Applications', 'fa-window-restore'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
+    apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer', 'easy', 'info'] : ['keys', 'backlight', 'easy', 'info'];
-  const generalPages = ['apps', 'notif', 'backup', 'settings', 'about'];
+  const generalPages = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
   // ============================================================ render
@@ -227,6 +227,7 @@
       case 'keys': return d ? pageKeys(d) : '';
       case 'backlight': return d ? pageBacklight(d) : '';
       case 'apps': return pageApps();
+      case 'ring': return pageRing();
       case 'notif': return pageNotif();
       case 'backup': return pageBackup();
       case 'settings': return pageSettings();
@@ -472,6 +473,17 @@
       sec('Backups', `<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="btn sm" data-act="create-backup"><i class="fa-solid fa-plus"></i>Back up now</button></div>` + card(S.backups.length ? S.backups.map(b => `<div class="row"><i class="fa-solid fa-clock-rotate-left" style="width:20px;text-align:center;color:var(--dim)"></i><span class="grow lbl">${esc(b.when)}</span><span class="val">${esc(b.note || '')}</span><button class="btn sm" data-act="restore-backup" data-key="${esc(b.file)}">Restore</button></div>`).join('') : row('No backups yet', 'A backup is written before every import and reset', '')));
   }
 
+  const RING_DIRS = ['Top', 'Top right', 'Right', 'Bottom right', 'Bottom', 'Bottom left', 'Left', 'Top left'];
+  const ringSlots = () => Array.from({ length: 8 }, (_, i) => ((S.general.ring || {}).slots || [])[i] || null);
+  function pageRing() {
+    const slots = ringSlots();
+    const filled = slots.filter(Boolean).length;
+    // preview: the same geometry as the overlay, icons on a disc
+    const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
+    const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-circle-notch"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">Assign "Action ring" to any button or key, press it, and the ring opens around the pointer. Click a slot or press 1 to 8; Esc closes.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
+    const rows = slots.map((sl, i) => `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
+    return sec('Action ring', card(preview)) + sec('Slots', card(rows), 'clockwise from the top');
+  }
   function pageSettings() {
     const u = S.ui || {};
     return sec('Startup', card(row('Start agent at login', 'systemd user service', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
@@ -495,13 +507,13 @@
   // ----------------------------------------------------------- dialogs
   const PICKER_CATS = [['all', 'All', 'fa-list'], ['key', 'Keystroke', 'fa-keyboard'], ['media', 'Media', 'fa-play'], ['window', 'Window', 'fa-window-maximize'], ['ws', 'Workspaces', 'fa-table-cells-large'], ['cmd', 'Command', 'fa-terminal'], ['app', 'Apps', 'fa-rocket'], ['device', 'Device', 'fa-computer-mouse']];
   const CAT_OF = { media: ['volume_up', 'volume_down', 'mute', 'mic_mute', 'play_pause', 'next_track', 'prev_track', 'brightness_up', 'brightness_down'],
-    window: ['close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'show_desktop', 'app_switcher', 'screenshot', 'screenshot_area', 'lock', 'terminal', 'calculator', 'emoji_picker', 'emoji', 'context_menu', 'copy', 'paste', 'undo', 'redo', 'zoom_in', 'zoom_out', 'tab_next', 'tab_prev'],
+    window: ['close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'show_desktop', 'app_switcher', 'screenshot', 'screenshot_area', 'lock', 'terminal', 'calculator', 'emoji_picker', 'action_ring', 'emoji', 'context_menu', 'copy', 'paste', 'undo', 'redo', 'zoom_in', 'zoom_out', 'tab_next', 'tab_prev'],
     ws: ['overview', 'workspace_next', 'workspace_prev'],
     device: ['native', 'nothing', 'middle_click', 'back', 'forward', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'dpi_cycle', 'smartshift_toggle', 'open_home', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel'] };
   const CAT_LABEL = { media: 'Media', window: 'Window', ws: 'Shell', device: 'Device' };
   function pickerItems(p) {
     const all = S.presets.all;
-    const allowed = new Set(p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'gesture' ? Object.keys(all).filter(k => ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'].includes(all[k].type)) : p.section === 'keys' ? S.presets.keys : S.presets.buttons);
+    const allowed = new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && all[k] && all[k].type !== 'gesture') : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'gesture' ? Object.keys(all).filter(k => ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'].includes(all[k].type)) : p.section === 'keys' ? S.presets.keys : S.presets.buttons);
     const items = [];
     for (const [cat, keys] of Object.entries(CAT_OF)) for (const k of keys) if (allowed.has(k) && all[k] && (p.cat === 'all' || p.cat === cat)) {
       if (all[k].type === 'gesture' && p.section !== 'buttons') continue;
@@ -542,7 +554,7 @@
         <div class="cats">${PICKER_CATS.filter(([k]) => !(p.section === 'thumbwheel' && ['key', 'media', 'window', 'ws', 'app'].includes(k))).map(([k, l, i]) => `<button class="pill ${p.cat === k ? 'on' : ''}" data-act="pick-cat" data-key="${k}"><i class="fa-solid ${i}"></i>${l}</button>`).join('')}</div>
         ${body}
       </div>
-      <div class="dlg-foot"><button class="btn flat" data-act="pick-default" title="Back to what this control does out of the box"><i class="fa-solid fa-rotate-left"></i>Reset to default</button><button class="btn flat danger" data-act="pick-disable">${p.section === 'gesture' ? 'Do nothing' : 'Disable ' + (p.section === 'keys' ? 'key' : p.section === 'thumbwheel' ? 'wheel' : 'button')}</button><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="pick-assign">Assign</button></div></div>
+      <div class="dlg-foot">${p.section === 'ring' ? '<button class="btn flat danger" data-act="pick-default"><i class="fa-solid fa-trash"></i>Clear slot</button>' : `<button class="btn flat" data-act="pick-default" title="Back to what this control does out of the box"><i class="fa-solid fa-rotate-left"></i>Reset to default</button><button class="btn flat danger" data-act="pick-disable">${p.section === 'gesture' ? 'Do nothing' : 'Disable ' + (p.section === 'keys' ? 'key' : p.section === 'thumbwheel' ? 'wheel' : 'button')}</button>`}<div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="pick-assign">Assign</button></div></div>
     </div></div>`;
   }
   function renderPair() {
@@ -726,13 +738,19 @@
     window.agent.call('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
     const d = t.dev || dev();
     const section = t.section, cid = t.cid;
-    const current = section === 'gesture' ? null : assignment(d, section, cid, t.profile);
-    const ctl = typeof cid === 'number' ? d.controls.find(c => c.cid === cid) : null;
-    S.picker = { dev: d.id, section, cid, label: t.label, profile: t.profile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.cat === 'key' };
+    const current = section === 'gesture' ? null : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
+    const ctl = typeof cid === 'number' && section !== 'ring' && d ? d.controls.find(c => c.cid === cid) : null;
+    S.picker = { dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.cat === 'key' };
     S.dlg = 'picker'; render();
   }
   async function assignPicked(action) {
     const p = S.picker; const d = S.devices.find(x => x.id === p.dev);
+    if (p.section === 'ring') {
+      const slots = ringSlots();
+      slots[p.cid] = { action, label: presetLabel(action), icon: actionIcon(action) };
+      await setGeneral({ ring: { slots } });
+      S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
+    }
     if (p.section === 'gesture') {
       const cid = gestureControl(d), g = gestureObject(d, cid);
       let sub = typeof action === 'string' ? JSON.parse(JSON.stringify(S.presets.all[action])) : action;
@@ -785,8 +803,11 @@
       case 'rec-start': if (S.picker.recording) return; S.picker.recording = true; render(); return;
       case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
+      case 'ring-test': window.agent.ringShow(); return;
+      case 'ring-clear': await setGeneral({ ring: { slots: [] } }); toast('Action ring cleared'); render(); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
+        if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await setGeneral({ ring: { slots } }); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); render(); return; }
         const defs = ((await window.agent.call('defaults', { id: dd.id })).profiles || {}).default || {};
         let a = 'native';
         if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';

@@ -29,6 +29,8 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     hidpp::Device& dev() { return *dev_; }
     hidpp::Transport& transport() { return t_; }
     json summary();
+    // run one action through this device's engine (its host switching, DPI and SmartShift ops)
+    void play(const json& a) { engine_->play(a); }
     json batteryJson() const;
     json readState(bool full = true);
     void applySettings(const std::string& only = "");
