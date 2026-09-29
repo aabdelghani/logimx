@@ -5,7 +5,9 @@
 // already resolved, so this window knows nothing about presets.
 (() => {
   const N = 8, S = 340, C = S / 2, R = 158, r = 52, GAP = 3;
-  const GAIN = 1, LIMIT = R - 24;   // one mouse count is one pixel, as the pointer itself moves; LIMIT keeps the point in the ring
+  // Steering goes by direction, not distance: a nudge past DEAD picks the wedge that way at once.
+  // The point saturates at LIMIT, so changing your mind is another nudge, not a trip back.
+  const GAIN = 1, DEAD = 10, LIMIT = 36;
   const svg = document.getElementById('svg'), slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
@@ -65,7 +67,7 @@
     vx += dx * GAIN; vy += dy * GAIN;
     const d = Math.hypot(vx, vy);
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
-    const i = at(C + vx, C + vy);
+    const i = Math.hypot(vx, vy) < DEAD ? -1 : Math.floor(((Math.atan2(vy, vx) * 180 / Math.PI + 90 + 360 + 22.5) % 360) / 45) % N;
     if (i !== hover) setHover(i);
   });
   // the button that opened the ring was released: run what is under the pointer; a quick tap with
@@ -75,7 +77,7 @@
     const tap = Date.now() - shownAt < 350;
     if (raw) {
       // nothing chosen: a quick tap hands the ring to the pointer for a click, a longer hold cancels
-      if (tap && Math.hypot(vx, vy) < 12) { setRaw(false); setHover(-1); } else window.ring.close();
+      if (tap && Math.hypot(vx, vy) < DEAD) { setRaw(false); setHover(-1); } else window.ring.close();
       return;
     }
     if (tap || !last) return;
