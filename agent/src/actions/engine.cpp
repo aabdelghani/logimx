@@ -97,7 +97,8 @@ void Engine::buttonDown(int cid, const json& action) {
     // slot, let go. Every other action waits for the release so a gesture can still be told apart.
     if (isRing(a)) {
         ringHeld_.insert(cid);
-        if (ops_.uiEvent) ops_.uiEvent("ring");
+        if (ops_.ringEvent) ops_.ringEvent("open", cid, 0, 0);
+        else if (ops_.uiEvent) ops_.uiEvent("ring");
         return;
     }
     if (t == "gesture") {
@@ -114,7 +115,8 @@ void Engine::buttonUp(int cid, const json& action) {
     json a = resolve(action);
     std::string t = a.value("type", "native");
     if (ringHeld_.erase(cid) || isRing(a)) {
-        if (ops_.uiEvent) ops_.uiEvent("ring_release");
+        if (ops_.ringEvent) ops_.ringEvent("release", cid, 0, 0);
+        else if (ops_.uiEvent) ops_.uiEvent("ring_release");
         return;
     }
     if (t == "gesture") {
@@ -147,6 +149,12 @@ void Engine::buttonUp(int cid, const json& action) {
 }
 
 void Engine::rawXY(int dx, int dy) {
+    // while the ring is held the mouse steers it: the pointer stays where it was and the raw
+    // movement goes to the ring instead of any gesture
+    if (!ringHeld_.empty()) {
+        if (ops_.ringEvent) ops_.ringEvent("move", *ringHeld_.begin(), dx, dy);
+        return;
+    }
     std::lock_guard<std::mutex> lk(m_);
     for (auto& [cid, g] : gestures_) {
         g.dx += dx;

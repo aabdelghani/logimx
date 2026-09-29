@@ -1,10 +1,15 @@
 // Action ring overlay: eight wedges around the pointer. Hover picks a wedge, click or 1-8 runs
-// it, Esc or a click outside closes. Slots come from the main process with a label and icon
+// it, Esc or a click outside closes. Held on a button that steers it (raw mode), the pointer is
+// hidden and frozen, the mouse's movement drives a knob that cannot leave the ring, and letting
+// go runs the wedge the knob is on. Slots come from the main process with a label and icon
 // already resolved, so this window knows nothing about presets.
 (() => {
   const N = 8, S = 340, C = S / 2, R = 158, r = 52, GAP = 3;
-  const svg = document.getElementById('svg'), slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
-  let slots = [], hover = -1, shownAt = 0, last = null;
+  const GAIN = 0.3, LIMIT = R - 24;   // mouse counts to ring pixels, and how far out the knob may go
+  const svg = document.getElementById('svg'), slotsEl = document.getElementById('slots'), hub = document.getElementById('hub'), knob = document.getElementById('knob');
+  let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
+  function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } placeKnob(); }
+  function placeKnob() { knob.style.left = (C + vx) + 'px'; knob.style.top = (C + vy) + 'px'; }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const rad = deg => (deg - 90) * Math.PI / 180;    // 0° at the top, clockwise
   const pt = (rr, deg) => [C + rr * Math.cos(rad(deg)), C + rr * Math.sin(rad(deg))];
@@ -27,7 +32,7 @@
     svg.querySelectorAll('.wedge').forEach(w => w.classList.toggle('on', Number(w.dataset.i) === i));
     slotsEl.querySelectorAll('.slot').forEach(w => w.classList.toggle('on', Number(w.dataset.i) === i));
     const s = i >= 0 ? slots[i] : null;
-    hub.innerHTML = s ? `<div class="t">${esc(s.label)}</div><div class="s">Click to run</div>` : i >= 0 ? `<div class="t">Empty</div><div class="s">Fill it in the app</div>` : `<div class="t">Action ring</div><div class="s">Esc closes</div>`;
+    hub.innerHTML = s ? `<div class="t">${esc(s.label)}</div><div class="s">${raw ? 'Let go to run' : 'Click to run'}</div>` : i >= 0 ? `<div class="t">Empty</div><div class="s">Fill it in the app</div>` : `<div class="t">Action ring</div><div class="s">Esc closes</div>`;
   }
   // which wedge is under (x, y): none inside the hub or outside the disc
   function at(x, y) {
@@ -36,9 +41,10 @@
     const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360 + 22.5) % 360;
     return Math.floor(deg / 45) % N;
   }
-  document.addEventListener('mousemove', e => { last = [e.clientX, e.clientY]; const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i); });
-  document.addEventListener('mouseleave', () => setHover(-1));
+  document.addEventListener('mousemove', e => { if (raw) return; last = [e.clientX, e.clientY]; const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i); });
+  document.addEventListener('mouseleave', () => { if (!raw) setHover(-1); });
   document.addEventListener('mousedown', e => {
+    if (raw) { if (hover >= 0 && slots[hover]) window.ring.pick(hover); return; }   // a click while steering picks what the knob is on
     const i = at(e.clientX, e.clientY);
     if (i < 0) { if (Math.hypot(e.clientX - C, e.clientY - C) > R) window.ring.close(); return; }
     if (slots[i]) window.ring.pick(i); else window.ring.close();
@@ -51,14 +57,29 @@
   window.ring.onShow(msg => {
     document.documentElement.dataset.theme = msg.theme || 'light';
     slots = Array.from({ length: N }, (_, i) => (msg.slots || [])[i] || null);
-    shownAt = Date.now(); last = null;
+    shownAt = Date.now(); last = null; vx = vy = 0;
+    setRaw(!!msg.raw);
     build();
+  });
+  window.ring.onMove(({ dx, dy }) => {
+    if (!raw) setRaw(true);
+    vx += dx * GAIN; vy += dy * GAIN;
+    const d = Math.hypot(vx, vy);
+    if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // the knob never leaves the ring
+    placeKnob();
+    const i = at(C + vx, C + vy);
+    if (i !== hover) setHover(i);
   });
   // the button that opened the ring was released: run what is under the pointer; a quick tap with
   // nothing chosen leaves the ring open for a click; letting go outside the disc dismisses it
   window.ring.onRelease(() => {
     if (hover >= 0 && slots[hover]) { window.ring.pick(hover); return; }
     const tap = Date.now() - shownAt < 350;
+    if (raw) {
+      // nothing chosen: a quick tap hands the ring to the pointer for a click, a longer hold cancels
+      if (tap && Math.hypot(vx, vy) < 12) { setRaw(false); setHover(-1); } else window.ring.close();
+      return;
+    }
     if (tap || !last) return;
     if (Math.hypot(last[0] - C, last[1] - C) > R) window.ring.close();
   });
