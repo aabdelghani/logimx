@@ -716,6 +716,55 @@ ipcMain.handle('check-updates', () => new Promise(resolve => {
   });
   req.on('error', e => resolve({ ok: false, error: e.message })); req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'timeout' }); });
 }));
+// A report for a public issue: what is needed to reproduce a problem and nothing that identifies the
+// person. Serial numbers, host names, the user name and the home directory are taken out, and
+// custom actions are reduced to their kind (a command or a typed text never leaves the machine).
+ipcMain.handle('diag-report', async () => {
+  const os = require('os');
+  let distro = ''; try { distro = (/^PRETTY_NAME="?([^"\n]*)/m.exec(fs.readFileSync('/etc/os-release', 'utf8')) || [])[1] || ''; } catch (e) {}
+  const install = process.env.APPIMAGE ? 'AppImage' : app.isPackaged ? (app.getAppPath().startsWith('/opt/') ? '.deb' : 'packaged') : 'from source';
+  let st = {}, devs = [], logs = [];
+  try { st = await rpc('status', {}); } catch (e) {}
+  try { for (const d of await rpc('devices', {})) devs.push(await rpc('device', { id: d.id })); } catch (e) {}
+  try { logs = await rpc('logs', {}); } catch (e) {}
+  const secrets = new Set([os.hostname(), os.userInfo().username]);
+  for (const d of devs) {
+    if (d.serial) secrets.add(d.serial);
+    for (const h of (((d.state || {}).hosts || {}).names || [])) if (h.name) secrets.add(h.name);
+  }
+  const redact = t => { let o = String(t).split(os.homedir()).join('~'); for (const x of secrets) if (x && x.length > 2) o = o.split(x).join('[removed]'); return o; };
+  const kindOf = a => typeof a === 'string' ? a : a && a.type ? (a.preset || a.type) : 'native';
+  const lines = [];
+  lines.push('| | |', '|---|---|');
+  lines.push(`| LogiMX | ${app.getVersion()} (agent ${st.version || 'not running'}), ${install} |`);
+  lines.push(`| System | ${distro || os.type()}, kernel ${os.release()} |`);
+  lines.push(`| Desktop | ${process.env.ORIGINAL_XDG_CURRENT_DESKTOP || process.env.XDG_CURRENT_DESKTOP || 'unknown'}, ${process.env.XDG_SESSION_TYPE || 'unknown session'} |`);
+  lines.push(`| Electron | ${process.versions.electron} |`);
+  lines.push(`| Agent | ${connected ? 'connected' : 'not connected'}, focus tracking ${st.tracker || 'n/a'}, receivers ${st.receivers || 'none'}, other tools running: ${((st.conflicts || []).map(c => c.name).join(', ')) || 'none'}${st.paused ? ', paused' : ''} |`);
+  for (const d of devs) {
+    const stt = d.state || {}, prof = ((d.config || {}).profiles || {}).default || {};
+    lines.push('', `**${d.name}** (${d.id}, ${d.kind}, ${d.transport || 'unknown link'}) firmware ${d.firmware || '?'}, battery ${d.battery ? d.battery.percent + '%' : 'n/a'}`);
+    lines.push(`- features: ${(d.features || []).join(' ')}`);
+    lines.push(`- controls: ${(d.controls || []).map(c => c.cid + (c.diverted ? '*' : '')).join(' ')} (* = diverted)`);
+    const asg = [];
+    for (const sec of ['buttons', 'keys']) for (const [cid, a] of Object.entries(prof[sec] || {})) if (kindOf(a) !== 'native') asg.push(`${cid} ${kindOf(a)}`);
+    if (prof.thumbwheel && kindOf(prof.thumbwheel) !== 'native') asg.push(`thumb wheel ${kindOf(prof.thumbwheel)}`);
+    lines.push(`- assignments: ${asg.join(', ') || 'all default'}`);
+    const bits = [];
+    if (stt.dpi) bits.push(`dpi ${stt.dpi.dpi}`);
+    if (stt.smartshift) bits.push(`smartshift ${stt.smartshift.mode}/${stt.smartshift.threshold}`);
+    if (stt.haptic) bits.push(`haptic ${stt.haptic.enabled ? 'on' : 'off'}/${stt.haptic.level}`);
+    if (stt.backlight) bits.push(`backlight ${stt.backlight.enabled ? 'on' : 'off'}`);
+    if (stt.fn_swap !== undefined) bits.push(`fn swap ${stt.fn_swap}`);
+    if (bits.length) lines.push(`- state: ${bits.join(', ')}`);
+  }
+  if (!devs.length) lines.push('', 'No devices found.');
+  const ring = (general || {}).ring || {};
+  lines.push('', `Action ring: ${Array.isArray(ring.profiles) ? ring.profiles.length + ' profile(s)' : 'not set up'}, ${ring.free_pointer ? 'pointer free' : 'steered'}`);
+  const summary = redact(lines.join('\n'));
+  const log = redact((logs || []).slice(-40).join('\n'));
+  return { summary, log, title: `Problem report: ${devs.map(d => d.name).join(', ') || 'no device'} · LogiMX ${app.getVersion()}` };
+});
 ipcMain.handle('open-json', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] });
   if (r.canceled || !r.filePaths.length) return null;
