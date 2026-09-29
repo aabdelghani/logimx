@@ -93,6 +93,10 @@ Everything
 
 ## Screenshots
 
+| Action ring | Action ring settings |
+|---|---|
+| ![Action ring](screenshots/action-ring-overlay.png) | ![Action ring settings](screenshots/action-ring.png) |
+
 | Gestures | Point and scroll |
 |---|---|
 | ![Gestures](screenshots/mouse-gestures.png) | ![Point and scroll](screenshots/mouse-point-scroll.png) |
