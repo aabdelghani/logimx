@@ -55,7 +55,7 @@ Mouse (MX Master 3S)
   toggle action, smooth scrolling, natural scroll direction
 - Battery with 7-day history, firmware, serial, Easy-Switch host cards with one-click switching
 - Action ring: eight actions of your choice around the pointer. It shares the gesture button with
-  gestures (Gestures page: Gestures, Action ring or Off). Hold the button, nudge the mouse toward
+  gestures ("Gestures & action ring" page: Gestures, Action ring or Off). Hold the button, nudge the mouse toward
   an action and let go to run it, or tap and click. It takes the desktop's light or dark, accent
   colour and font, so it looks at home on Ubuntu, Fedora and the rest
 
