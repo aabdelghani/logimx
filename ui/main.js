@@ -277,7 +277,7 @@ function connect() {
       try { msg = JSON.parse(line); } catch (e) { continue; }
       if (msg.event) {
         handleEvent(msg.event, msg.data);
-        notify('agent-event', msg);
+        if (msg.event !== 'ring_move') notify('agent-event', msg);   // the ring's movement stream is for the overlay only
         continue;
       }
       const p = pending.get(msg.id);
@@ -315,7 +315,8 @@ function handleEvent(event, data) {
     devices = devices.filter(x => x.id !== data.id); alerted.delete(data.id); updateTray();
     if (d && general.notify_connect && Notification.isSupported()) new Notification({ title: `${d.name} disconnected`, icon: path.join(__dirname, 'assets', 'icon.png') }).show();
   }
-  else if (event === 'action') { if (data.kind === 'emoji') showEmoji(`${data.device || 'Keyboard'} · Emoji key`); else if (data.kind === 'ring') showRing(data.id); else if (data.kind === 'ring_release') releaseRing(); else showOsd(data); }
+  else if (event === 'action') { if (data.kind === 'emoji') showEmoji(`${data.device || 'Keyboard'} · Emoji key`); else if (data.kind === 'ring') showRing(data.id, !!data.raw); else if (data.kind === 'ring_release') releaseRing(); else showOsd(data); }
+  else if (event === 'ring_move') moveRing(data.dx, data.dy);
   else if (event === 'paused') { paused = !!data.paused; updateTray(); }
   else if (event === 'battery') {
     const d = devices.find(x => x.id === data.id);
@@ -434,6 +435,7 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // The window is a transparent square centred on the pointer; the page draws the wedges and
 // reports the picked slot, and the action runs through the agent like any assignment would.
 let ringWin = null, ringSlots = [], ringDevice = null, ringOpening = false, ringReleasedEarly = false;
+let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
 const RING_S = 340;
 function ensureRing() {
   if (ringWin && !ringWin.isDestroyed()) return ringWin;
@@ -452,14 +454,19 @@ function releaseRing() {
   if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-release');
   else if (ringOpening) ringReleasedEarly = true;   // let go before the ring was even placed: a tap
 }
-async function showRing(deviceId) {
+// Raw movement from the held button: it steers the ring while the pointer stays put.
+function moveRing(dx, dy) {
+  if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-move', { dx, dy });
+  else if (ringOpening) { ringPending[0] += dx; ringPending[1] += dy; }
+}
+async function showRing(deviceId, raw) {
   const w = ensureRing();
   if (w.isVisible()) { w.hide(); return; }
   if (ringOpening) return;
   uiSettings = uiSettings || loadUi();
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
   ringSlots = ((general || {}).ring || {}).slots || [];   // kept fresh by refreshGeneral, no round trip here
-  ringOpening = true; ringReleasedEarly = false;
+  ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
   const pt = await cursorPoint();
   const a = screen.getDisplayNearestPoint(pt).workArea;
   const X = Math.round(Math.max(a.x, Math.min(a.x + a.width - RING_S, pt.x - RING_S / 2)));
@@ -468,8 +475,9 @@ async function showRing(deviceId) {
   const send = () => {
     w.setPosition(X, Y); w.show(); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);
-    w.webContents.send('ring-show', { theme: uiSettings.theme || 'light', slots: ringSlots });
+    w.webContents.send('ring-show', { theme: uiSettings.theme || 'light', slots: ringSlots, raw: !!raw });
     ringOpening = false;
+    if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }
   };
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
@@ -484,7 +492,7 @@ ipcMain.on('ring-pick', async (_e, { index }) => {
   try { await rpc('run_action', params); }
   catch (e) { if (Notification.isSupported()) new Notification({ title: 'Action ring', body: `${slot.label || 'Action'} did not run: ${e.message}` }).show(); }
 });
-ipcMain.handle('ring-show', () => showRing(null));
+ipcMain.handle('ring-show', () => showRing(null, false));
 ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), displays: screen.getAllDisplays().map(d => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })), picker: emojiWin && !emojiWin.isDestroyed() ? { visible: emojiWin.isVisible(), bounds: emojiWin.getBounds() } : null }));
 ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 ipcMain.handle('general-changed', async () => { await refreshGeneral(); updateTray(); });

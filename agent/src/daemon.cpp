@@ -75,6 +75,12 @@ ManagedDevice::ManagedDevice(Daemon& d, hidpp::Transport& t, std::unique_ptr<hid
     };
     ops.changeHost = [this](int h) { daemon_.changeHostFrom(*this, h); };
     ops.uiEvent = [this](const std::string& k) { daemon_.broadcast("action", {{"id", id()}, {"kind", k}, {"device", dev_->name()}}); };
+    ops.ringEvent = [this](const std::string& k, int cid, int dx, int dy) {
+        if (k == "move") { daemon_.broadcast("ring_move", {{"dx", dx}, {"dy", dy}}); return; }
+        // raw says whether this control hands its movement to the ring (pointer frozen) or the
+        // pointer keeps moving and the ring follows it
+        daemon_.broadcast("action", {{"id", id()}, {"kind", k == "open" ? "ring" : "ring_release"}, {"device", dev_->name()}, {"raw", rawDiverted_.count(cid) > 0}});
+    };
     engine_ = std::make_unique<actions::Engine>(daemon_.injector(), ops);
 }
 
@@ -212,7 +218,9 @@ void ManagedDevice::applyAssignments() {
     for (auto& [cid, ctl] : dev_->controls()) {
         if (!ctl.divertable()) continue;
         bool want = wanted.count(cid) > 0;
-        bool raw = want && wanted[cid].value("type", "") == "gesture" && ctl.rawXY();
+        // gestures and the action ring both take the mouse's movement while the control is held
+        bool steers = want && (wanted[cid].value("type", "") == "gesture" || (wanted[cid].value("type", "") == "ui" && wanted[cid].value("event", "") == "ring"));
+        bool raw = steers && ctl.rawXY();
         bool isDiverted = diverted_.count(cid) > 0, isRaw = rawDiverted_.count(cid) > 0;
         // raw XY must be written whenever it changes, not only when the diversion does: a button
         // going from a gesture to another action stays diverted but has to give the pointer back

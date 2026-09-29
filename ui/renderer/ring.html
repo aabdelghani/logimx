@@ -25,10 +25,15 @@
     #hub { position: absolute; left: 50%; top: 50%; width: 96px; margin-left: -48px; margin-top: -30px; height: 60px; text-align: center; pointer-events: none; display: flex; flex-direction: column; justify-content: center; }
     #hub .t { font-size: 11.5px; font-weight: 600; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     #hub .s { font-size: 10px; color: var(--dim); margin-top: 2px; }
+    /* held on a button that steers the ring: the pointer is frozen underneath, so it is hidden
+       and a knob shows where the hand has moved to */
+    body.raw, body.raw * { cursor: none !important; }
+    #knob { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px rgba(255,255,255,.85), 0 2px 8px rgba(0,0,0,.35); pointer-events: none; display: none; left: 50%; top: 50%; }
+    body.raw #knob { display: block; }
   </style>
 </head>
 <body>
-  <div id="ring"><svg id="svg" viewBox="0 0 340 340"></svg><div id="slots"></div><div id="hub"><div class="t">Action ring</div><div class="s">Esc closes</div></div></div>
+  <div id="ring"><svg id="svg" viewBox="0 0 340 340"></svg><div id="slots"></div><div id="hub"><div class="t">Action ring</div><div class="s">Esc closes</div></div><div id="knob"></div></div>
   <script src="ring.js"></script>
 </body>
 </html>

@@ -24,6 +24,8 @@ struct DeviceOps {
     std::function<void(int)> setDpi;
     std::function<void()> toggleSmartshift;
     std::function<void(const std::string&)> uiEvent;
+    // the action ring held on a control: kind is open, move (raw dx, dy) or release
+    std::function<void(const std::string& kind, int cid, int dx, int dy)> ringEvent;
 };
 
 class Engine {
