@@ -62,6 +62,7 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     std::optional<hidpp::Battery> battery_;
     bool batteryConfirmed_ = false;
     std::set<int> down_, diverted_;
+    std::set<int> rawDiverted_;   // controls whose raw XY is diverted as well (gesture assignments)
     json state_;
     json hostsCache_;
     std::unique_ptr<actions::Engine> engine_;

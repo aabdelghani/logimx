@@ -213,12 +213,16 @@ void ManagedDevice::applyAssignments() {
         if (!ctl.divertable()) continue;
         bool want = wanted.count(cid) > 0;
         bool raw = want && wanted[cid].value("type", "") == "gesture" && ctl.rawXY();
-        bool isDiverted = diverted_.count(cid) > 0;
-        if (want != isDiverted || raw) {
+        bool isDiverted = diverted_.count(cid) > 0, isRaw = rawDiverted_.count(cid) > 0;
+        // raw XY must be written whenever it changes, not only when the diversion does: a button
+        // going from a gesture to another action stays diverted but has to give the pointer back
+        if (want != isDiverted || raw != isRaw) {
             try {
                 dev_->setReporting(cid, want, ctl.rawXY() ? std::optional<bool>(raw) : std::nullopt);
                 if (want) diverted_.insert(cid);
                 else diverted_.erase(cid);
+                if (raw) rawDiverted_.insert(cid);
+                else rawDiverted_.erase(cid);
             } catch (const std::exception& e) {
                 WARN("%s: divert 0x%x: %s", dev_->name().c_str(), cid, e.what());
             }
@@ -246,6 +250,7 @@ void ManagedDevice::releaseAll() {
         }
     }
     diverted_.clear();
+    rawDiverted_.clear();
     if (dev_->has(hidpp::THUMB_WHEEL)) {
         try { dev_->setThumbwheel(false, false); } catch (...) {}
     }
