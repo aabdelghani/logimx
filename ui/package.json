@@ -28,10 +28,7 @@
     },
     "files": [
       "main.js",
-      "preload.js",
-      "preload-osd.js",
-      "preload-emoji.js",
-      "preload-tray.js",
+      "preload*.js",
       "renderer/**/*",
       "assets/**/*",
       "package.json"

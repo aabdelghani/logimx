@@ -129,7 +129,10 @@ select.sel { background: var(--win); border: 1px solid var(--brd); border-radius
 .chip:hover { background: var(--btn); }
 .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--hb); color: var(--fg); padding: 10px 16px; border-radius: 10px; box-shadow: 0 0 0 1px var(--brd), 0 10px 30px rgba(0,0,0,.35); font-size: 13px; z-index: 50; }
 .toast.err { color: var(--err); }
-::-webkit-scrollbar { width: 10px; } ::-webkit-scrollbar-thumb { background: var(--trk); border-radius: 6px; border: 2px solid var(--win); }
+/* scrollbars have to be seen, in the dark theme too */
+::-webkit-scrollbar { width: 12px; height: 12px; } ::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--fg) 30%, transparent); border-radius: 6px; border: 3px solid transparent; background-clip: content-box; min-height: 40px; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--fg) 50%, transparent); background-clip: content-box; }
 
 /* --------------------------------------------------------- device views */
 .photo-col { display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: start; }
@@ -216,6 +219,10 @@ select.sel { background: var(--win); border: 1px solid var(--brd); border-radius
 .search input { flex: 1; border: 0; background: transparent; outline: none; color: var(--fg); font: 13px var(--font); }
 .cats { display: flex; flex-wrap: wrap; gap: 4px; }
 .acts { border: 1px solid var(--brd); border-radius: 12px; background: var(--card); overflow: hidden; }
+/* a dialog's parts keep their height and the body scrolls; a list that is the body's own child
+   scrolls by itself so the search box and the tabs stay in view */
+.dlg-body > * { flex-shrink: 0; }
+.dlg-body > .acts { flex: 1 1 auto; min-height: 160px; overflow-y: auto; }
 .act { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--brd); width: 100%; border-left: 0; border-right: 0; border-bottom: 0; background: transparent; color: var(--fg); text-align: left; font: 14px var(--font); }
 .act:first-child { border-top: 0; }
 .act:hover { background: var(--btn); }
