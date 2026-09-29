@@ -221,7 +221,7 @@ function showTrayPanel() {
   const height = 8 + n * 96 + 9 + 3 * 40 + 8;
   let a; try { const tb = tray && tray.getBounds(); a = screen.getDisplayNearestPoint(tb && tb.width ? { x: tb.x, y: tb.y } : screen.getCursorScreenPoint()).workArea; } catch (e) { a = screen.getPrimaryDisplay().workArea; }
   w.setBounds({ x: Math.round(a.x + a.width - TRAY_W - 12), y: Math.round(a.y + 8), width: TRAY_W, height });
-  const send = () => { w.show(); w.focus(); pushTrayState(); };
+  const send = () => { w.show(); offTaskbar(w); w.focus(); pushTrayState(); };
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
 }
 ipcMain.handle('tray-state', () => trayState());
@@ -370,6 +370,17 @@ async function showOsd(data) {
 }
 ipcMain.on('osd-hidden', () => { if (osdWin && !osdWin.isDestroyed()) osdWin.hide(); });
 
+// Overlays (tray panel, emoji picker, action ring) must never put the app in the dock or taskbar.
+// The option given at creation is lost for a window created hidden, so it is set again on every
+// show, and once more after the window manager has mapped it.
+function offTaskbar(w) {
+  const set = () => {
+    if (!w || w.isDestroyed()) return;
+    // the agent asks the window manager on X11, which is what the dock and the taskbar listen to
+    try { const xid = w.getNativeWindowHandle().readUInt32LE(0); if (xid) rpc('skip_taskbar', { xid }).catch(() => {}); } catch (e) {}
+  };
+  set(); setTimeout(set, 80);
+}
 // ------------------------------------------------------------- emoji picker
 let emojiWin = null;
 const EMOJI_W = 380, EMOJI_H = 460;
@@ -409,7 +420,7 @@ async function showEmoji(source) {
   const X = Math.round(x), Y = Math.round(y);
   const place = () => { if (w.isDestroyed()) return; const [cx, cy] = w.getPosition(); if (cx !== X || cy !== Y) w.setPosition(X, Y); };
   const send = () => {
-    w.setPosition(X, Y); w.show(); place(); w.focus();
+    w.setPosition(X, Y); w.show(); offTaskbar(w); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);   // the window manager may re-place a freshly mapped window
     w.webContents.send('emoji-show', { theme: uiSettings.theme || 'light', recent: uiSettings.emojiRecent || [], source: source || 'Emoji key' });
   };
@@ -502,7 +513,7 @@ async function showRing(deviceId, raw) {
   const Y = Math.round(Math.max(a.y, Math.min(a.y + a.height - RING_H, pt.y - RING_H / 2)));
   const place = () => { if (w.isDestroyed()) return; const [cx, cy] = w.getPosition(); if (cx !== X || cy !== Y) w.setPosition(X, Y); };
   const send = () => {
-    w.setPosition(X, Y); w.show(); place(); w.focus();
+    w.setPosition(X, Y); w.show(); offTaskbar(w); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);
     w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw });
     ringOpening = false;

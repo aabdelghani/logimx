@@ -12,6 +12,10 @@ namespace apps {
 // X11 and Sway report the real list; GNOME on Wayland exposes nothing usable, so it returns empty.
 std::vector<std::string> runningWindowClasses();
 
+// Keep a window of ours out of the taskbar and the dock (X11). The toolkit's own request is lost
+// for windows it creates hidden, so the window manager is asked directly once the window is up.
+bool skipTaskbar(unsigned long xid);
+
 class Tracker {
   public:
     using Callback = std::function<void(const std::string&)>;
