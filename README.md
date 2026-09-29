@@ -140,7 +140,7 @@ every time a version tag is pushed, so each asset can be traced back to a public
 **Debian / Ubuntu (.deb)**: agent, CLI, udev rule, systemd user unit, desktop entry and the app.
 
 ```
-sudo apt install ./logimx_0.5.0_amd64.deb
+sudo apt install ./logimx_0.5.1_amd64.deb
 systemctl --user enable --now logimx      # agent for the current session (automatic after the next login)
 logimx                                    # or launch LogiMX from the app grid
 ```
@@ -149,8 +149,8 @@ logimx                                    # or launch LogiMX from the app grid
 wizard installs the udev rule with pkexec.
 
 ```
-chmod +x LogiMX-0.5.0-x86_64.AppImage
-./LogiMX-0.5.0-x86_64.AppImage
+chmod +x LogiMX-0.5.1-x86_64.AppImage
+./LogiMX-0.5.1-x86_64.AppImage
 ```
 
 Build the packages yourself with `packaging/deb/build.sh` and `cd ui && npm run dist:appimage`.
@@ -213,6 +213,14 @@ logimxctl presets
 
 Configuration lives in `~/.config/logimx/config.json`. Device ids are the product ids
 (`b034` MX Master 3S, `b042` MX Master 4, `b378` MX Keys S), controls are HID++ control ids.
+
+## Reporting a problem
+
+About, Report a problem gathers what is needed to reproduce it (versions, desktop, the devices and
+what they report, the last lines of the agent's log) and opens a new issue on GitHub in your browser
+with that filled in. You see the whole text first. Serial numbers, host names and your user name
+are removed, custom commands are reduced to their kind, and LogiMX itself sends nothing anywhere:
+the issue is filed by you, from your own account.
 
 ## Status
 

@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('agent', {
   appInfo: () => ipcRenderer.invoke('app-info'),
   osdTest: kind => ipcRenderer.invoke('osd-test', kind),
   ringShow: () => ipcRenderer.invoke('ring-show'),
+  diagReport: () => ipcRenderer.invoke('diag-report'),
   generalChanged: () => ipcRenderer.invoke('general-changed'),
   setTheme: t => ipcRenderer.invoke('set-theme', t),
   openBluetooth: () => ipcRenderer.invoke('open-bluetooth'),
