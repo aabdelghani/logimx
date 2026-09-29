@@ -11,7 +11,7 @@
     thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
-  const VERSION = '0.4.18';
+  const VERSION = '0.5.0';
 
   // ------------------------------------------------------------------ rpc
   async function call(method, params) {
@@ -147,10 +147,10 @@
   // ------------------------------------------------------------- nav
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
-    easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
+    haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
     apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
-  const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer', 'easy', 'info'] : ['keys', 'backlight', 'easy', 'info'];
+  const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'info']) : ['keys', 'backlight', 'easy', 'info'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
@@ -222,6 +222,7 @@
       case 'buttons': return d ? pageButtons(d) : '';
       case 'gestures': return d ? pageGestures(d) : '';
       case 'pointer': return d ? pagePointer(d) : '';
+      case 'haptics': return d ? pageHaptics(d) : '';
       case 'thumb': return d ? pageButtons(d) : '';   // merged into Buttons
       case 'easy': return d ? pageEasy(d) : '';
       case 'info': return d ? pageInfo(d) : '';
@@ -238,10 +239,24 @@
   }
 
   // ----------------------------------------------------------- photos
-  const MOUSE_PHOTO = { src: '../assets/devices/mx-master-3s.png', w: 1021, h: 1517, spots: [[82, 636, 296, 1], [196, 636, 586, 5], [86, 279, 608, 3], ['thumb', 292, 721, 6], [83, 310, 901, 2], [195, 82, 880, 4]] };
+  // One photo per mouse model, keyed by device id like the keyboards. A spot is a control id (or
+  // 'thumb' for the thumb wheel) and where it is on the photo; its number is the row it has on the
+  // Buttons page, so the two always agree. A mouse without an entry shows the rows only.
+  const MOUSE_PHOTOS = (() => {
+    const s3 = { src: '../assets/devices/mx-master-3s.png', w: 1021, h: 1517, spots: [[82, 636, 296], [196, 636, 586], [86, 279, 608], ['thumb', 292, 721], [83, 310, 901], [195, 82, 880]] };
+    const m4 = { src: '../assets/devices/mx-master-4.png', w: 1021, h: 1594, spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
+    return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4 };
+  })();
+  const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
   function mousePhoto(d) {
-    const P = MOUSE_PHOTO;
-    const spots = P.spots.map(([k, x, y, n]) => `<g class="hotspot" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}"><circle class="ring" cx="${x}" cy="${y}" r="40"/><circle class="core" cx="${x}" cy="${y}" r="26"/><text class="n" x="${x}" y="${y + 11}" text-anchor="middle">${n}</text></g>`).join('');
+    const P = MOUSE_PHOTOS[d.id];
+    if (!P) return '';
+    const order = buttonRows(d).map(([cid]) => cid);
+    const spots = P.spots.map(([k, x, y]) => {
+      const n = k === 'thumb' ? order.length + 1 : order.indexOf(k) + 1;
+      if (!n) return '';
+      return `<g class="hotspot" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}"><circle class="ring" cx="${x}" cy="${y}" r="40"/><circle class="core" cx="${x}" cy="${y}" r="26"/><text class="n" x="${x}" y="${y + 11}" text-anchor="middle">${n}</text></g>`;
+    }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${spots}</svg>`;
   }
   // One photo per keyboard model, keyed by the device id the agent uses (its product id in hex:
@@ -269,9 +284,9 @@
   }
 
   // ----------------------------------------------------------- pages
-  const PHYS = [[82, 'Middle button'], [83, 'Back'], [86, 'Forward'], [195, 'Gesture button'], [196, 'Mode shift']];
+  const PHYS = [[82, 'Middle button'], [83, 'Back'], [86, 'Forward'], [195, 'Gesture button'], [196, 'Mode shift'], [416, 'Haptic panel']];
   function pageButtons(d) {
-    const rows = PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, label], i) => {
+    const rows = buttonRows(d).map(([cid, label], i) => {
       const a = assignment(d, 'buttons', cid);
       return `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${label}</span>${drop(a, `data-act="pick" data-section="buttons" data-cid="${cid}" data-label="${esc(label)}"`)}</div>`;
     }).join('');
@@ -279,8 +294,9 @@
     const twInvert = !!((d.config.settings || {}).thumbwheel || {}).invert;
     const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
     const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
-    const twRow = d.controls.length ? `<div class="row"><span class="num">6</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
-    return `<div class="photo-col"><div class="photo-card">${mousePhoto(d)}</div>
+    const twRow = d.controls.length ? `<div class="row"><span class="num">${buttonRows(d).length + 1}</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
+    const photo = mousePhoto(d);
+    return `<div class="${photo ? 'photo-col' : ''}">${photo ? `<div class="photo-card">${photo}</div>` : ''}
       <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Applications</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
         row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
         `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
@@ -291,6 +307,8 @@
   const isRingAction = a => a === 'action_ring' || (!!a && typeof a === 'object' && a.type === 'ui' && a.event === 'ring');
   // the button that is held: the one carrying gestures or the action ring (they share it, one at a time)
   function gestureControl(d) {
+    const picked = (S.holdCid || {})[d.id];
+    if (picked !== undefined && gestureCapable(d).some(c => c.cid === picked)) return picked;
     for (const c of gestureCapable(d)) { const a = assignment(d, 'buttons', c.cid); const r = typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {}); if (r.type === 'gesture' || isRingAction(a)) return c.cid; }
     return 195;
   }
@@ -298,7 +316,7 @@
     const a = assignment(d, 'buttons', cid);
     const src = typeof a === 'string' ? S.presets.all[a] : a;
     if (src && src.type === 'gesture') return JSON.parse(JSON.stringify(src));
-    const kept = ((S.ui || {}).savedGesture || {})[d.id];   // what the button did before the ring took it
+    const kept = ((S.ui || {}).savedGesture || {})[d.id + ':' + cid] || ((S.ui || {}).savedGesture || {})[d.id];   // what the button did before the ring took it
     if (kept && kept.type === 'gesture') return JSON.parse(JSON.stringify(kept));
     const o = JSON.parse(JSON.stringify(S.presets.all.gesture_navigation)); o.label = 'Custom gestures'; return o;
   }
@@ -310,7 +328,7 @@
     const seg = (k, l) => `<button class="${mode === k ? 'on' : ''}" data-act="hold-mode" data-key="${k}">${l}</button>`;
     // gestures and the action ring share the held button: choosing one turns the other off
     const holdRows = `<div class="row"><div class="grow"><div class="lbl">When held</div><div class="sub">${mode === 'ring' ? 'Opens the action ring; gestures are off' : mode === 'gestures' ? 'Swipes run gestures; the action ring is off' : 'The button does what the mouse does by itself'}</div></div><span class="seg">${seg('gestures', 'Gestures')}${seg('ring', 'Action ring')}${seg('off', 'Off')}</span></div>` +
-      `<div class="row"><span class="grow lbl">Button</span><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${c.cid === 195 ? ' (thumb)' : ''}</option>`).join('')}</select></div>`;
+      `<div class="row"><div class="grow"><div class="lbl">Button</div><div class="sub">Each button that can be held has its own choice</div></div><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => { const ca = assignment(d, 'buttons', c.cid); const ct = (typeof ca === 'string' ? (S.presets.all[ca] || {}) : (ca || {})).type; return `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${isRingAction(ca) ? ' · action ring' : ct === 'gesture' ? ' · gestures' : ''}</option>`; }).join('')}</select></div>`;
     if (mode === 'ring') return sec('Gesture button', card(holdRows)) + pageRing();
     if (mode === 'off') return sec('Gesture button', card(holdRows)) + `<div class="hint" style="margin-top:12px">Pick Gestures or Action ring to give the button something to do while it is held.</div>`;
     const cell = (k, txt, cls = '') => `<button class="${cls} ${S.dir === k ? 'on' : ''}" data-act="dir" data-key="${k}">${txt}</button>`;
@@ -328,6 +346,25 @@
       </div></div>`;
   }
 
+  const WAVES = { 0: 'Sharp tick', 1: 'Soft thud', 2: 'Sharp knock', 3: 'Soft knock', 4: 'Light tick', 5: 'Happy alert', 6: 'Angry alert', 7: 'Completed', 8: 'Square', 9: 'Wave', 10: 'Firework', 11: 'Mad', 12: 'Knock', 13: 'Jingle', 14: 'Ringing', 27: 'Whisper' };
+  function pageHaptics(d) {
+    const st = (d.state || {}).haptic || {}, s = (d.config.settings || {}).haptic || {};
+    const on = s.enabled ?? st.enabled ?? true, level = s.level ?? st.level ?? 50;
+    const force = ((d.state || {}).force || [])[0], pf = (d.config.settings || {}).panel_force ?? (force ? force.current : 0);
+    const step = force ? Math.max(1, Math.round((force.max - force.min) / 20)) : 1;
+    const pct = force ? Math.round((pf - force.min) * 100 / Math.max(1, force.max - force.min)) : 0;
+    const waves = (st.waveforms || []).map(w => `<button class="pill" data-act="haptic-play" data-key="${w}" ${on ? '' : 'disabled'}>${esc(WAVES[w] || 'Pattern ' + w)}</button>`).join('');
+    return sec('Haptic feedback', card(
+        row('Haptic feedback', 'The panel under the thumb answers with a short vibration', sw(on, 'data-act="setting" data-path="haptic.enabled"')) +
+        `<div class="row"><div class="grow"><div class="lbl">Strength</div><div class="sub">${on ? 'Felt at once when you let go of the slider' : 'Feedback is off'}</div></div>${range('data-act="haptic-level" data-out="hl"', level, 5, 100, 5)}<span class="val" data-out="hl" style="width:32px;text-align:right">${level}</span></div>`)) +
+      sec('Felt when', card(
+        row('The action ring moves or runs', 'A light tick on each action, a soft thud when one runs', sw(s.ring ?? true, 'data-act="setting" data-path="haptic.ring"')) +
+        row('A gesture is recognised', 'A sharp tick when a swipe does its action', sw(s.gestures ?? true, 'data-act="setting" data-path="haptic.gestures"')))) +
+      (force ? sec('Haptic panel press', card(
+        `<div class="row"><div class="grow"><div class="lbl">Press force</div><div class="sub">How hard the panel has to be pressed: lower is lighter</div></div>${range('data-act="setting-range" data-path="panel_force" data-out="pf"' + (force.changeable ? '' : ' disabled'), pf, force.min, force.max, step)}<span class="val" data-out="pf" style="width:40px;text-align:right">${pct}%</span></div>`) +
+        `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="panel-force-reset"><i class="fa-solid fa-rotate-left"></i>Default force</button></div>`) : '') +
+      sec('Try a pattern', `<div class="chips">${waves}</div>`, 'plays on the mouse');
+  }
   function pagePointer(d) {
     const st = d.state || {}, s = d.config.settings || {};
     const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000);
@@ -341,6 +378,7 @@
       sec('Scroll wheel', card(
         row('SmartShift', 'Switch from ratchet to free-spin when the wheel is flicked', sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
         `<div class="row"><span class="grow lbl">SmartShift sensitivity</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` +
+        ((st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">Ratchet force</div><div class="sub">How firm each step of the wheel feels</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '') +
         row('Smooth scrolling', 'High-resolution wheel events', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"')) +
         row('Natural scroll direction', '', sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"'))));
   }
@@ -706,7 +744,7 @@
       try { q.setSelectionRange(n, n); } catch (e) {}
     }, 20);
   }
-  function fmtOut(k, v) { if (k === 'pspeed' || k === 'sst' || k === 'dpi' || k === 'tws') return String(v); if (k === 'thr') return v + '%'; if (k === 'dur') return (v / 1000).toFixed(1) + ' s'; return String(v); }
+  function fmtOut(k, v) { if (k === 'pf') { const f = (((dev() || {}).state || {}).force || [])[0]; return f ? Math.round((v - f.min) * 100 / Math.max(1, f.max - f.min)) + '%' : String(v); } if (k === 'pspeed' || k === 'sst' || k === 'dpi' || k === 'tws') return String(v); if (k === 'thr') return v + '%'; if (k === 'dur') return (v / 1000).toFixed(1) + ' s'; return String(v); }
   function appTabHtml(p) {
     const q = (p.q || '').toLowerCase();
     const match = a => !q || (a.name || '').toLowerCase().includes(q) || (a.wm_class || '').toLowerCase().includes(q) || (a.id || '').toLowerCase().includes(q);
@@ -876,16 +914,16 @@
       case 'gesture-preset': await setAssign(d, 'buttons', gestureControl(d), key); render(); return;
       case 'gest-mode': { const cid = gestureControl(d), g = gestureObject(d, cid); g.continuous = key === 'continuous'; if (g.continuous && !g.step) g.step = 40; g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); render(); return; }
       case 'gest-enable': { const cid = gestureControl(d); const on = !b.classList.contains('on'); if (on) { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); } else await setAssign(d, 'buttons', cid, 'native'); render(); return; }
-      case 'gest-button': { const old = gestureControl(d), n = Number(b.value); if (n !== old) { if (isRingAction(assignment(d, 'buttons', old))) { await setAssign(d, 'buttons', old, 'native'); await setAssign(d, 'buttons', n, 'action_ring'); } else { const g = gestureObject(d, old); await setAssign(d, 'buttons', old, 'native'); g.type = 'gesture'; await setAssign(d, 'buttons', n, g); } } render(); return; }
+      case 'gest-button': { S.holdCid = Object.assign({}, S.holdCid, { [d.id]: Number(b.value) }); render(); return; }
       case 'hold-mode': {
         // one button, one job: taking the ring keeps the gestures aside so they come back as they were
         const cid = gestureControl(d), cur = assignment(d, 'buttons', cid);
         const curType = (typeof cur === 'string' ? (S.presets.all[cur] || {}) : (cur || {})).type;
-        if (curType === 'gesture') S.ui = await window.agent.uiSettings({ savedGesture: Object.assign({}, (S.ui || {}).savedGesture, { [d.id]: gestureObject(d, cid) }) }) || S.ui;
+        if (curType === 'gesture') S.ui = await window.agent.uiSettings({ savedGesture: Object.assign({}, (S.ui || {}).savedGesture, { [d.id + ':' + cid]: gestureObject(d, cid) }) }) || S.ui;
         if (key === 'ring') await setAssign(d, 'buttons', cid, 'action_ring');
         else if (key === 'gestures') { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); }
         else await setAssign(d, 'buttons', cid, 'native');
-        toast(key === 'ring' ? 'Action ring on, gestures off' : key === 'gestures' ? 'Gestures on, action ring off' : 'Gesture button left to the mouse');
+        toast(key === 'ring' ? 'Action ring on this button' : key === 'gestures' ? 'Gestures on this button' : 'Button left to the mouse');
         render(); return;
       }
       case 'gest-sens': { const cid = gestureControl(d), g = gestureObject(d, cid); g.threshold = 165 - 15 * Number(b.value); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); return; }
@@ -895,6 +933,9 @@
       case 'setting': { const on = !b.classList.contains('on'); const path = b.dataset.path.split('.'); let v = b.dataset.on ? (on ? b.dataset.on : b.dataset.off) : on; if (v === 'true') v = true; else if (v === 'false') v = false; await setSetting(d, path, v); render(); return; }
       case 'setting-val': await setSetting(d, b.dataset.path.split('.'), b.dataset.val); render(); return;
       case 'setting-range': await setSetting(d, b.dataset.path.split('.'), Number(b.value)); return;
+      case 'haptic-level': await setSetting(d, ['haptic', 'level'], Number(b.value)); window.agent.call('haptic_play', { id: d.id, waveform: 4 }).catch(() => {}); return;
+      case 'haptic-play': window.agent.call('haptic_play', { id: d.id, waveform: Number(key) }).catch(e => toast(e.message, true)); return;
+      case 'panel-force-reset': { const f = ((d.state || {}).force || [])[0]; if (f) { await setSetting(d, ['panel_force'], f.default); render(); } return; }
       case 'bl-level': await setSetting(d, ['backlight', 'mode'], 'manual'); await setSetting(d, ['backlight', 'level'], Number(key)); render(); return;
       case 'step': { const st = (d.state || {}).backlight || {}, s = (d.config.settings || {}).backlight || {}; const v = Math.max(Number(b.dataset.lo), Math.min(Number(b.dataset.hi), (s[key] ?? st[key] ?? 0) + Number(b.dataset.d))); await setSetting(d, ['backlight', key], v); render(); return; }
       case 'thumb-speed': { const tw = assignment(d, 'thumbwheel'); let a = typeof tw === 'string' ? Object.assign({}, S.presets.all[tw], { preset: tw }) : Object.assign({}, tw || S.presets.all.hscroll); a.gain = Number(b.value) * 1.6; await setAssign(d, 'thumbwheel', '', a); return; }

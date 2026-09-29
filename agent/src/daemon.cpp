@@ -75,6 +75,7 @@ ManagedDevice::ManagedDevice(Daemon& d, hidpp::Transport& t, std::unique_ptr<hid
     };
     ops.changeHost = [this](int h) { daemon_.changeHostFrom(*this, h); };
     ops.uiEvent = [this](const std::string& k) { daemon_.broadcast("action", {{"id", id()}, {"kind", k}, {"device", dev_->name()}}); };
+    ops.gestureFired = [this]() { cue("gesture"); };
     ops.ringEvent = [this](const std::string& k, int cid, int dx, int dy) {
         if (k == "move") { daemon_.broadcast("ring_move", {{"dx", dx}, {"dy", dy}}); return; }
         // raw says whether this control hands its movement to the ring (pointer frozen) or the
@@ -131,7 +132,19 @@ json ManagedDevice::readState(bool full) {
         battery_ = dev_->battery();
         batteryConfirmed_ = false;   // confirmed by the re-read a few seconds from now
         if (auto ss = dev_->smartshift())
-            st["smartshift"] = {{"mode", ss->mode == 2 ? "ratchet" : "freespin"}, {"threshold", ss->threshold}, {"default_threshold", ss->defaultThreshold}};
+            st["smartshift"] = {{"mode", ss->mode == 2 ? "ratchet" : "freespin"}, {"threshold", ss->threshold}, {"default_threshold", ss->defaultThreshold},
+                                {"tunable_torque", ss->tunable}, {"torque", ss->torque}, {"default_torque", ss->defaultTorque}};
+        if (auto hp = dev_->haptic()) {
+            json waves = json::array();
+            for (int i = 0; i < 32; ++i) if (hp->waveforms & (1u << i)) waves.push_back(i);
+            st["haptic"] = {{"enabled", hp->enabled}, {"level", hp->level}, {"discrete_levels", hp->discrete}, {"waveforms", waves}};
+        }
+        {
+            json fb = json::array();
+            for (auto& f : dev_->forceButtons())
+                fb.push_back({{"index", f.index}, {"min", f.min}, {"max", f.max}, {"default", f.def}, {"current", f.current}, {"changeable", f.changeable}});
+            if (!fb.empty()) st["force"] = fb;
+        }
         if (auto hr = dev_->hires())
             st["hires"] = {{"hidpp_target", hr->hidppTarget}, {"hires", hr->hires}, {"invert", hr->invert}, {"multiplier", hr->multiplier},
                            {"has_invert", hr->hasInvert}, {"has_ratchet_switch", hr->hasRatchetSwitch}};
@@ -159,6 +172,22 @@ json ManagedDevice::readState(bool full) {
     return st;
 }
 
+// Which waveform goes with which cue follows the device's own pairing: a light tick when the
+// ring moves onto an action, a soft thud when an action runs, a sharp tick for a gesture.
+bool ManagedDevice::cue(const std::string& name) {
+    std::lock_guard<std::recursive_mutex> lk(m_);
+    if (!dev_->has(hidpp::HAPTIC)) return false;
+    const json h = cfg_.value("settings", json::object()).value("haptic", json::object());
+    if (!h.value("enabled", true)) return false;
+    int wave = -1;
+    if (name == "ring_hover") { if (h.value("ring", true)) wave = 4; }
+    else if (name == "ring_run") { if (h.value("ring", true)) wave = 1; }
+    else if (name == "gesture") { if (h.value("gestures", true)) wave = 0; }
+    if (wave < 0) return false;
+    try { dev_->playHaptic(wave); } catch (...) { return false; }
+    return true;
+}
+
 void ManagedDevice::applySettings(const std::string& only) {
     std::lock_guard<std::recursive_mutex> lk(m_);
     const json& s = cfg_.value("settings", json::object());
@@ -168,8 +197,15 @@ void ManagedDevice::applySettings(const std::string& only) {
         if ((dev_->has(hidpp::SMART_SHIFT) || dev_->has(hidpp::SMART_SHIFT_ENHANCED)) && want("smartshift")) {
             const json& ss = s["smartshift"];
             int mode = ss.value("mode", "ratchet") == "freespin" ? 1 : 2;
-            dev_->setSmartshift(mode, ss.value("threshold", 0));
+            dev_->setSmartshift(mode, ss.value("threshold", 0), ss.value("torque", 0));
         }
+        if (dev_->has(hidpp::HAPTIC) && want("haptic")) {
+            const json& h = s["haptic"];
+            int level = h.value("level", 0);
+            if (level <= 0) { auto cur = dev_->haptic(); level = cur ? cur->level : 50; }
+            dev_->setHaptic(h.value("enabled", true), level);
+        }
+        if (dev_->has(hidpp::FORCE_BUTTON) && want("panel_force") && s["panel_force"].is_number()) dev_->setForce(0, s["panel_force"].get<int>());
         if (dev_->has(hidpp::HIRES_WHEEL) && want("hires")) {
             const json& h = s["hires"];
             dev_->setHires(false, h.value("enabled", true), h.value("invert", false));
@@ -874,6 +910,16 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
     if (k == "smartshift" && path.size() == 2) {
         if (path[1] == "mode") return oneOf({"ratchet", "freespin"});
         if (path[1] == "threshold") return clampInt(1, 255);
+        if (path[1] == "torque") return clampInt(1, 100);
+    }
+    if (k == "haptic" && path.size() == 2) {
+        if (path[1] == "enabled" || path[1] == "ring" || path[1] == "gestures") return boolean();
+        if (path[1] == "level") return clampInt(1, 100);
+    }
+    if (k == "panel_force") {
+        const json fb = st.value("force", json::array());
+        if (fb.empty()) throw std::runtime_error("this device has no force-sensing button");
+        return clampInt(fb[0].value("min", 0), fb[0].value("max", 65535));
     }
     if (k == "hires" && path.size() == 2 && (path[1] == "enabled" || path[1] == "invert")) return boolean();
     if (k == "thumbwheel" && path.size() == 2 && path[1] == "invert") return boolean();
@@ -1085,7 +1131,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
                 if (it != hidpp::kReceivers.end() && seen.insert(t->info().product).second) recv += (recv.empty() ? "" : ", ") + it->second + " receiver";
             }
         }
-        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.4.18"},
+        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.5.0"},
                 {"conflicts", conflictingTools()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
     }
     if (method == "logs") {
@@ -1103,6 +1149,16 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return json{{"ok", true}};
     }
     if (method == "record_cancel") { recorder_.cancel(); return json{{"ok", true}}; }
+    if (method == "haptic_play") {
+        auto md = need(p);
+        md->dev().playHaptic(p.value("waveform", 0));
+        return json{{"ok", true}};
+    }
+    if (method == "haptic_cue") {
+        // a cue is feedback for something the user just did; whether it is felt is the device's setting
+        auto md = need(p);
+        return json{{"ok", md->cue(p.value("cue", ""))}};
+    }
     if (method == "skip_taskbar") return json{{"ok", apps::skipTaskbar(static_cast<unsigned long>(p.value("xid", 0.0)))}};
     if (method == "running_apps") {
         // window classes of everything open, matched against the installed desktop entries so

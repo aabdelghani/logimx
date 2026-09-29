@@ -136,6 +136,7 @@ void Engine::buttonUp(int cid, const json& action) {
             play(a.value("click", json::object()));
         } else if (!g.fired && moved) {
             play(a.value(dir(g.dx, g.dy), json::object()));
+            if (ops_.gestureFired) ops_.gestureFired();
         }
     } else if (t == "hold") {
         auto it = held_.find(cid);
@@ -191,6 +192,7 @@ void Engine::rawXY(int dx, int dy) {
         } else if (!g.fired && (std::abs(g.dx) > thr || std::abs(g.dy) > thr)) {
             g.fired = true;
             play(a.value(dir(g.dx, g.dy), json::object()));
+            if (ops_.gestureFired) ops_.gestureFired();
         }
     }
 }

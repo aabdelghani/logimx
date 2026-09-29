@@ -28,6 +28,7 @@
     setHover(-1);
   }
   function setHover(i) {
+    if (i !== hover && i >= 0 && slots[i]) window.ring.hover(i);   // the mouse may answer with a tick
     hover = i;
     slotsEl.querySelectorAll('.bub, .lab').forEach(w => w.classList.toggle('on', Number(w.dataset.i) === i));
   }

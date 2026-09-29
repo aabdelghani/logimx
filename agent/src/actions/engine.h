@@ -26,6 +26,7 @@ struct DeviceOps {
     std::function<void(const std::string&)> uiEvent;
     // the action ring held on a control: kind is open, move (raw dx, dy) or release
     std::function<void(const std::string& kind, int cid, int dx, int dy)> ringEvent;
+    std::function<void()> gestureFired;   // a swipe was recognised and its action ran
 };
 
 class Engine {
