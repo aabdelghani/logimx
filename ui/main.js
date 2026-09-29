@@ -434,7 +434,7 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // Eight actions around the pointer, opened by the "Action ring" preset on any button or key.
 // The window is a transparent square centred on the pointer; the page draws the wedges and
 // reports the picked slot, and the action runs through the agent like any assignment would.
-let ringWin = null, ringSlots = [], ringDevice = null, ringOpening = false, ringReleasedEarly = false;
+let ringWin = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
 const RING_W = 560, RING_H = 460;   // room for the labels outside the buttons
 function ensureRing() {
@@ -490,7 +490,8 @@ async function showRing(deviceId, raw) {
   if (ringOpening) return;
   uiSettings = uiSettings || loadUi();
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
-  ringSlots = ((general || {}).ring || {}).slots || [];   // kept fresh by refreshGeneral, no round trip here
+  ringSlots = ((general || {}).ring || {}).slots || [];
+  ringTravel = ((general || {}).ring || {}).travel || 30;   // kept fresh by refreshGeneral, no round trip here
   ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
   const [pt, look] = await Promise.all([cursorPoint(), systemLook()]);
   const a = screen.getDisplayNearestPoint(pt).workArea;
@@ -500,7 +501,7 @@ async function showRing(deviceId, raw) {
   const send = () => {
     w.setPosition(X, Y); w.show(); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);
-    w.webContents.send('ring-show', { look, slots: ringSlots, raw: !!raw });
+    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw });
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }
