@@ -1111,7 +1111,8 @@ json Daemon::rpc(const std::string& method, const json& p) {
     if (method == "set_general") {
         static const std::map<std::string, std::string> kinds = {
             {"linked_easy_switch", "bool"}, {"desktop", "string"}, {"notify_low", "bool"}, {"notify_connect", "bool"},
-            {"notify_low_threshold", "number"}, {"osd_enabled", "bool"}, {"osd_position", "string"}, {"osd_duration", "number"}, {"osd_events", "object"}};
+            {"notify_low_threshold", "number"}, {"osd_enabled", "bool"}, {"osd_position", "string"}, {"osd_duration", "number"}, {"osd_events", "object"},
+            {"ring", "object"}};
         for (auto& [k, v] : p.items()) {
             auto it = kinds.find(k);
             if (it == kinds.end()) throw std::runtime_error("unknown general setting " + k);
@@ -1201,6 +1202,28 @@ json Daemon::rpc(const std::string& method, const json& p) {
     }
     if (method == "config") return config_.data();
     if (method == "presets") return actions::presets();
+    if (method == "run_action") {
+        // any action a control could be assigned, run now (the action ring picks one at the pointer);
+        // with a device id it goes through that device's engine so host switching and DPI work too
+        json a = p.value("action", json::object());
+        if (a.is_string()) {
+            std::string k = a.get<std::string>();
+            const json& all = actions::presets()["all"];
+            if (!all.contains(k)) throw std::runtime_error("unknown preset " + k);
+            a = all[k];
+            a["preset"] = k;
+        }
+        std::string t = a.value("type", "");
+        if (t.empty() || t == "gesture" || t == "native" || t == "adapter" || t == "hold") throw std::runtime_error("cannot run an action of type " + t);
+        if (p.contains("id") && p["id"].is_string()) {
+            try { need(p)->play(a); return json{{"ok", true}}; } catch (const std::exception&) { /* device gone: run without it */ }
+        }
+        actions::DeviceOps ops;
+        ops.uiEvent = [this](const std::string& k) { broadcast("action", {{"kind", k}}); };
+        actions::Engine eng(injector(), ops);
+        eng.play(a);
+        return json{{"ok", true}};
+    }
     if (method == "play_action") {
         json a = p.value("action", json::object());
         if (a.is_string()) { auto all = actions::presets()["all"]; if (!all.contains(a.get<std::string>())) throw std::runtime_error("unknown preset"); a = all[a.get<std::string>()]; }

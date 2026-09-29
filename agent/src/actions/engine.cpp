@@ -88,9 +88,18 @@ std::string Engine::dir(int dx, int dy) {
     return dy > 0 ? "down" : "up";
 }
 
+static bool isRing(const json& a) { return a.value("type", "") == "ui" && a.value("event", "") == "ring"; }
+
 void Engine::buttonDown(int cid, const json& action) {
     json a = resolve(action);
     std::string t = a.value("type", "native");
+    // The ring opens on the press and picks on the release, like a gesture button: hold, move to a
+    // slot, let go. Every other action waits for the release so a gesture can still be told apart.
+    if (isRing(a)) {
+        ringHeld_.insert(cid);
+        if (ops_.uiEvent) ops_.uiEvent("ring");
+        return;
+    }
     if (t == "gesture") {
         std::lock_guard<std::mutex> lk(m_);
         gestures_[cid] = Gesture{a};
@@ -104,6 +113,10 @@ void Engine::buttonDown(int cid, const json& action) {
 void Engine::buttonUp(int cid, const json& action) {
     json a = resolve(action);
     std::string t = a.value("type", "native");
+    if (ringHeld_.erase(cid) || isRing(a)) {
+        if (ops_.uiEvent) ops_.uiEvent("ring_release");
+        return;
+    }
     if (t == "gesture") {
         Gesture g;
         {

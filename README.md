@@ -54,6 +54,8 @@ Mouse (MX Master 3S)
 - DPI 200 to 8000, desktop pointer speed, SmartShift on/off and sensitivity, a SmartShift
   toggle action, smooth scrolling, natural scroll direction
 - Battery with 7-day history, firmware, serial, Easy-Switch host cards with one-click switching
+- Action ring: eight actions of your choice around the pointer, on any button or key. Hold the
+  button, move to a slot and let go, or tap it and click; the slots take anything the picker offers
 
 Keyboard (MX Keys S; MX Keys, MX Keys for Mac, MX Keys for Business, MX Keys Mini and
 Mini for Mac / for Business have their own photo, layout and defaults but no hardware test yet)

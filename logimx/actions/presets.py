@@ -52,6 +52,7 @@ PRESETS: dict[str, dict] = {
     "lock":              {"label": "Lock screen", "icon": "lock", "type": "keystroke", "keys": ["KEY_LEFTMETA", "KEY_L"]},
     "calculator":        {"label": "Calculator", "icon": "calc", "type": "keystroke", "keys": ["KEY_CALC"]},
     "emoji_picker":      {"label": "Emoji picker", "icon": "smile", "type": "ui", "event": "emoji"},
+    "action_ring":       {"label": "Action ring", "icon": "ring", "type": "ui", "event": "ring"},
     "emoji":             {"label": "Emoji (desktop shortcut)", "icon": "smile", "type": "keystroke", "keys": ["KEY_LEFTCTRL", "KEY_DOT"]},
     "context_menu":      {"label": "Context menu", "icon": "menu", "type": "keystroke", "keys": ["KEY_COMPOSE"]},
     "dictation":         {"label": "Dictation (needs a tool)", "icon": "mic", "type": "command", "cmd": ""},
@@ -113,9 +114,9 @@ PRESETS: dict[str, dict] = {
 }
 
 # Which presets make sense for which control class
-BUTTON_PRESETS = [k for k, v in PRESETS.items() if v["type"] in ("native", "nothing", "button", "keystroke", "command", "change_host", "dpi_cycle", "gesture", "smartshift_toggle", "open")]
+BUTTON_PRESETS = [k for k, v in PRESETS.items() if v["type"] in ("native", "nothing", "button", "keystroke", "command", "change_host", "dpi_cycle", "gesture", "smartshift_toggle", "open", "ui")]
 WHEEL_PRESETS = [k for k, v in PRESETS.items() if v["type"] in ("native", "nothing", "scroll", "adapter")]
-KEY_PRESETS = [k for k, v in PRESETS.items() if v["type"] in ("native", "nothing", "keystroke", "command", "change_host", "open")]
+KEY_PRESETS = [k for k, v in PRESETS.items() if v["type"] in ("native", "nothing", "keystroke", "command", "change_host", "open", "ui")]
 
 
 def resolve(action) -> dict:
