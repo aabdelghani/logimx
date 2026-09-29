@@ -484,17 +484,36 @@
   }
 
   const RING_DIRS = ['Top', 'Top right', 'Right', 'Bottom right', 'Bottom', 'Bottom left', 'Left', 'Top left'];
-  const ringSlots = () => Array.from({ length: 8 }, (_, i) => ((S.general.ring || {}).slots || [])[i] || null);
+  // The ring keeps several sets of eight actions (profiles); one is in use. Older settings had a
+  // single list of slots, which becomes the first profile.
+  function ringState() {
+    const r = S.general.ring || {};
+    const eight = a => Array.from({ length: 8 }, (_, i) => (a || [])[i] || null);
+    let profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map(p => ({ name: p.name || 'Profile', slots: eight(p.slots) })) : [{ name: 'Default', slots: eight(r.slots) }];
+    const active = Math.max(0, Math.min(profiles.length - 1, Number(r.active) || 0));
+    return { profiles, active, travel: r.travel || 30, free_pointer: !!r.free_pointer };
+  }
+  const ringSlots = () => { const r = ringState(); return r.profiles[r.active].slots.slice(); };
+  async function saveRing(patch) {
+    const r = Object.assign(ringState(), patch);
+    r.active = Math.max(0, Math.min(r.profiles.length - 1, r.active));
+    r.slots = r.profiles[r.active].slots;   // what the overlay of an older build reads
+    await setGeneral({ ring: r });
+  }
+  const saveRingSlots = slots => { const r = ringState(); r.profiles[r.active].slots = slots; return saveRing({ profiles: r.profiles }); };
   function pageRing() {
-    const slots = ringSlots();
+    const rs = ringState(), slots = ringSlots();
     const filled = slots.filter(Boolean).length;
+    const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}" title="${p.slots.filter(Boolean).length} of 8 slots filled">${esc(p.name)}</button>`).join('');
+    const profilesRow = `<div class="row" style="gap:10px"><div class="chips grow">${pchips}<button class="pill" data-act="ring-profile-add" title="New profile"><i class="fa-solid fa-plus"></i>New</button></div><button class="btn flat" data-act="ring-profile-rename" title="Rename this profile"><i class="fa-solid fa-pen"></i></button><button class="btn flat" data-act="ring-profile-copy" title="Duplicate this profile"><i class="fa-solid fa-copy"></i></button>${rs.profiles.length > 1 ? '<button class="btn flat danger" data-act="ring-profile-delete" title="Delete this profile"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     // preview: the same geometry as the overlay, icons on a disc
     const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
-    const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">Hold the button and nudge the mouse toward an action, then let go to run it; or tap the button and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
+    const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">${rs.free_pointer ? 'Hold the button, move the pointer onto an action and let go to run it' : 'Hold the button and nudge the mouse toward an action, then let go to run it'}; or tap the button and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
     const rows = slots.map((sl, i) => `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
-    const travel = (S.general.ring || {}).travel || 30;
-    const feel = `<div class="row"><div class="grow"><div class="lbl">Travel before it picks</div><div class="sub">How far the mouse moves before an action is chosen: lower is snappier, higher is calmer</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
-    return sec('Action ring', card(preview + feel)) + sec('Slots', card(rows), 'clockwise from the top');
+    const travel = rs.travel;
+    const free = `<div class="row"><div class="grow"><div class="lbl">Keep the pointer visible and free</div><div class="sub">${rs.free_pointer ? 'The pointer stays on screen and moves anywhere; the action under it is the one chosen' : 'While the button is held the pointer hides and the mouse steers the ring'}</div></div>${sw(rs.free_pointer, 'data-act="ring-free"')}</div>`;
+    const feel = rs.free_pointer ? '' : `<div class="row"><div class="grow"><div class="lbl">Travel before it picks</div><div class="sub">How far the mouse moves before an action is chosen: lower is snappier, higher is calmer</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
+    return sec('Action ring', card(preview + free + feel)) + sec('Profiles', card(profilesRow), 'sets of actions, one in use') + sec(`Slots · ${rs.profiles[rs.active].name}`, card(rows), 'clockwise from the top');
   }
   function pageSettings() {
     const u = S.ui || {};
@@ -760,7 +779,7 @@
     if (p.section === 'ring') {
       const slots = ringSlots();
       slots[p.cid] = { action, label: presetLabel(action), icon: actionIcon(action) };
-      await setGeneral({ ring: Object.assign({}, S.general.ring, { slots }) });
+      await saveRingSlots(slots);
       S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
     }
     if (p.section === 'gesture') {
@@ -816,11 +835,17 @@
       case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
-      case 'ring-travel': await setGeneral({ ring: Object.assign({}, S.general.ring, { travel: Number(b.value) }) }); return;
-      case 'ring-clear': await setGeneral({ ring: Object.assign({}, S.general.ring, { slots: [] }) }); toast('Action ring cleared'); render(); return;
+      case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
+      case 'ring-free': await saveRing({ free_pointer: !b.classList.contains('on') }); render(); return;
+      case 'ring-profile': await saveRing({ active: Number(key) }); render(); return;
+      case 'ring-profile-add': prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); render(); }, 'Create'); return;
+      case 'ring-profile-copy': { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast('Profile duplicated'); render(); return; }
+      case 'ring-profile-rename': { const r = ringState(); prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return render(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); render(); }, 'Rename'); return; }
+      case 'ring-profile-delete': { const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0]; await saveRing({ profiles: r.profiles, active: Math.max(0, r.active - 1) }); toast(`Profile "${gone.name}" deleted`); render(); return; }
+      case 'ring-clear': await saveRingSlots([]); toast('Slots cleared'); render(); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
-        if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await setGeneral({ ring: Object.assign({}, S.general.ring, { slots }) }); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); render(); return; }
+        if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await saveRingSlots(slots); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); render(); return; }
         const defs = ((await window.agent.call('defaults', { id: dd.id })).profiles || {}).default || {};
         let a = 'native';
         if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';
