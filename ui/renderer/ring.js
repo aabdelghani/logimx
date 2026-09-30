@@ -4,13 +4,22 @@
 // and frozen and the mouse picks by direction: a nudge past DEAD chooses the button that way,
 // the highlight is the only indicator, and letting go runs it.
 (() => {
-  const N = 8, W = 560, H = 460, CX = W / 2, CY = H / 2;
+  const N = 8, RW = 560, RH = 460;   // the ring's own extent; the window is the whole screen
+  let CX = RW / 2, CY = RH / 2;       // where the ring is centred, set per show
   const RR = 104, B = 28;          // ring radius to the bubble centres, bubble radius
   const NEAR = 38, FAR = 250;      // pointer mode: inside NEAR is the close button, beyond FAR is outside
   const GAIN = 1;
   let DEAD = 30, LIMIT = 60;       // travel before a button is chosen, and where the point saturates (set per show)
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
+  let size = { w: RW, h: RH }, waiting = false, guess = null;
+  // centre the ring on a point, kept fully on screen
+  function centreAt(x, y) {
+    CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
+    waiting = false;
+    hub.style.left = CX + 'px'; hub.style.top = CY + 'px'; hub.style.display = '';
+    build();
+  }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
@@ -40,6 +49,7 @@
     return wedge(dx, dy);
   }
   document.addEventListener('mousemove', e => {
+    if (waiting) { centreAt(e.clientX, e.clientY); return; }   // first sight of the pointer: the ring goes there
     if (raw) return;
     last = [e.clientX, e.clientY];
     hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
@@ -67,7 +77,14 @@
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on');
     setRaw(!!msg.raw);
-    build();
+    size = msg.size || { w: RW, h: RH }; guess = msg.guess || null;
+    if (msg.at) centreAt(msg.at.x, msg.at.y);
+    else {
+      // the pointer's place is not known here (Wayland): draw nothing until it is seen over the
+      // window, and fall back to the best guess if it never moves
+      waiting = true; slotsEl.innerHTML = ''; hub.style.display = 'none';
+      setTimeout(() => { if (waiting) centreAt(guess ? guess.x : size.w / 2, guess ? guess.y : size.h / 2); }, 250);
+    }
   });
   window.ring.onMove(({ dx, dy }) => {
     if (!raw) setRaw(true);
