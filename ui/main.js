@@ -450,13 +450,17 @@ let ringPending = [0, 0];   // movement that arrived while the ring was still be
 const RING_W = 560, RING_H = 460;   // the ring itself; the window grows to the screen when shown
 function ensureRing() {
   if (ringWin && !ringWin.isDestroyed()) return ringWin;
+  // A notification-type window: the window manager neither animates it in (a screen-sized
+  // window zooming in looks like the whole screen twitching) nor gives it focus. Keys reach the
+  // ring through global shortcuts held only while it is open.
   ringWin = new BrowserWindow({
     width: RING_W, height: RING_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false,
+    focusable: false, type: 'notification',
     webPreferences: { preload: path.join(__dirname, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   ringWin.setAlwaysOnTop(true, 'pop-up-menu');
   ringWin.loadFile(path.join(__dirname, 'renderer', 'ring.html'));
-  ringWin.on('blur', () => { if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.hide(); });
+  ringWin.on('hide', ringKeysOff);
   return ringWin;
 }
 // The button that opened the ring was let go: the page runs the hovered slot, or stays open when
@@ -490,6 +494,14 @@ function releaseRing() {
   if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-release');
   else if (ringOpening) ringReleasedEarly = true;   // let go before the ring was even placed: a tap
 }
+// Esc closes and 1 to 8 pick while the ring is open; the window itself never has the focus
+const RING_KEYS = ['Escape', '1', '2', '3', '4', '5', '6', '7', '8'];
+function ringKeysOn() {
+  for (const k of RING_KEYS) {
+    try { globalShortcut.register(k, () => { if (!ringWin || ringWin.isDestroyed() || !ringWin.isVisible()) return; if (k === 'Escape') ringWin.hide(); else ringWin.webContents.send('ring-key', { key: k }); }); } catch (e) {}
+  }
+}
+function ringKeysOff() { for (const k of RING_KEYS) { try { globalShortcut.unregister(k); } catch (e) {} } }
 // Raw movement from the held button: it steers the ring while the pointer stays put.
 function moveRing(dx, dy) {
   if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-move', { dx, dy });
@@ -520,8 +532,8 @@ async function showRing(deviceId, raw) {
   const guess = { x: pt.x - X, y: pt.y - Y };
   const place = () => { if (w.isDestroyed()) return; const b = w.getBounds(); if (b.x !== X || b.y !== Y || b.width !== R - X || b.height !== Bm - Y) w.setBounds({ x: X, y: Y, width: R - X, height: Bm - Y }); };
   const send = () => {
-    place(); w.show(); offTaskbar(w); place(); w.focus();
-    setTimeout(place, 40); setTimeout(place, 160);
+    place(); w.show(); offTaskbar(w); ringKeysOn();
+    setTimeout(place, 60);   // once, in case the window manager moved it
     w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y } });
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
