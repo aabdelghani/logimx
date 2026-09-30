@@ -445,8 +445,10 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // Eight actions around the pointer, opened by the "Action ring" preset on any button or key.
 // The window is a transparent square centred on the pointer; the page draws the wedges and
 // reports the picked slot, and the action runs through the agent like any assignment would.
+let ringRawMode = false;
 let ringWin = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
+const ringLog = [];          // how the last openings found the pointer, for the problem report
 const RING_W = 560, RING_H = 460;   // the ring itself; the window grows to the screen when shown
 function ensureRing() {
   if (ringWin && !ringWin.isDestroyed()) return ringWin;
@@ -516,6 +518,7 @@ async function showRing(deviceId, raw) {
   const rs = (general || {}).ring || {};   // kept fresh by refreshGeneral, no round trip here
   const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
   ringSlots = (prof && prof.slots) || rs.slots || [];
+  ringRawMode = !!raw;
   ringTravel = rs.travel || 30;
   if (rs.free_pointer) raw = false;   // the pointer stays free: the ring follows it instead of taking the mouse
   ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
@@ -542,6 +545,7 @@ async function showRing(deviceId, raw) {
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
 }
 ipcMain.on('ring-close', () => { if (ringWin && !ringWin.isDestroyed()) ringWin.hide(); });
+ipcMain.on('ring-diag', (_e, info) => { ringLog.push(Object.assign({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode }, info)); if (ringLog.length > 6) ringLog.shift(); });
 // haptic feedback on the mouse that opened the ring; mice without it, and rings opened from the
 // page, simply get none
 const ringCue = cue => { if (ringDevice) rpc('haptic_cue', { id: ringDevice, cue }).catch(() => {}); };
@@ -780,6 +784,11 @@ ipcMain.handle('diag-report', async () => {
   if (!devs.length) lines.push('', 'No devices found.');
   const ring = (general || {}).ring || {};
   lines.push('', `Action ring: ${Array.isArray(ring.profiles) ? ring.profiles.length + ' profile(s)' : 'not set up'}, ${ring.free_pointer ? 'pointer free' : 'steered'}`);
+  // how the ring found the pointer on its last openings: the thing that goes wrong on Wayland
+  const disp = screen.getAllDisplays().map(d => `${d.bounds.width}x${d.bounds.height}@${d.bounds.x},${d.bounds.y}${d.scaleFactor !== 1 ? ' x' + d.scaleFactor : ''}`).join(', ');
+  lines.push(`Displays: ${disp}; session ${process.env.XDG_SESSION_TYPE || '?'}, DISPLAY ${process.env.DISPLAY ? 'set' : 'unset'}, WAYLAND_DISPLAY ${process.env.WAYLAND_DISPLAY ? 'set' : 'unset'}, ozone ${process.env.ELECTRON_OZONE_PLATFORM_HINT || 'default'}`);
+  if (ringLog.length) lines.push('Ring openings (last first): ' + ringLog.slice().reverse().map(r => `${r.when} ${r.raw ? 'steered' : 'pointer'}: ${r.how} at ${r.ms} ms, drawn at (${r.x}, ${r.y})${r.guess ? `, last known (${Math.round(r.guess.x)}, ${Math.round(r.guess.y)})` : ''}`).join('; '));
+  else lines.push('Ring openings: none since the app started');
   const summary = redact(lines.join('\n'));
   const log = redact((logs || []).slice(-40).join('\n'));
   return { summary, log, title: `Problem report: ${devs.map(d => d.name).join(', ') || 'no device'} · LogiMX ${app.getVersion()}` };
