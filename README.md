@@ -131,6 +131,10 @@ Everything
 |---|---|
 | ![Ubuntu](screenshots/ubuntu-theme.png) | ![Applications](screenshots/applications.png) |
 
+| Report a problem | |
+|---|---|
+| ![Report a problem](screenshots/report-problem.png) | |
+
 ## Install
 
 Packages are attached to each [release](https://github.com/aabdelghani/logimx/releases). They are built
