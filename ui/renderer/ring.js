@@ -12,7 +12,9 @@
   let DEAD = 30, LIMIT = 60;       // travel before a button is chosen, and where the point saturates (set per show)
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
-  let size = { w: RW, h: RH }, waiting = false, guess = null;
+  let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false;
+  // how this opening found the pointer, for the problem report
+  const tell = (how, x, y) => { if (told) return; told = true; window.ring.diag({ how, ms: Math.round(performance.now() - openedAt), x: Math.round(x), y: Math.round(y), guess }); };
   // centre the ring on a point, kept fully on screen
   function centreAt(x, y) {
     CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
@@ -50,7 +52,7 @@
     return wedge(dx, dy);
   }
   document.addEventListener('mousemove', e => {
-    if (waiting) { centreAt(e.clientX, e.clientY); return; }   // first sight of the pointer: the ring goes there
+    if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); return; }   // first sight of the pointer: the ring goes there
     if (raw) return;
     last = [e.clientX, e.clientY];
     hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
@@ -75,13 +77,13 @@
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on');
     setRaw(!!msg.raw);
-    size = msg.size || { w: RW, h: RH }; guess = msg.guess || null;
-    if (msg.at) centreAt(msg.at.x, msg.at.y);
+    size = msg.size || { w: RW, h: RH }; guess = msg.guess || null; openedAt = performance.now(); told = false;
+    if (msg.at) { tell('known up front', msg.at.x, msg.at.y); centreAt(msg.at.x, msg.at.y); }
     else {
       // the pointer's place is not known here (Wayland): draw nothing until it is seen over the
       // window, and fall back to the best guess if it never moves
       waiting = true; slotsEl.innerHTML = ''; hub.style.display = 'none';
-      setTimeout(() => { if (waiting) centreAt(guess ? guess.x : size.w / 2, guess ? guess.y : size.h / 2); }, 250);
+      setTimeout(() => { if (waiting) { const gx = guess ? guess.x : size.w / 2, gy = guess ? guess.y : size.h / 2; tell('fallback after 250 ms', gx, gy); centreAt(gx, gy); } }, 250);
     }
   });
   window.ring.onMove(({ dx, dy }) => {

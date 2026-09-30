@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('ring', {
   pick: index => ipcRenderer.send('ring-pick', { index }),
   hover: index => ipcRenderer.send('ring-hover', { index }),
   close: () => ipcRenderer.send('ring-close'),
+  diag: info => ipcRenderer.send('ring-diag', info),
 });
