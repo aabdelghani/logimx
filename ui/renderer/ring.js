@@ -27,7 +27,8 @@
     slotsEl.innerHTML = slots.map((s, i) => {
       const c = Math.cos(ang(i)), sn = Math.sin(ang(i));
       const bx = CX + RR * c, by = CY + RR * sn;
-      const bub = `<div class="bub ${s ? '' : 'empty'}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${i * 45 - 90}deg"><i class="fa-solid ${esc(s ? s.icon || 'fa-circle-dot' : 'fa-plus')}"></i></div>`;
+      // each button springs out from the middle, one after another around the ring
+      const bub = `<div class="bub ${s ? '' : 'empty'}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${i * 45 - 90}deg;--i:${i};--dx:${(-RR * c).toFixed(0)}px;--dy:${(-RR * sn).toFixed(0)}px"><i class="fa-solid ${esc(s ? s.icon || 'fa-circle-dot' : 'fa-plus')}"></i></div>`;
       if (!s) return bub;
       // the label sits outside the bubble, growing away from the ring
       const lx = CX + (RR + B + 16) * c, ly = CY + (RR + B + 16) * sn;
@@ -61,11 +62,8 @@
     const i = at(e.clientX, e.clientY);
     if (i >= 0 && slots[i]) window.ring.pick(i); else window.ring.close();
   });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { window.ring.close(); return; }
-    const n = Number(e.key);
-    if (n >= 1 && n <= N && slots[n - 1]) window.ring.pick(n - 1);
-  });
+  // keys arrive from the main process (the window has no focus of its own); Esc is handled there
+  window.ring.onKey(({ key }) => { const n = Number(key); if (n >= 1 && n <= N && slots[n - 1]) window.ring.pick(n - 1); });
   window.ring.onShow(msg => {
     // dressed like the desktop it opens on: its light or dark, its accent colour, its font
     const look = msg.look || {}, root = document.documentElement;

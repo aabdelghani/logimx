@@ -156,15 +156,23 @@
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
   // ============================================================ render
+  // Animations run when something new appears, not on every refresh: the page when it is
+  // navigated to, the dialog when it opens. A refresh of the same page redraws it in place.
+  let lastPageKey = null, lastDlg = null;
   function render() {
     stopRecorder();
     document.documentElement.setAttribute('data-theme', S.theme);
+    const pageKey = `${S.mode}|${S.page}|${S.dev}|${S.appDetail ? S.appDetail.key : ''}|${S.devices.length ? 1 : 0}`;
+    const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
+    const dlgOpened = !!S.dlg && S.dlg !== lastDlg; lastDlg = S.dlg;
     let html = '';
     if (S.mode === 'onboard') html = renderOnboard();
     else if (!S.devices.length) html = renderEmpty();
     else html = renderWindow();
     html += renderDialog();
     root.innerHTML = html;
+    if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
+    if (dlgOpened) { const sc = root.querySelector('.scrim'); if (sc) sc.classList.add('enter'); }
     bind();
   }
 
@@ -733,7 +741,7 @@
         b.onchange = () => onAction(act, b);
       } else if (b.tagName === 'SELECT') b.onchange = () => onAction(act, b);
       else if (b.tagName === 'INPUT') b.onchange = () => onAction(act, b);
-      else b.onclick = e => { e.stopPropagation(); onAction(act, b, e); };
+      else b.onclick = e => { e.stopPropagation(); onAction(act, b, e); if (b.classList.contains('switch')) b.classList.toggle('on'); };   // a switch moves at once; the state it reports was read before this
     });
     root.querySelectorAll('[data-field]').forEach(i => {
       i.onclick = e => e.stopPropagation();
