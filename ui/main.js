@@ -447,7 +447,7 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // reports the picked slot, and the action runs through the agent like any assignment would.
 let ringWin = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
-const RING_W = 560, RING_H = 460;   // room for the labels outside the buttons
+const RING_W = 560, RING_H = 460;   // the ring itself; the window grows to the screen when shown
 function ensureRing() {
   if (ringWin && !ringWin.isDestroyed()) return ringWin;
   ringWin = new BrowserWindow({
@@ -508,14 +508,21 @@ async function showRing(deviceId, raw) {
   if (rs.free_pointer) raw = false;   // the pointer stays free: the ring follows it instead of taking the mouse
   ringOpening = true; ringReleasedEarly = false; ringPending = [0, 0];
   const [pt, look] = await Promise.all([cursorPoint(), systemLook()]);
-  const a = screen.getDisplayNearestPoint(pt).workArea;
-  const X = Math.round(Math.max(a.x, Math.min(a.x + a.width - RING_W, pt.x - RING_W / 2)));
-  const Y = Math.round(Math.max(a.y, Math.min(a.y + a.height - RING_H, pt.y - RING_H / 2)));
-  const place = () => { if (w.isDestroyed()) return; const [cx, cy] = w.getPosition(); if (cx !== X || cy !== Y) w.setPosition(X, Y); };
+  // The window covers every display and the page draws the ring where the pointer is. A window
+  // cannot be placed at the pointer on Wayland (the compositor puts it where it likes, usually the
+  // middle of the screen), and there the pointer's position is not even known until it moves over
+  // the window; the page waits for that first movement. On X11 the position is known up front.
+  const all = screen.getAllDisplays();
+  const X = Math.min(...all.map(d => d.bounds.x)), Y = Math.min(...all.map(d => d.bounds.y));
+  const R = Math.max(...all.map(d => d.bounds.x + d.bounds.width)), Bm = Math.max(...all.map(d => d.bounds.y + d.bounds.height));
+  const known = (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'x11';
+  const at = known ? { x: pt.x - X, y: pt.y - Y } : null;
+  const guess = { x: pt.x - X, y: pt.y - Y };
+  const place = () => { if (w.isDestroyed()) return; const b = w.getBounds(); if (b.x !== X || b.y !== Y || b.width !== R - X || b.height !== Bm - Y) w.setBounds({ x: X, y: Y, width: R - X, height: Bm - Y }); };
   const send = () => {
-    w.setPosition(X, Y); w.show(); offTaskbar(w); place(); w.focus();
+    place(); w.show(); offTaskbar(w); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);
-    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw });
+    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y } });
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }
