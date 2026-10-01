@@ -18,6 +18,7 @@
     try { return await window.agent.call(method, params); }
     catch (e) { toast(String(e.message || e).replace(/^Error invoking remote method '[^']*': (Error: )?/, ''), true); throw e; }
   }
+  window.addEventListener('resize', () => alignToNav());
   function toast(msg, err) {
     const t = $('#toast'); t.textContent = msg; t.hidden = false; t.classList.toggle('err', !!err);
     clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2600);
@@ -177,7 +178,17 @@
     const dn = root.querySelector('.dnav'), navKey = dn ? 'dev|' + S.dev : null;
     if (dn && navKey !== lastNavKey) dn.classList.add('enter');
     lastNavKey = navKey;
+    alignToNav();
     bind();
+  }
+  // In a device's view the page starts level with the first item of the list on the left (the
+  // keyboard lines up with KEYS); the list is centred in its column, so this is measured. The
+  // scrolling area is measured rather than the page, which may be mid-animation.
+  function alignToNav() {
+    const first = root.querySelector('.dnav nav > .dnav-item'), box = root.querySelector('.dev-config .content'), page = box && box.querySelector(':scope > .page');
+    if (!first || !page) return;
+    const pad = parseFloat(getComputedStyle(box).paddingTop) || 0;
+    page.style.paddingTop = Math.max(0, Math.round(first.getBoundingClientRect().top - box.getBoundingClientRect().top - pad)) + 'px';
   }
 
   function renderWindow() {
