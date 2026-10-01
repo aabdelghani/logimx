@@ -6,7 +6,7 @@
 
   const S = {
     devices: [], presets: null, apps: null, general: {}, conflicts: [], status: {}, connected: false, appInfo: {},
-    theme: 'light', mode: 'app', page: 'buttons', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
+    theme: 'light', mode: 'app', page: 'home', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
     pair: { step: 1, found: [] }, ob: { step: 1, preset: 'gnome' }, appDetail: null, conflictDismissed: false,
     thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
   };
@@ -148,7 +148,7 @@
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
     haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
-    apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
+    home: ['Home', 'fa-house'], apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'info']) : ['keys', 'backlight', 'easy', 'info'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
@@ -179,7 +179,7 @@
   function renderWindow() {
     const d = dev();
     const title = S.appDetail ? (S.appDetail.name || 'Application') : (PAGES[S.page] ? PAGES[S.page][0] : 'LogiMX');
-    let nav = '';
+    let nav = `<button class="nav-item ${S.page === 'home' && !S.appDetail ? 'active' : ''}" data-page="home"><i class="fa-solid fa-house"></i>Home</button>`;
     for (const x of S.devices) {
       const b = x.battery;
       nav += `<div class="nav-head"><span>${esc(x.name)}</span><span>${b ? b.percent + '% · ' : ''}${x.transport === 'bolt' ? 'Bolt' : 'Bluetooth'}</span></div>`;
@@ -201,7 +201,8 @@
           ${S.appDetail ? `<div class="left"><button class="hbtn icon" data-act="back-apps" title="Back"><i class="fa-solid fa-arrow-left"></i></button></div>` : ''}
           <span class="title">${esc(title)}</span>
           <div class="right">
-            ${d && b ? `<button class="hbtn" data-act="goinfo" title="Battery"><i class="fa-solid ${batIcon(b)} ${batClass(b)}"></i>${b.percent}%${b.charging ? ' ⚡' : ''}</button>` : ''}
+            ${S.page === 'home' && !S.appDetail ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button><button class="hbtn icon" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button><button class="hbtn icon" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>` : ''}
+            ${d && b && S.page !== 'home' ? `<button class="hbtn" data-act="goinfo" title="Battery"><i class="fa-solid ${batIcon(b)} ${batClass(b)}"></i>${b.percent}%${b.charging ? ' ⚡' : ''}</button>` : ''}
             <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid ${S.theme.includes('dark') ? 'fa-moon' : 'fa-sun'}"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-main"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
@@ -236,6 +237,7 @@
       case 'info': return d ? pageInfo(d) : '';
       case 'keys': return d ? pageKeys(d) : '';
       case 'backlight': return d ? pageBacklight(d) : '';
+      case 'home': return pageHome();
       case 'apps': return pageApps();
       case 'ring': return pageRing();
       case 'notif': return pageNotif();
@@ -480,6 +482,50 @@
     for (const d of S.devices) for (const [k, p] of Object.entries((d.config || {}).profiles || {})) { if (k === 'default') continue; map[k] = map[k] || { key: k, name: p.name || k, match: p.match || [], overrides: 0 }; map[k].overrides += countOverrides(d, k); }
     return Object.values(map);
   }
+  // ----------------------------------------------------------- home
+  // The first thing seen: every connected device with its photo, its battery and whether it is
+  // charging, how it is connected and which profile it is using. A card opens its device.
+  const devicePhotoSrc = d => ((isMouse(d) ? MOUSE_PHOTOS : KEYBOARD_PHOTOS)[d.id] || {}).src;
+  function batteryState(b) {
+    if (!b) return { label: 'Battery not reported', cls: '', icon: 'fa-battery-empty' };
+    const plugged = b.charging || b.external_power;
+    if (plugged && (b.percent >= 100 || b.level === 'full') && !b.charging) return { label: 'Fully charged, unplug when you like', cls: 'ok', icon: 'fa-plug-circle-check' };
+    if (b.charging) return { label: 'Charging', cls: 'ok charging', icon: 'fa-bolt' };
+    if (b.percent <= 10) return { label: 'Low, charge soon', cls: 'err', icon: 'fa-battery-empty' };
+    if (b.percent <= 20) return { label: 'Getting low', cls: 'warn', icon: 'fa-battery-quarter' };
+    return { label: 'On battery', cls: 'ok', icon: batIcon(b) };
+  }
+  function batteryRing(b) {
+    const p = b ? Math.max(0, Math.min(100, b.percent)) : 0, st = batteryState(b), C = 2 * Math.PI * 26;
+    return `<div class="bat-ring ${st.cls}" title="${esc(st.label)}"><svg viewBox="0 0 64 64"><circle class="trk" cx="32" cy="32" r="26"/><circle class="val" cx="32" cy="32" r="26" style="stroke-dasharray:${(C * p / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><span class="pct">${b ? p + '<small>%</small>' : '–'}</span>${b && b.charging ? '<i class="fa-solid fa-bolt bolt"></i>' : ''}</div>`;
+  }
+  function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
+  function pageHome() {
+    const devs = S.devices;
+    const charging = devs.filter(d => d.battery && d.battery.charging).length;
+    const low = devs.filter(d => d.battery && !d.battery.charging && d.battery.percent <= 20);
+    const summary = [`${devs.length} device${devs.length === 1 ? '' : 's'} connected`]
+      .concat(charging ? [`${charging} charging`] : [], low.length ? [`${low.map(d => d.name).join(' and ')} ${low.length === 1 ? 'needs' : 'need'} charging`] : [], !charging && !low.length && devs.length ? ['batteries fine'] : []).join(' · ');
+    const cards = devs.map(d => {
+      const b = d.battery, st = batteryState(b), src = devicePhotoSrc(d);
+      const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
+      const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
+      const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
+      const pages = devicePages(d).filter(p => p !== 'info');
+      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'}" data-act="home-open" data-key="${esc(d.id)}">
+        <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
+        <div class="dev-body">
+          <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="fa-solid ${d.transport === 'bluetooth' ? 'fa-bluetooth-b fa-brands' : 'fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
+          <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
+          <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
+          <div class="dev-links">${pages.map(p => `<button class="pill" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('')}</div>
+        </div></div>`;
+    }).join('');
+    const add = `<button class="dev-card add" data-act="pair"><i class="fa-solid fa-plus"></i><span class="dev-name">Add a device</span><span class="dev-sub">Pair with a receiver or Bluetooth</span></button>`;
+    return `<div class="home-hero"><div><div class="hello">${greeting()}</div><div class="hint">${esc(summary)}</div></div>${S.status.app ? `<div class="hint now"><i class="fa-solid fa-window-maximize"></i>In use: ${esc(S.status.app)}</div>` : ''}</div>
+      <div class="home-grid">${cards}${add}</div>`;
+  }
+
   function pageApps() {
     const profs = allProfiles();
     const rows = [`<div class="row click app-row" data-act="app-detail" data-key="default"><span class="ch" style="background:var(--dim)">∗</span><div class="grow"><div class="lbl">Default</div><div class="sub">all other windows</div></div><i class="fa-solid fa-chevron-right" style="color:var(--dim)"></i></div>`]
@@ -865,6 +911,8 @@
     const d = dev(); const key = b && b.dataset.key;
     switch (act) {
       case 'page': go(b.dataset.page); return;
+      case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
+      case 'home-page': go(b.dataset.page, key); return;
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
       case 'win-close': window.agent.windowAction('close'); return;
@@ -1056,7 +1104,7 @@
       ]);
       S.devices = devices; S.status = status; S.presets = presets;
       S.general = status.general || {}; S.conflicts = status.conflicts || [];
-      if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPagesAll.includes(S.page)) S.page = devicePages(S.devices[0])[0]; }
+      if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPagesAll.includes(S.page) && S.page !== 'home') S.page = devicePages(S.devices[0])[0]; }
       S.connected = true; S.loaded = true;
       render();
       // the rest is not needed to show the device, so let it arrive afterwards
