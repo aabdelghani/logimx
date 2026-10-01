@@ -509,3 +509,7 @@ header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):ho
 header.hb .right .hbtn.on, .cfg-top .right .hbtn.on { background: transparent; color: var(--accbg); }
 header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .hbtn.accent { text-transform: uppercase; letter-spacing: .04em; }
+/* Keys page: the keyboard centred and larger, the page around it a little wider */
+.content > .page:has(> .kb-photo) { max-width: 1060px; }
+.kb-photo { display: flex; justify-content: center; margin: 4px auto 6px; width: 100%; }
+.kb-photo svg { width: 100%; max-width: 1060px; height: auto; display: block; margin: 0 auto; }
