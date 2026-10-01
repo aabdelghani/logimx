@@ -129,9 +129,22 @@ Battery Device::decodeBattery(const Bytes& r) {
     return b;
 }
 
+// 0x1000, on older devices such as the original MX Keys: level in percent, next level, status
+// (0 discharging, 1 recharging, 2 almost full, 3 full, 4 slow recharge, 5+ battery or thermal error)
+Battery Device::decodeBatteryStatus(const Bytes& r) {
+    Battery b;
+    if (r.size() < 3) return b;
+    b.percent = r[0];
+    b.level = b.percent <= 5 ? "critical" : b.percent <= 20 ? "low" : b.percent >= 90 ? "full" : "good";
+    b.charging = r[2] == 1 || r[2] == 2 || r[2] == 4;
+    b.externalPower = r[2] >= 1 && r[2] <= 4;
+    return b;
+}
+
 std::optional<Battery> Device::battery() {
-    if (!has(UNIFIED_BATTERY)) return std::nullopt;
-    return decodeBattery(req(UNIFIED_BATTERY, 1));
+    if (has(UNIFIED_BATTERY)) return decodeBattery(req(UNIFIED_BATTERY, 1));
+    if (has(BATTERY_STATUS)) return decodeBatteryStatus(req(BATTERY_STATUS, 0));
+    return std::nullopt;
 }
 
 std::pair<uint8_t, uint16_t> Device::getReporting(uint16_t cid) {
@@ -456,6 +469,9 @@ std::optional<Event> Device::classify(const Notification& n) const {
             break;
         case UNIFIED_BATTERY:
             if (n.event == 0) return Event{"battery", decodeBattery(d).toJson()};
+            break;
+        case BATTERY_STATUS:
+            if (n.event == 0) return Event{"battery", decodeBatteryStatus(d).toJson()};
             break;
         case WIRELESS_STATUS:
             return Event{"wireless", {{"reconnect", !d.empty() && d[0] != 0}}};

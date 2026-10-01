@@ -13,13 +13,19 @@
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
   let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false;
+  // Wayland: the compositor may still move or resize the full-screen window just after it appears,
+  // which shifts a ring drawn in window coordinates away from the pointer. For a short while after
+  // opening, the ring follows the pointer it sees; each correction goes into the problem report.
+  const SETTLE_MS = 350;
+  let settleUntil = 0, settled = 0;
   // how this opening found the pointer, for the problem report
   const tell = (how, x, y) => { if (told) return; told = true; window.ring.diag({ how, ms: Math.round(performance.now() - openedAt), x: Math.round(x), y: Math.round(y), guess }); };
   // centre the ring on a point, kept fully on screen
-  function centreAt(x, y) {
+  function centreAt(x, y, again) {
     CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
     waiting = false;
     hub.style.left = CX + 'px'; hub.style.top = CY + 'px'; hub.style.display = '';
+    slotsEl.classList.toggle('moved', !!again);   // a correction moves the ring without springing it out again
     build();
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -52,8 +58,16 @@
     return wedge(dx, dy);
   }
   document.addEventListener('mousemove', e => {
-    if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); return; }   // first sight of the pointer: the ring goes there
+    if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); settleUntil = performance.now() + SETTLE_MS; settled = 0; return; }   // first sight of the pointer: the ring goes there
     if (raw) return;
+    if (performance.now() < settleUntil && hover < 0) {
+      const dx = e.clientX - CX, dy = e.clientY - CY;
+      if (Math.hypot(dx, dy) > 1 && Math.hypot(dx, dy) < 160) {
+        centreAt(e.clientX, e.clientY, true);
+        if (settled++ < 3) window.ring.diag({ how: 're-centred', ms: Math.round(performance.now() - openedAt), x: Math.round(e.clientX), y: Math.round(e.clientY), dx: Math.round(dx), dy: Math.round(dy) });
+        return;
+      }
+    }
     last = [e.clientX, e.clientY];
     hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
     const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i);
@@ -78,6 +92,7 @@
     hub.classList.remove('on');
     setRaw(!!msg.raw);
     size = msg.size || { w: RW, h: RH }; guess = msg.guess || null; openedAt = performance.now(); told = false;
+    settleUntil = 0;
     if (msg.at) { tell('known up front', msg.at.x, msg.at.y); centreAt(msg.at.x, msg.at.y); }
     else {
       // the pointer's place is not known here (Wayland): draw nothing until it is seen over the
