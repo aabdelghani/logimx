@@ -200,7 +200,7 @@
       const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       body = `<div class="devview">${devicePanel(d)}<section class="dev-config"><div class="cfg-top"><nav class="tabs">${tabs}</nav>${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
     } else {
-      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div>${mode === 'home' ? `<div class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</div>` : ''}</div>`;
+      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
     return `<div class="window">
       <main class="main">
@@ -536,17 +536,15 @@
       const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
       const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
       const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
-      const pages = devicePages(d).filter(p => p !== 'info');
       return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'}" data-act="home-open" data-key="${esc(d.id)}">
         <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
         <div class="dev-body">
           <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="fa-solid ${d.transport === 'bluetooth' ? 'fa-bluetooth-b fa-brands' : 'fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
           <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
           <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
-          <div class="dev-links">${pages.map(p => `<button class="pill" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('')}</div>
         </div></div>`;
     }).join('');
-    return `<div class="home-hero"><div><div class="hello">${greeting()}</div><div class="hint">${esc(summary)}</div></div>${S.status.app ? `<div class="hint now"><i class="fa-solid fa-window-maximize"></i>In use: ${esc(S.status.app)}</div>` : ''}</div>
+    return `<div class="home-hero"><div><div class="hello">${greeting()}</div><div class="hint">${esc(summary)}</div></div></div>
       <div class="home-grid">${cards}</div>`;
   }
 
