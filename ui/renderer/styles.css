@@ -430,3 +430,14 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 }
 .cfg-top .tabs { overflow-y: hidden; }
 .cfg-top .tabs::-webkit-scrollbar { display: none; }
+
+/* Home: the devices stand on the window itself, no box around them */
+.dev-card { border: 0; background: transparent; box-shadow: none; }
+.dev-card:hover { transform: none; box-shadow: none; border-color: transparent; }
+.dev-card:hover .dev-photo img { transform: scale(1.05) translateY(-4px); }
+.dev-card:hover .dev-name { color: var(--accbg); }
+.dev-name { transition: color .15s; }
+.dev-photo { height: 210px; }
+.dev-photo img { max-height: 190px; }
+.dev-card.mouse .dev-photo img { max-height: 196px; }
+.dev-body { padding: 10px 6px 4px; }
