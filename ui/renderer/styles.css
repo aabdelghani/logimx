@@ -770,3 +770,86 @@ button.chk.on { background: var(--accbg); border-color: var(--accbg); color: #ff
 .ms-lab.r { left: calc(100% + 8px); translate: 0 -50%; }
 .ms-lab.l { left: auto; right: calc(100% + 8px); translate: 0 -50%; align-items: flex-end; text-align: right; }
 .ms-photo { max-width: 360px; }
+/* the leader line from a button's ring to its name takes the theme's accent */
+.ms-line { stroke: var(--accbg); opacity: .6; }
+.ms-line.on { opacity: 1; }
+/* settings panels (Backlight, Point & scroll) take the same layout as a key's panel: the page list
+   steps out to the left, only the back arrow stays, the photo glides over */
+.devview2.panel-open { grid-template-columns: 1fr 460px; }
+/* with a panel open the window-control strip floats over the top; it starts right of the back arrow
+   so its drag area cannot swallow clicks on the arrow */
+.devview2.drawer-open .cfg-top, .devview2.panel-open .cfg-top { left: 96px; }
+.devview2.drawer-open .cfg-back .hbtn { -webkit-app-region: no-drag; }
+/* a button's name is clickable like its ring */
+.ms-lab { pointer-events: auto; cursor: pointer; }
+.ms-lab:not(.on):hover { background: color-mix(in srgb, var(--accbg) 12%, transparent); }
+.ms-lab:not(.on):hover .k { color: var(--accbg); }
+.drawer .ring-cfg { width: 100%; justify-content: flex-start; gap: 10px; margin-top: 2px; }
+.drawer .ring-cfg .fa-arrow-right { margin-left: auto; opacity: .6; }
+/* Configure action ring: a sub-row under Show action ring, filled with the accent */
+.drawer .act.ring-cfg { width: auto; margin: 2px 10px 8px 34px; padding-left: 14px; border-radius: 10px; background: var(--accbg); color: #fff; font-weight: 600; box-shadow: 0 4px 12px color-mix(in srgb, var(--accbg) 35%, transparent); position: relative; border: 0; }
+.drawer .act.ring-cfg .ic, .drawer .act.ring-cfg .more { color: #fff; opacity: 1; }
+.drawer .act.ring-cfg:hover { filter: brightness(1.08); background: var(--accbg); }
+.drawer .act.ring-cfg::before { content: ""; position: absolute; left: -18px; top: -6px; width: 12px; height: 24px; border-left: 2px solid var(--accbg); border-bottom: 2px solid var(--accbg); border-bottom-left-radius: 8px; }
+.new-tag { margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: var(--accbg); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; vertical-align: 2px; }
+/* the ring slot being edited in the side panel */
+.ring-chip.selected { background: var(--accbg) !important; color: #fff !important; border-color: var(--accbg) !important; transform: scale(1.15); box-shadow: 0 6px 16px color-mix(in srgb, var(--accbg) 45%, transparent); }
+.row.editing { background: color-mix(in srgb, var(--accbg) 12%, transparent); border-radius: 10px; }
+.row.editing .num { background: var(--accbg); color: #fff; }
+/* button rings on the mouse photo: a darker fill so each one reads clearly against the mouse */
+.hotspot.ms circle.ring { fill: rgba(0, 0, 0, .55); }
+.hotspot.ms:hover circle.ring { fill: color-mix(in srgb, var(--accbg) 55%, rgba(0, 0, 0, .6)); }
+.hotspot.ms.selected circle.ring { fill: var(--accbg); }
+/* the action ring on its page: a large ring, each slot's action written beside it */
+.ring-page { display: flex; flex-direction: column; gap: 18px; max-width: 760px; margin: 0 auto; }
+.ring-stage { display: flex; justify-content: center; padding: 10px 0 0; }
+.rs-disc { position: relative; width: 460px; height: 460px; flex: none; }
+.rs-disc::before { content: ""; position: absolute; inset: 20%; border-radius: 50%; border: 2px dashed var(--brd); }
+.rs-chip { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 0; background: var(--fg); color: var(--win); font-size: 21px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,.22); transition: transform .16s cubic-bezier(.2,.9,.3,1.3), background .16s, color .16s; -webkit-app-region: no-drag; }
+.rs-chip:hover { transform: scale(1.08); }
+.rs-chip.empty { background: transparent; color: var(--dim); border: 2px dashed var(--brd); box-shadow: none; }
+.rs-chip.selected { background: var(--accbg); color: #fff; transform: scale(1.15); box-shadow: 0 8px 22px color-mix(in srgb, var(--accbg) 45%, transparent); }
+.rs-lab { position: absolute; white-space: nowrap; font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 8px; cursor: pointer; transition: background .14s, color .14s; }
+.rs-lab.empty { color: var(--dim); font-weight: 500; }
+.rs-lab:hover { background: color-mix(in srgb, var(--accbg) 12%, transparent); }
+.rs-lab.on { background: var(--accbg); color: #fff; }
+.rs-hub { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: var(--btn); color: var(--dim); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.rs-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* ring profile picker in the action panel head */
+.prof-dd { position: relative; margin-left: auto; -webkit-app-region: no-drag; }
+.prof-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--btn); border-radius: 999px; padding: 6px 12px; font-weight: 600; }
+.prof-btn .fa-layer-group { color: var(--accbg); }
+.prof-btn .fa-chevron-down { font-size: 10px; opacity: .6; }
+.prof-menu { right: 0; top: 40px; width: 230px; }
+.prof-menu button.danger { color: var(--err); }
+/* dragging an action onto the ring */
+.drawer [draggable="true"] { cursor: grab; }
+.drawer [draggable="true"]:active { cursor: grabbing; }
+body.dragging-act .rs-chip { outline: 2px dashed color-mix(in srgb, var(--accbg) 60%, transparent); outline-offset: 4px; }
+.rs-chip.drop { background: var(--accbg) !important; color: #fff; transform: scale(1.22); }
+.rs-lab.drop { background: color-mix(in srgb, var(--accbg) 20%, transparent); color: var(--accbg); }
+/* bigger icons on the ring page */
+.rs-chip { width: 70px; height: 70px; margin: -35px 0 0 -35px; font-size: 28px; }
+.rs-hub { font-size: 24px; }
+/* larger icons on the in-app ring: the ring page and the smaller preview */
+.rs-chip { width: 82px; height: 82px; margin: -41px 0 0 -41px; font-size: 34px; }
+.rs-hub { width: 60px; height: 60px; margin: -30px 0 0 -30px; font-size: 26px; }
+.ring-chip { font-size: 19px; }
+/* ring page slots: moderate circles, the icon itself made large (a general button rule kept it small) */
+.rs-chip { width: 66px; height: 66px; margin: -33px 0 0 -33px; display: flex; align-items: center; justify-content: center; }
+.rs-chip i { font-size: 28px !important; }
+.rs-hub { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
+.rs-hub i { font-size: 22px !important; }
+.ring-chip i { font-size: 18px !important; }
+.drawer .ring-behaviour { margin-top: 14px; }
+/* sections unfold with motion only when opened, not on every refresh of the panel */
+.acc-body { animation: none; }
+.acc-body.unfold { animation: acc-in .22s cubic-bezier(0,0,.2,1) both; }
+.kb-pin.still { animation: none; }
+/* settings panels slide in when they open, not again on every refresh */
+.devview2.panel-open .drawer-wrap { animation: none; }
+.devview2.panel-open .drawer-wrap.enter { animation: drawer-in .28s cubic-bezier(0, 0, .2, 1) both; }
+.devview2.panel-open .drawer-wrap.closing { animation: drawer-out .18s cubic-bezier(.4, 0, 1, 1) both; pointer-events: none; }
+/* the settings tags pop in with the page, not each time their text updates */
+.bl-pin { animation: none; }
+.page.enter .bl-pin { animation: pin-in .22s cubic-bezier(0,0,.2,1) both; }

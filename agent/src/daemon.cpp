@@ -88,7 +88,16 @@ ManagedDevice::ManagedDevice(Daemon& d, hidpp::Transport& t, std::unique_ptr<hid
 void ManagedDevice::refreshConfig() {
     cfg_ = daemon_.config().device(pid_, kind_);
     auto& profs = cfg_["profiles"];
-    profile_ = profs.contains(profileName_) ? profs[profileName_] : profs.value("default", json::object());
+    // an application's profile only holds what it changes: everything else comes from the default one
+    profile_ = profs.value("default", json::object());
+    if (profileName_ != "default" && profs.contains(profileName_)) {
+        const json& p = profs[profileName_];
+        for (auto& [k, v] : p.items()) {
+            if (v.is_null()) continue;
+            if ((k == "buttons" || k == "keys") && v.is_object() && profile_.contains(k) && profile_[k].is_object()) profile_[k].update(v);
+            else profile_[k] = v;
+        }
+    }
 }
 
 json ManagedDevice::batteryJson() const {
@@ -331,7 +340,8 @@ void ManagedDevice::setProfile(const std::string& appClass) {
     auto [name, prof] = daemon_.config().profileFor(pid_, appClass);
     if (name != profileName_) {
         profileName_ = name;
-        profile_ = prof;
+        (void)prof;
+        refreshConfig();   // the app's changes laid over the default profile
         INFO("%s: profile -> %s (%s)", dev_->name().c_str(), name.c_str(), appClass.c_str());
         applyAssignments();
         daemon_.broadcast("profile", {{"id", id()}, {"profile", name}, {"app", appClass}});
