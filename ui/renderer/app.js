@@ -226,7 +226,7 @@
     return `<aside class="dev-panel ${isMouse(d) ? 'mouse' : 'kbd'}">
       <div class="panel-top"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="panel-title">${esc(d.name)}</span></div>
       <div class="dev-hero">${photo}</div>
-      <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="fa-solid ${d.transport === 'bluetooth' ? 'fa-bluetooth-b fa-brands' : 'fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
+      <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="${d.transport === 'bluetooth' ? 'fa-brands fa-bluetooth-b' : 'fa-solid fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
       <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
       <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
       ${isMouse(d) && MOUSE_PHOTOS[d.id] ? '<div class="hint">Click a number to change what that button does.</div>' : ''}
@@ -539,12 +539,13 @@
       const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
       const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
       const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
-      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'}" data-act="home-open" data-key="${esc(d.id)}">
-        <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
-        <div class="dev-body">
-          <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="fa-solid ${d.transport === 'bluetooth' ? 'fa-bluetooth-b fa-brands' : 'fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
-          <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
-          <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
+      // photo, battery and state only: the name is in the tooltip, the link is an icon
+      const linkIcon = d.transport === 'bluetooth' ? '<i class="fa-brands fa-bluetooth-b"></i>' : '<i class="fa-solid fa-wifi"></i>';
+      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${esc(link)}">
+        <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="${esc(d.name)}">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
+        <div class="dev-body centered">
+          ${batteryRing(b)}
+          <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
         </div></div>`;
     }).join('');
     return `<div class="home-hero"><div><div class="hello">${greeting()}</div></div></div>

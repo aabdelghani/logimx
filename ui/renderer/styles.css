@@ -441,3 +441,11 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dev-photo img { max-height: 190px; }
 .dev-card.mouse .dev-photo img { max-height: 196px; }
 .dev-body { padding: 10px 6px 4px; }
+
+/* Home: devices centred, each one its photo, battery and state */
+.home-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 440px)); justify-content: center; gap: 40px; }
+.home-hero { justify-content: center; text-align: center; }
+.dev-body.centered { align-items: center; text-align: center; gap: 10px; }
+.dev-body.centered .dev-state { justify-content: center; }
+.dev-link { margin-left: 4px; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; background: var(--btn); color: var(--dim); }
+.dev-link.bt { background: #0a7cff; color: #fff; }
