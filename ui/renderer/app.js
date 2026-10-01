@@ -544,8 +544,7 @@
       return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${esc(link)}">
         <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="${esc(d.name)}">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
         <div class="dev-body centered">
-          ${batteryRing(b)}
-          <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
+          <div class="dev-state ${st.cls}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}<span class="dev-label">${esc(st.label)}</span>${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
         </div></div>`;
     }).join('');
     return `<div class="home-hero"><div><div class="hello">${greeting()}</div></div></div>

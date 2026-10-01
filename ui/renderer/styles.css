@@ -466,3 +466,11 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 /* side by side whenever they fit (a grid with a fixed maximum counts columns by that maximum) */
 .content.landing .home-grid { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; }
 .content.landing .home-grid > .dev-card { flex: 0 1 520px; min-width: 390px; }
+
+/* Home: the battery as an icon with its percentage beside it, then what it is doing */
+.content.landing .dev-state { font-size: 18px; gap: 8px; }
+.content.landing .dev-state > i:first-child { font-size: 22px; }
+.dev-pct { font-weight: 700; color: var(--fg); }
+.dev-bolt { animation: bolt-pulse 1.4s ease-in-out infinite; }
+.dev-label { font-weight: 600; margin-left: 8px; color: var(--dim); }
+.dev-state.warn .dev-label, .dev-state.err .dev-label { color: inherit; }
