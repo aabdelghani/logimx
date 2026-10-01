@@ -508,3 +508,4 @@ header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent) { backgr
 header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover { background: var(--btn); }
 header.hb .right .hbtn.on, .cfg-top .right .hbtn.on { background: transparent; color: var(--accbg); }
 header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
+.hbtn.accent { text-transform: uppercase; letter-spacing: .04em; }
