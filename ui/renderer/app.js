@@ -187,8 +187,15 @@
   function alignToNav() {
     const first = root.querySelector('.dnav nav > .dnav-item'), box = root.querySelector('.dev-config .content'), page = box && box.querySelector(':scope > .page');
     if (!first || !page) return;
-    const pad = parseFloat(getComputedStyle(box).paddingTop) || 0;
-    page.style.paddingTop = Math.max(0, Math.round(first.getBoundingClientRect().top - box.getBoundingClientRect().top - pad)) + 'px';
+    const pad = parseFloat(getComputedStyle(box).paddingTop) || 0, origin = box.getBoundingClientRect().top + pad;
+    let target = first.getBoundingClientRect().top;
+    // the keyboard is centred on the list rather than lined up with its top
+    const kb = page.firstElementChild && page.firstElementChild.classList.contains('kb-photo') ? page.firstElementChild : null;
+    if (kb) {
+      const items = root.querySelectorAll('.dnav nav > .dnav-item'), last = items[items.length - 1].getBoundingClientRect();
+      target = (first.getBoundingClientRect().top + last.bottom) / 2 - kb.getBoundingClientRect().height / 2;
+    }
+    page.style.paddingTop = Math.max(0, Math.round(target - origin)) + 'px';
   }
 
   function renderWindow() {
