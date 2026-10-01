@@ -503,3 +503,8 @@ header.hb { height: 64px; }
 .content.landing { padding-top: 0; }
 .content.landing .dev-state { font-size: 15px; }
 .content.landing .dev-state > i.fa-solid:not(.dev-bolt) { font-size: 18px; }
+/* window buttons without a backing: just the icon, a soft background only under the pointer */
+header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent) { background: transparent; }
+header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover { background: var(--btn); }
+header.hb .right .hbtn.on, .cfg-top .right .hbtn.on { background: transparent; color: var(--accbg); }
+header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
