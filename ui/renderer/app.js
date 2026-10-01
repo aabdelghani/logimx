@@ -136,6 +136,8 @@
 
   // ------------------------------------------------------------ helpers
   const sw = (on, attrs = '') => `<button class="switch ${on ? 'on' : ''}" ${attrs}></button>`;
+  // a check box that toggles like a switch (same 'on' class, same handlers)
+  const chk = (on, attrs = '') => `<button class="chk ${on ? 'on' : ''}" ${attrs}><i class="fa-solid fa-check"></i></button>`;
   const sec = (title, body, meta = '') => `<div class="sec"><div class="sec-title"><span>${esc(title)}</span>${meta ? `<span class="meta">${meta}</span>` : ''}</div>${body}</div>`;
   const card = rows => `<div class="card">${rows}</div>`;
   const row = (label, sub, right, cls = '') => `<div class="row ${cls}"><div class="grow"><div class="lbl">${label}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>${right}</div>`;
@@ -148,7 +150,7 @@
   // ------------------------------------------------------------- nav
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
-    haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
+    haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-lightbulb'],
     home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'info']) : ['keys', 'backlight', 'easy', 'info'];
@@ -159,7 +161,7 @@
   // ============================================================ render
   // Animations run when something new appears, not on every refresh: the page when it is
   // navigated to, the dialog when it opens. A refresh of the same page redraws it in place.
-  let lastPageKey = null, lastDlg = null, lastNavKey = null;
+  let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
   function render() {
     stopRecorder();
     document.documentElement.setAttribute('data-theme', S.theme);
@@ -171,15 +173,83 @@
     else if (!S.devices.length) html = renderEmpty();
     else html = renderWindow();
     html += renderDialog();
+    const drawerWill = !!(S.dlg === 'picker' && S.picker && S.picker.drawer);
+    const moving = drawerWill !== lastDrawer ? root.querySelector('.dev-config .content > .page > :first-child') : null;
+    const from = moving ? moving.getBoundingClientRect() : null;
     root.innerHTML = html;
     if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
-    if (dlgOpened) { const sc = root.querySelector('.scrim'); if (sc) sc.classList.add('enter'); }
+    if (dlgOpened) { const sc = root.querySelector('.scrim, .drawer-wrap'); if (sc) sc.classList.add('enter'); }
     // the page list slides in when a device is opened, not when moving between its pages
     const dn = root.querySelector('.dnav'), navKey = dn ? 'dev|' + S.dev : null;
     if (dn && navKey !== lastNavKey) dn.classList.add('enter');
     lastNavKey = navKey;
+    // opening a key's panel sends the page list out to the left; closing it brings the list back in
+    const drawerNow = !!(S.dlg === 'picker' && S.picker && S.picker.drawer);
+    if (dn && drawerNow && !lastDrawer) dn.classList.add('leaving');
+    if (dn && !drawerNow && lastDrawer) dn.classList.add('nav-back');
+    lastDrawer = drawerNow;
     alignToNav();
+    if (from) glideFrom(from, root.querySelector('.dev-config .content > .page > :first-child'));
     bind();
+    keyTips();
+    // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
+    const mid = root.querySelector('.devview2.drawer-open .dev-config');
+    if (mid) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .cfg-top')) closeDrawer(); });
+    // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
+    const blMid = root.querySelector('.devview2.panel-open .dev-config');
+    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin')) closeDrawer(() => { S.blClosed = true; }); });
+  }
+  // The keyboard moves and resizes when the panel opens or closes: draw it where it was and let it
+  // glide to its new place, instead of snapping.
+  function glideFrom(from, el) {
+    if (!el || !from.width || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const to = el.getBoundingClientRect();
+    if (!to.width) return;
+    el.style.transition = 'none';
+    el.style.transformOrigin = '0 0';
+    el.style.transform = `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width})`;
+    void el.offsetWidth;   // commit the starting place before asking for the move
+    el.style.transition = 'transform .38s cubic-bezier(.2, 0, 0, 1)';
+    el.style.transform = 'none';
+    setTimeout(() => { el.style.transition = ''; el.style.transform = ''; el.style.transformOrigin = ''; }, 420);
+  }
+  // The key panel leaves to the right, easing in, and only then does the page list come back
+  function closeDrawer(after) {
+    const w = root.querySelector('.drawer-wrap');
+    if (!w) { S.dlg = null; if (after) after(); render(); return; }
+    if (w.classList.contains('closing')) return;
+    stopRecorder();
+    w.classList.add('closing');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => { S.dlg = null; if (after) after(); render(); }, reduce ? 0 : 170);
+  }
+  // hovering a key on the photo shows its name and what it does now
+  function keyTips() {
+    const tip = root.querySelector('.kb-tip'), wrap = tip && tip.parentElement;
+    if (!tip || !wrap) return;
+    wrap.querySelectorAll('.hotspot[data-name]').forEach(g => {
+      g.onmouseenter = () => {
+        tip.innerHTML = `<span class="k">${esc(g.dataset.name)}</span><span class="d ${g.dataset.custom ? 'custom' : ''}">${esc(g.dataset.does)}</span>`;
+        const r = g.getBoundingClientRect(), pr = wrap.getBoundingClientRect();
+        tip.hidden = false;
+        tip.style.left = Math.round(r.left + r.width / 2 - pr.left) + 'px';
+        tip.style.top = Math.round(r.top - pr.top - 10) + 'px';
+      };
+      g.onmouseleave = () => { tip.hidden = true; };
+    });
+    // the key being edited keeps its label pinned above it, placed in the photo's own coordinates
+    // so it rides along when the keyboard glides aside for the panel
+    const sel = wrap.querySelector('.hotspot.selected[data-name]'), svg = sel && sel.ownerSVGElement, box = svg && svg.parentElement;
+    if (sel && box) {
+      const vb = svg.viewBox.baseVal, r = sel.querySelector('rect, circle'), b = r.getBBox();
+      const pin = document.createElement('div');
+      pin.className = 'kb-pin';
+      pin.innerHTML = `<span class="k">${esc(sel.dataset.name)}</span><span class="d ${sel.dataset.custom ? 'custom' : ''}">${esc(sel.dataset.does)}</span>`;
+      pin.style.left = ((b.x + b.width / 2) / vb.width * 100) + '%';
+      pin.style.top = (b.y / vb.height * 100) + '%';
+      box.appendChild(pin);
+      sel.onmouseenter = null;
+    }
   }
   // In a device's view the page starts level with the first item of the list on the left (the
   // keyboard lines up with KEYS); the list is centred in its column, so this is measured. The
@@ -187,6 +257,8 @@
   function alignToNav() {
     const first = root.querySelector('.dnav nav > .dnav-item'), box = root.querySelector('.dev-config .content'), page = box && box.querySelector(':scope > .page');
     if (!first || !page) return;
+    // the device's Settings page runs from the top of the window, not from KEYS
+    if (box.closest('.dev-config.full')) { page.style.paddingTop = '0px'; return; }
     const pad = parseFloat(getComputedStyle(box).paddingTop) || 0, origin = box.getBoundingClientRect().top + pad;
     let target = first.getBoundingClientRect().top;
     // the keyboard is centred on the list rather than lined up with its top
@@ -196,6 +268,14 @@
       target = (first.getBoundingClientRect().top + last.bottom) / 2 - kb.getBoundingClientRect().height / 2;
     }
     page.style.paddingTop = Math.max(0, Math.round(target - origin)) + 'px';
+    // and across: the keyboard sits with as much space on its right as between it and the list
+    if (kb && !root.querySelector('.devview2.drawer-open')) {
+      kb.style.position = 'relative'; kb.style.left = '0px';
+      const navRight = Math.max(...[...root.querySelectorAll('.dnav nav > .dnav-item')].map(b => b.getBoundingClientRect().right));
+      const r = kb.getBoundingClientRect(), edge = box.getBoundingClientRect().right;
+      const gap = (edge - navRight - r.width) / 2;
+      kb.style.left = Math.round(navRight + gap - r.left) + 'px';
+    }
   }
 
   function renderWindow() {
@@ -209,11 +289,15 @@
       ? `<span class="hello">${greeting()}</span>`
       : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
-    const controls = `<div class="right">
+    // a keyboard's own view keeps the corner to one action: add an application profile
+    const controls = mode === 'device' && !isMouse(d) ? `<div class="right">
+            <button class="hbtn soon-btn" disabled title="Coming soon: settings for a specific application"><i class="fa-solid fa-plus"></i>Add application<span class="soon-tag">Soon</span></button>
+            <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
+          </div>` : `<div class="right">
             ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
             <button class="hbtn icon ${S.page === 'apps' ? 'on' : ''}" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button>
             <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>
-            <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid ${S.theme.includes('dark') ? 'fa-moon' : 'fa-sun'}"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
+            <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-main" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
           </div>`;
@@ -222,8 +306,10 @@
       const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       // the device's pages listed down the left (the first is open by default) with Settings at the
       // foot; the page itself on the right under the window buttons
-      const items = devicePages(d).map(p => `<button class="dnav-item ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
-      body = `<div class="devview2"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item" data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button></nav></aside><section class="dev-config solo"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
+      // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
+      const items = devicePages(d).filter(p => p !== 'info').map(p => p === 'easy' ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      const drawer = S.dlg === 'picker' && S.picker && S.picker.drawer, blp = !drawer && backlightPanel(d);
+      body = `<div class="devview2 ${drawer ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -284,7 +370,7 @@
       case 'haptics': return d ? pageHaptics(d) : '';
       case 'thumb': return d ? pageButtons(d) : '';   // merged into Buttons
       case 'easy': return d ? pageEasy(d) : '';
-      case 'info': return d ? pageInfo(d) : '';
+      case 'info': return d ? pageDeviceSettings(d) + pageInfo(d) : '';   // the device's Settings (the app's own are under the sliders icon)
       case 'keys': return d ? pageKeys(d) : '';
       case 'backlight': return d ? pageBacklight(d) : '';
       case 'home': return pageHome();
@@ -308,16 +394,35 @@
     return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4 };
   })();
   const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
-  function mousePhoto(d) {
+  // The mouse photo: a ring on each button and its name beside it, on the side away from the mouse.
+  // A ring opens that button's panel (like a key on the keyboard); the one being edited is filled.
+  function mousePhoto(d, plain) {
     const P = MOUSE_PHOTOS[d.id];
     if (!P) return '';
+    if (plain) return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/></svg>`;
     const order = buttonRows(d).map(([cid]) => cid);
-    const spots = P.spots.map(([k, x, y]) => {
-      const n = k === 'thumb' ? order.length + 1 : order.indexOf(k) + 1;
-      if (!n) return '';
-      return `<g class="hotspot" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}"><circle class="ring" cx="${x}" cy="${y}" r="40"/><circle class="core" cx="${x}" cy="${y}" r="26"/><text class="n" x="${x}" y="${y + 11}" text-anchor="middle">${n}</text></g>`;
+    const editing = k => S.dlg === 'picker' && S.picker && S.picker.drawer && String(S.picker.cid) === String(k);
+    const shown = P.spots.filter(([k]) => k === 'thumb' ? d.controls.length : order.includes(k));
+    const spots = shown.map(([k, x, y]) => {
+      const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
+      const nm = k === 'thumb' ? 'Thumb wheel' : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || 'Button');
+      return `<g class="hotspot ms ${editing(k) ? 'selected' : ''}" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}" data-name="${esc(nm)}" data-does="${esc(presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><circle class="ring" cx="${x}" cy="${y}" r="40"/></g>`;
     }).join('');
-    return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${spots}</svg>`;
+    // names sit in two columns just outside the photo, each joined to its ring by a thin line; on
+    // each side they are spaced so none overlaps the one above
+    const GAP = 150, place = {};
+    for (const side of ['l', 'r']) {
+      let prev = -Infinity;
+      shown.filter(([, x]) => (x < P.w / 2) === (side === 'l')).sort((p, q) => p[2] - q[2]).forEach(([k, , y]) => { const ly = Math.max(y, prev + GAP); place[k] = ly; prev = ly; });
+    }
+    const lines = shown.map(([k, x, y]) => { const left = x < P.w / 2, ly = place[k]; return `<polyline class="ms-line ${editing(k) ? 'on' : ''}" points="${left ? x - 40 : x + 40},${y} ${left ? -20 : P.w + 20},${ly}"/>`; }).join('');
+    const labels = shown.map(([k, x]) => {
+      const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
+      const nm = k === 'thumb' ? 'Thumb wheel' : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || 'Button');
+      const left = x < P.w / 2;
+      return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
+    }).join('');
+    return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
   // One photo per keyboard model, keyed by the device id the agent uses (its product id in hex:
   // the Bluetooth pid, or the receiver-side pid when it comes through a receiver). Each spot is a
@@ -333,12 +438,13 @@
     const miniBusiness = { src: '../assets/devices/b36e.png', w: 1382, h: 616, kw: 77, kh: 58, spots: [[226, 424, 114], [227, 513, 114], [259, 602, 114], [264, 689, 114], [266, 778, 114], [284, 866, 114], [229, 955, 114], [231, 1043, 115], [232, 1132, 114], [233, 1220, 114]] };
     return { b378: s, b379: s, b37a: s, b35b: keys, '408a': keys, b361: mac, '4092': mac, b363: business, b369: mini, b36e: miniBusiness, b36a: miniMac };
   })();
-  function keyboardPhoto(d) {
+  function keyboardPhoto(d, plain) {
     const P = KEYBOARD_PHOTOS[d.id];
     if (!P) return '';
-    const hot = P.spots.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, x, y]) => {
+    const hot = plain ? '' : P.spots.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, x, y]) => {
       const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid);
-      return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'}" data-section="keys" data-cid="${cid}"><title>${esc(ctl ? ctl.label : cid)}: ${esc(presetLabel(a))}</title><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/></g>`;
+      const editing = S.dlg === 'picker' && S.picker && S.picker.drawer && S.picker.cid === cid;
+      return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'} ${editing ? 'selected' : ''}" data-section="keys" data-cid="${cid}" data-name="${esc(ctl ? ctl.label : cid)}" data-does="${esc(isNative(a) ? (ctl ? ctl.label : 'Default') : presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/></g>`;
     }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${hot}</svg>`;
   }
@@ -356,7 +462,8 @@
     const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
     const twRow = d.controls.length ? `<div class="row"><span class="num">${buttonRows(d).length + 1}</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
     const photo = mousePhoto(d);
-    return `<div class="${photo ? 'photo-col' : ''}">${photo ? `<div class="photo-card">${photo}</div>` : ''}
+    if (photo) return `<div class="photo-card ms-photo">${photo}</div>`;
+    return `<div class="${photo ? 'photo-col' : ''}">${photo ? `<div class="photo-card">${photo}<div class="kb-tip" hidden></div></div>` : ''}
       <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Profiles</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
         row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
         `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
@@ -425,7 +532,20 @@
         `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="panel-force-reset"><i class="fa-solid fa-rotate-left"></i>Default force</button></div>`) : '') +
       sec('Try a pattern', `<div class="chips">${waves}</div>`, 'plays on the mouse');
   }
+  // Point & scroll, laid out like the keyboard's Backlight: the mouse with a tag saying how it is set,
+  // its settings in the panel on the right (the tag opens the panel again once it is closed)
+  function pointerTag(d) {
+    const st = d.state || {}, s = d.config.settings || {}, ss = s.smartshift || {};
+    const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000), speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
+    const ssOn = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
+    const bits = [`${dpi} DPI`, `speed ${speed}`, ssOn ? 'SmartShift on' : 'Free spin'];
+    return `<div class="kb-pin bl-pin" data-act="bl-open" title="Point & scroll settings"><span class="k">Point &amp; scroll</span><span class="d">${esc(bits.join(' · '))}</span></div>`;
+  }
   function pagePointer(d) {
+    if (MOUSE_PHOTOS[d.id]) return `<div class="photo-card ms-photo">${mousePhoto(d, true)}${pointerTag(d)}</div>`;
+    return pointerSettings(d);
+  }
+  function pointerSettings(d) {
     const st = d.state || {}, s = d.config.settings || {};
     const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000);
     const [min, max, step] = st.dpi && st.dpi.stepped ? st.dpi.levels : [200, 8000, 50];
@@ -458,8 +578,8 @@
         <div class="hacts">${cur ? '<button class="btn sm flat" disabled>Current</button>' : empty ? '<button class="btn sm" data-act="pair">Pair…</button>' : `<button class="btn sm primary" data-act="host" data-key="${i}">Switch</button>`}${empty ? '' : `<button class="btn sm" data-act="rename-host" data-key="${i}" title="Rename"><i class="fa-solid fa-pen"></i></button>`}</div></div>`;
     }).join('');
     return sec(`Hosts · ${esc(d.name)}`, `<div class="hosts">${cards}</div>`) +
-      card(row('Linked switching', `Move all devices to the same host together`, sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
-        row('Keyboard shortcut', 'Switch host from the tray or with a shortcut', `<span class="val">Super + Alt + 1…3</span>`));
+      `<div class="easy-opts">` + card(row('Linked switching', `Move all devices to the same host together`, sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
+        row('Keyboard shortcut', 'Switch host from the tray or with a shortcut', `<span class="val">Super + Alt + 1…3</span>`)) + `</div>`;
   }
 
   function pageInfo(d) {
@@ -492,21 +612,24 @@
     return { frow, special };
   }
   function pageKeys(d) {
-    const SHORT = { 'Brightness down': 'Bright −', 'Brightness up': 'Bright +', 'Backlight down': 'Light −', 'Backlight up': 'Light +', 'Previous track': 'Previous', 'Play / Pause': 'Play', 'Next track': 'Next', 'Volume down': 'Vol −', 'Volume up': 'Vol +', 'Mute microphone': 'Mic mute', 'Screen capture': 'Capture', 'Screenshot area': 'Capture', 'Screenshot': 'Capture', 'Emoji picker': 'Emoji', 'Emoji (desktop shortcut)': 'Emoji', 'Do nothing': 'Off', 'Open terminal': 'Terminal', 'Context menu': 'Menu', 'Lock screen': 'Lock', 'Mute microphone ': 'Mic mute', 'Dictation (needs a tool)': 'Dictation', 'Show desktop': 'Desktop', 'App switcher': 'Apps', 'Close window': 'Close', 'Maximize window': 'Maximize', 'Minimize window': 'Minimize', 'Zoom in': 'Zoom +', 'Zoom out': 'Zoom −' };
-    // a chord keeps every key and wraps after the plus signs; anything else is cut to two words
-    const shortLabel = t => SHORT[t] || (t.includes(' + ') ? t.replace(/ \+ /g, '+\u200b') : t.length > 11 ? t.replace(/\s*\(.*\)$/, '').split(' ').slice(0, 2).join(' ') : t);
-    const lay = keyLayout(d);
-    const fk = lay.frow.map(({ cid, k, icon, label }) => { const a = assignment(d, 'keys', cid); const full = isNative(a) ? label : presetLabel(a); return `<button class="fkey ${isNative(a) ? '' : 'assigned'}" data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}" title="${esc(full)}"><span class="k">${k}</span><i class="fa-solid ${assignIcon(a, icon)}"></i><span class="a">${esc(shortLabel(full))}</span></button>`; }).join('');
-    const sk = lay.special.map(({ cid, icon, label }) => { const a = assignment(d, 'keys', cid); return `<div class="row"><span class="keycap"><i class="fa-solid ${icon}"></i></span><span class="grow lbl">${esc(shortLabel(label))}</span>${drop(a, `data-act="pick" data-section="keys" data-cid="${cid}" data-label="${esc(label)}"`)}</div>`; }).join('') || '<div class="row hint">This keyboard reports no dedicated keys</div>';
-    const recCid = (lay.frow.find(k => k.cid === 264) || lay.special[0] || lay.frow[0] || {}).cid;
-    const fn = (d.state || {}).fn_swap;
+    // only the keyboard: hovering a key says what it does, clicking it opens its actions beside it
     const photo = keyboardPhoto(d);
-    return (photo ? `<div class="kb-photo">${photo}</div>` : '') +
-      sec('Function row', `<div class="fkeys">${fk}</div>` + card(row('Use F1–F12 as standard function keys', fn === undefined ? 'Not reported by this keyboard' : fn ? 'Off: the keys send their printed functions, hold Fn for F1–F12' : 'On: the keys send F1–F12, hold Fn for the printed functions (or press Fn+Esc)', sw(fn === false, 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"'))), `Fn lock: ${fn === undefined ? 'hardware' : fn ? 'off' : 'on'}`) +
-      sec('Special keys', card(sk) + `<div class="hint"><i class="fa-solid fa-face-smile"></i> The built-in emoji picker opens at the pointer. Type to search, Enter inserts, Esc closes. Assign it with "Emoji picker"; "Emoji (desktop shortcut)" sends Ctrl+. instead.</div><div style="display:flex;gap:8px;margin-top:8px">${recCid === undefined ? '' : `<button class="btn" data-act="pick" data-section="keys" data-cid="${recCid}" data-label="${esc((d.controls.find(c => c.cid === recCid) || {}).label || '')}" data-cat="key"><i class="fa-solid fa-keyboard"></i>Record keystroke…</button>`}<button class="btn" data-act="reset-keys"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div>`);
+    return photo ? `<div class="kb-photo">${photo}</div><div class="kb-tip" hidden></div>` : sec('Keys', card(row('No photo for this keyboard', '', '')));
   }
 
+
+  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id])));
+  // the tag pinned above the keyboard on the Backlight page, saying how the backlight is set right now
+  function backlightTag(d) {
+    const st = d.state.backlight, s = (d.config.settings || {}).backlight || {}, n = st.num_levels || 8;
+    const on = s.enabled ?? st.enabled, auto = (s.mode || (st.mode === 3 ? 'manual' : 'auto')) !== 'manual';
+    const level = s.level ?? st.level, dur = s.duration_hands_out ?? st.duration_hands_out ?? 5;
+    const step = Math.max(1, Math.min(BL_STEPS, Math.round(level * BL_STEPS / (n - 1))));
+    const bits = !on ? ['Off'] : [auto ? 'Automatic' : `Level ${step} of ${BL_STEPS}`, `${dur >= 60 ? Math.round(dur / 60) + ' min' : dur + ' s'} after hands leave`].concat(s.battery_saving ? ['Battery saving'] : []);
+    return `<div class="kb-pin bl-pin" data-act="bl-open" title="Backlight settings"><span class="k">Backlight</span><span class="d">${esc(bits.join(' · '))}</span></div>`;
+  }
   function pageBacklight(d) {
+    if (!isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) return `<div class="kb-photo">${keyboardPhoto(d, true)}${backlightTag(d)}</div>`;   // settings live in the panel
     const st = (d.state || {}).backlight, s = (d.config.settings || {}).backlight || {};
     if (!st) return sec('Backlight', card(row('Not supported by this device', '', '')));
     const on = s.enabled ?? st.enabled, manual = (s.mode || (st.mode === 3 ? 'manual' : 'auto')) === 'manual';
@@ -539,6 +662,11 @@
   // Home shows a mouse from above; its own view shows it from the side with the buttons numbered
   const TOP_VIEWS = { b034: 'b034-top.png', b035: 'b034-top.png', b043: 'b034-top.png', b042: 'b042-top.png', b048: 'b042-top.png' };
   const homePhotoSrc = d => isMouse(d) && TOP_VIEWS[d.id] ? '../assets/devices/' + TOP_VIEWS[d.id] : devicePhotoSrc(d);
+  // the foot of the device's page list: battery icon and percentage on a pill, which opens Battery & info
+  function navBattery(d) {
+    const b = d.battery, st = batteryState(b);
+    return `<div class="dnav-bat ${b ? st.cls : 'none'}" title="${esc(st.label)}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span>${b.percent}%</span>` : '<span>Info</span>'}${b && b.charging ? '<i class="fa-solid fa-bolt"></i>' : ''}</div>`;
+  }
   function batteryState(b) {
     if (!b) return { label: 'Battery not reported', cls: '', icon: 'fa-battery-empty' };
     const plugged = b.charging || b.external_power;
@@ -553,26 +681,36 @@
     return `<div class="bat-ring ${st.cls}" title="${esc(st.label)}"><svg viewBox="0 0 64 64"><circle class="trk" cx="32" cy="32" r="26"/><circle class="val" cx="32" cy="32" r="26" style="stroke-dasharray:${(C * p / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><span class="pct">${b ? p + '<small>%</small>' : '–'}</span>${b && b.charging ? '<i class="fa-solid fa-bolt bolt"></i>' : ''}</div>`;
   }
   function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
+  // a device the agent knows but cannot reach right now (receiver link down, or Bluetooth gone)
+  const isOffline = d => d.online === false || !!d.offline;
+  const HOME_PER_VIEW = 2;   // two cards side by side at the window's size; more page with the arrows
   function pageHome() {
     const devs = S.devices;
     const charging = devs.filter(d => d.battery && d.battery.charging).length;
     const low = devs.filter(d => d.battery && !d.battery.charging && d.battery.percent <= 20);
     const summary = [`${devs.length} device${devs.length === 1 ? '' : 's'} connected`]
       .concat(charging ? [`${charging} charging`] : [], low.length ? [`${low.map(d => d.name).join(' and ')} ${low.length === 1 ? 'needs' : 'need'} charging`] : [], !charging && !low.length && devs.length ? ['batteries fine'] : []).join(' · ');
-    const cards = devs.map(d => {
+    const pages = Math.max(1, Math.ceil(devs.length / HOME_PER_VIEW));
+    S.homeAt = Math.max(0, Math.min(pages - 1, S.homeAt || 0));
+    const shown = devs.slice(S.homeAt * HOME_PER_VIEW, S.homeAt * HOME_PER_VIEW + HOME_PER_VIEW);
+    const cards = shown.map(d => {
+      const off = isOffline(d);
       const b = d.battery, st = batteryState(b), src = homePhotoSrc(d);
       const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
       const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
       const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
       // photo, battery and state only: the name is in the tooltip, the link is an icon
       const linkIcon = d.transport === 'bluetooth' ? '<i class="fa-brands fa-bluetooth-b"></i>' : '<i class="fa-solid fa-wifi"></i>';
-      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${esc(link)}">
+      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" ${off ? 'aria-disabled="true"' : 'data-act="home-open"'} data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? 'Not connected' : esc(link)}">
         <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="${esc(d.name)}">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
         <div class="dev-body centered">
-          <div class="dev-state ${st.cls}">${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
+          ${off ? '<div class="dev-state off"><i class="fa-solid fa-link-slash"></i><span class="dev-label">Not connected</span></div>' : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
         </div></div>`;
     }).join('');
-    return `<div class="home-grid">${cards}</div>`;
+    if (pages < 2) return `<div class="home-grid">${cards}</div>`;
+    const slide = S.homeSlide > 0 ? 'from-right' : S.homeSlide < 0 ? 'from-left' : ''; S.homeSlide = 0;
+    const dots = Array.from({ length: pages }, (_, i) => `<span class="${i === S.homeAt ? 'on' : ''}"></span>`).join('');
+    return `<div class="home-pager"><button class="home-arrow" data-act="home-step" data-key="-1" ${S.homeAt ? '' : 'disabled'} title="Previous devices"><i class="fa-solid fa-chevron-left"></i></button><div class="home-grid ${slide}">${cards}</div><button class="home-arrow" data-act="home-step" data-key="1" ${S.homeAt < pages - 1 ? '' : 'disabled'} title="More devices"><i class="fa-solid fa-chevron-right"></i></button></div><div class="home-dots">${dots}</div>`;
   }
 
   function pageApps() {
@@ -656,13 +794,25 @@
     const feel = rs.free_pointer ? '' : `<div class="row"><div class="grow"><div class="lbl">Travel before it picks</div><div class="sub">How far the mouse moves before an action is chosen: lower is snappier, higher is calmer</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
     return sec('Action ring', card(preview + free + feel)) + sec('Profiles', card(profilesRow), 'sets of actions, one in use') + sec(`Slots · ${rs.profiles[rs.active].name}`, card(rows), 'clockwise from the top');
   }
-  function pageSettings() {
+  // the device's own settings, as Options+ lists them: General, the keys it can switch off, backup
+  const DISABLE_KEYS = [['num_lock', 0x02, 'Num Lock'], ['caps_lock', 0x01, 'Caps Lock'], ['scroll_lock', 0x04, 'Scroll Lock'], ['insert', 0x08, 'Insert'], ['win', 0x10, 'Windows / Start key']];
+  function pageDeviceSettings(d) {
+    const st = d.state || {}, s = d.config.settings || {}, dk = st.disable_keys, ks = s.disable_keys || {};
+    const general = (typeof st.fn_swap === 'boolean' ? row('Use F1, F2, etc. keys as standard function keys', 'Hold Fn for the printed functions', sw(!(s.fn_swap ?? st.fn_swap), 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"')) : '') +
+      (st.platform ? row('Always keep the keyboard layout', 'The keyboard stops switching its layout by itself', sw(!!s.keep_layout, 'data-act="setting" data-path="keep_layout"')) : '');
+    const keys = dk ? DISABLE_KEYS.filter(([, bit]) => dk.supported & bit).map(([k, bit, l]) => row(l, '', chk(ks[k] ?? !!(dk.disabled & bit), `data-act="setting" data-path="disable_keys.${k}" title="Disable ${esc(l)}"`))).join('') : '';
+    const backup = row('Back up settings', 'Save LogiMX settings for all devices to a file', '<button class="btn sm" data-act="export"><i class="fa-solid fa-download"></i>Save…</button>') +
+      row('Restore settings', 'Load settings saved earlier', '<button class="btn sm" data-act="import"><i class="fa-solid fa-upload"></i>Restore…</button>') +
+      row('Read from device', 'Settings kept in the device\'s memory', `<button class="btn sm" data-act="sync-device" data-key="${esc(d.id)}"><i class="fa-solid fa-arrows-rotate"></i>Sync</button>`);
+    return (general ? sec('General', card(general)) : '') + (keys ? sec('Disabled keys', card(keys), 'switched off while on') : '') + sec('Device backup', card(backup));
+  }
+  function pageSettings(generalTitle = 'General') {
     const u = S.ui || {};
     return sec('Startup', card(row('Start agent at login', 'systemd user service', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
         row('Show tray indicator', 'Battery and Easy-Switch in the top bar', sw(u.tray !== false, 'data-act="ui" data-key="tray"')) +
         row('Keep running when window closes', 'Closing hides to the tray', sw(u.minimize !== false, 'data-act="ui" data-key="minimize"')) +
         row('Start hidden', 'Open in the tray only', sw(!!u.start_hidden, 'data-act="ui" data-key="start_hidden"')))) +
-      sec('General', card(`<div class="row"><span class="grow lbl">Appearance</span><select class="sel" data-act="theme-select">${THEMES.map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
+      sec(generalTitle, card(`<div class="row"><span class="grow lbl">Appearance</span><select class="sel" data-act="theme-select">${THEMES.map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
         row('Language', '', '<span class="val">System (English)</span>') +
         `<div class="row"><div class="grow"><div class="lbl">Check for updates</div><div class="sub">Looks at the GitHub release feed</div></div><button class="btn sm" data-act="check-updates">Check now</button>${sw(u.updates !== false, 'data-act="ui" data-key="updates"')}</div>`)) +
       sec('Privacy', card(row('Telemetry', 'Off. LogiMX never sends data anywhere.', '<span class="val">Not available</span>')));
@@ -685,7 +835,7 @@
   const CAT_LABEL = { media: 'Media', window: 'Window', ws: 'Shell', device: 'Device' };
   function pickerItems(p) {
     const all = S.presets.all;
-    const allowed = new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && all[k] && all[k].type !== 'gesture') : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'gesture' ? Object.keys(all).filter(k => ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'].includes(all[k].type)) : p.section === 'keys' ? S.presets.keys : S.presets.buttons);
+    const allowed = new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && all[k] && all[k].type !== 'gesture') : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'gesture' ? Object.keys(all).filter(k => ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'].includes(all[k].type)) : p.section === 'keys' ? S.presets.keys.filter(k => k !== 'action_ring') : S.presets.buttons);
     const items = [];
     for (const [cat, keys] of Object.entries(CAT_OF)) for (const k of keys) if (allowed.has(k) && all[k] && (p.cat === 'all' || p.cat === cat)) {
       if (all[k].type === 'gesture' && p.section !== 'buttons') continue;
@@ -696,7 +846,7 @@
     return q ? items.filter(i => i.label.toLowerCase().includes(q)) : items;
   }
   function renderDialog() {
-    if (S.dlg === 'picker') return renderPicker();
+    if (S.dlg === 'picker') return S.picker && S.picker.drawer ? '' : renderPicker();
     if (S.dlg === 'pair') return renderPair();
     if (S.dlg === 'prompt') return renderPrompt();
     if (S.dlg === 'report') return renderReport();
@@ -706,6 +856,8 @@
     const p = S.picker;
     const cur = p.current;
     const curKey = typeof cur === 'string' ? cur : (cur && cur.preset);
+    const foot = `<div class="dlg-foot">${p.section === 'ring' ? '<button class="btn flat danger" data-act="pick-default"><i class="fa-solid fa-trash"></i>Clear slot</button>' : `<button class="btn flat" data-act="pick-default" title="Back to what this control does out of the box"><i class="fa-solid fa-rotate-left"></i>Reset to default</button><button class="btn flat danger" data-act="pick-disable">${p.section === 'gesture' ? 'Do nothing' : 'Disable ' + (p.section === 'keys' ? 'key' : p.section === 'thumbwheel' ? 'wheel' : 'button')}</button>`}<div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="pick-assign">Assign</button></div></div>`;
+    if (p.drawer) return renderPickerDrawer(foot.replace(/<div class="r">[\s\S]*<\/div><\/div>$/, '</div>'));
     let body = '';
     if (p.cat === 'key') {
       body = `<div class="recbox" data-act="rec-start"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? 'Press the keys to record' : 'Click here, then press the keys'}</div><div class="keys">${(p.chord || []).length ? p.chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">Release to finish. Esc cancels.</div>${p.recording ? '' : '<button class="btn primary" data-act="rec-start">Start recording</button>'}</div>
@@ -720,14 +872,141 @@
       const items = pickerItems(p);
       body = `<div class="acts">${items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'}</div>`;
     }
-    return `<div class="scrim" data-act="close-dlg"><div class="dlg" data-stop>
-      <div class="dlg-head">Choose action · ${esc(p.label)}<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
+    return `${p.drawer ? '<div class="drawer-wrap"><div class="dlg drawer" data-stop>' : '<div class="scrim" data-act="close-dlg"><div class="dlg" data-stop>'}
+      <div class="dlg-head">${p.drawer ? `<span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span>` : `Choose action · ${esc(p.label)}`}<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="dlg-body">
         <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input data-field="q" placeholder="Search actions" value="${esc(p.q || '')}"></div>
         <div class="cats">${PICKER_CATS.filter(([k]) => !(p.section === 'thumbwheel' && ['key', 'media', 'window', 'ws', 'app'].includes(k))).map(([k, l, i]) => `<button class="pill ${p.cat === k ? 'on' : ''}" data-act="pick-cat" data-key="${k}"><i class="fa-solid ${i}"></i>${l}</button>`).join('')}</div>
         ${body}
       </div>
-      <div class="dlg-foot">${p.section === 'ring' ? '<button class="btn flat danger" data-act="pick-default"><i class="fa-solid fa-trash"></i>Clear slot</button>' : `<button class="btn flat" data-act="pick-default" title="Back to what this control does out of the box"><i class="fa-solid fa-rotate-left"></i>Reset to default</button><button class="btn flat danger" data-act="pick-disable">${p.section === 'gesture' ? 'Do nothing' : 'Disable ' + (p.section === 'keys' ? 'key' : p.section === 'thumbwheel' ? 'wheel' : 'button')}</button>`}<div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="pick-assign">Assign</button></div></div>
+      ${foot}
+    </div></div>`;
+  }
+  // The key panel, laid out like Options+: RECOMMENDED open on top (from its per-key table,
+  // recommendations_slot_win.json: the key's own function, then a keystroke, then the action ring),
+  // then its categories folded, then what only LogiMX has. While searching, every match is listed.
+  // Options+ card -> LogiMX preset, for the cards it recommends past a key's own function
+  const OPTS_CARD = { win_print_screen: 'screenshot', win_emoji: 'emoji' };
+  // key control id -> what Options+ names the key's own function, plus any extra card it offers
+  const RECOMMEND = { 10: ['Calculator'], 110: ['Show desktop'], 111: ['Lock screen'], 191: ['Screen capture', 'win_print_screen'], 199: ['Brightness down'], 200: ['Brightness up'], 212: ['Search'], 224: ['Task view'], 225: ['Notifications'], 226: ['Backlight down'], 227: ['Backlight up'], 228: ['Previous track'], 229: ['Play / Pause'], 230: ['Next track'], 231: ['Mute'], 232: ['Volume down'], 233: ['Volume up'], 234: ['Context menu'], 259: ['Dictation'], 264: ['Emoji menu', 'win_emoji'], 266: ['Screen snip'], 284: ['Mute microphone'] };
+  // a mouse's buttons and thumb wheel: what Options+ recommends for each (recommendations_slot_win.json,
+  // MX Master 3S), as LogiMX presets; its own function comes first as Default
+  const MOUSE_RECOMMEND = { 82: ['overview', 'show_desktop', 'smartshift_toggle', 'gesture_navigation', 'action_ring'], 83: ['copy', 'volume_down', 'undo', 'action_ring'], 86: ['paste', 'volume_up', 'redo', 'action_ring'],
+    195: ['gesture_navigation', 'overview', 'show_desktop', 'screenshot', 'app_switcher', 'action_ring'], 196: ['overview', 'middle_click', 'gesture_navigation', 'screenshot', 'action_ring'], 416: ['action_ring', 'overview', 'screenshot'],
+    thumb: ['zoom_wheel', 'volume_wheel', 'tabs_wheel'] };
+  const MOUSE_GROUP = ['middle_click', 'back', 'forward', 'dpi_cycle', 'smartshift_toggle', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'action_ring'];
+  const WHEEL_GROUP = ['hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel', 'nothing'];
+  const K = (code, label) => ({ code: 'KEY_' + code, label: label || code });
+  const keyRange = (a, f) => a.split(' ').map(c => K(c, f ? f(c) : c));
+  const KEY_GROUPS = {
+    fkeys: keyRange('F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12'),
+    letters: keyRange('A B C D E F G H I J K L M N O P Q R S T U V W X Y Z'),
+    numbers: keyRange('1 2 3 4 5 6 7 8 9 0'),
+    symbols: [K('GRAVE', '`'), K('MINUS', '-'), K('EQUAL', '='), K('LEFTBRACE', '['), K('RIGHTBRACE', ']'), K('BACKSLASH', '\\'), K('SEMICOLON', ';'), K('APOSTROPHE', "'"), K('COMMA', ','), K('DOT', '.'), K('SLASH', '/'), K('102ND', '< >')],
+    numpad: keyRange('KP0 KP1 KP2 KP3 KP4 KP5 KP6 KP7 KP8 KP9', c => 'Num ' + c.slice(2)).concat([K('KPENTER', 'Num Enter'), K('KPEQUAL', 'Num ='), K('NUMLOCK', 'Num Lock'), K('KPMINUS', 'Num -'), K('KPDOT', 'Num .'), K('KPPLUS', 'Num +'), K('KPSLASH', 'Num /'), K('KPASTERISK', 'Num *')]),
+    modifiers: [K('LEFTCTRL', 'Left Ctrl'), K('RIGHTCTRL', 'Right Ctrl'), K('LEFTSHIFT', 'Left Shift'), K('RIGHTSHIFT', 'Right Shift'), K('LEFTALT', 'Left Alt'), K('RIGHTALT', 'Right Alt'), K('LEFTMETA', 'Left Super'), K('RIGHTMETA', 'Right Super')],
+    arrows: [K('UP', 'Up arrow'), K('DOWN', 'Down arrow'), K('LEFT', 'Left arrow'), K('RIGHT', 'Right arrow'), K('HOME', 'Home'), K('END', 'End'), K('PAGEUP', 'Page up'), K('PAGEDOWN', 'Page down'), K('INSERT', 'Insert')],
+    others: [K('CAPSLOCK', 'Caps Lock'), K('SCROLLLOCK', 'Scroll Lock'), K('BACKSPACE', 'Backspace'), K('DELETE', 'Delete'), K('ESC', 'Escape'), K('TAB', 'Tab'), K('SPACE', 'Space'), K('ENTER', 'Enter')],
+  };
+  // Options+'s action categories with the LogiMX presets that belong to each
+  const OPTS_CATS = {
+    nav: ['overview', 'show_desktop', 'app_switcher', 'workspace_prev', 'workspace_next', 'close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'tab_next', 'tab_prev', 'zoom_in', 'zoom_out', 'screenshot', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'emoji', 'dictation', 'context_menu', 'brightness_up', 'brightness_down', 'terminal'],
+    edit: ['copy', 'paste', 'undo', 'redo', 'open_home'],
+    media: ['play_pause', 'prev_track', 'next_track', 'volume_up', 'volume_down', 'mute', 'mic_mute'],
+    other: ['easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'nothing'],
+    mouse: MOUSE_GROUP, wheel: WHEEL_GROUP,
+  };
+  // three sections, as Options+ shows a key: what it recommends, Smart actions (things that run,
+  // type or open), and every other action grouped under small headings
+  const DRAWER_SECTIONS = [['rec', 'Recommended'], ['smart', 'Smart actions'], ['more', 'Other actions']];
+  const ACTION_GROUPS = [['nav', 'Navigate computer'], ['edit', 'Edit files and folders'], ['media', 'Media and audio'], ['other', 'Device']];
+  // what each kind of control lists: a key, a mouse button (with a mouse group first), or the thumb wheel
+  const groupsFor = p => p.section === 'thumbwheel' ? [['wheel', 'Wheel']] : p.section === 'buttons' ? [['mouse', 'Mouse']].concat(ACTION_GROUPS) : ACTION_GROUPS;
+  const sectionsFor = p => p.section === 'thumbwheel' ? DRAWER_SECTIONS.filter(([k]) => k !== 'smart') : DRAWER_SECTIONS;
+  const KEY_GROUP_NAMES = [['fkeys', 'F keys'], ['letters', 'Letters'], ['numbers', 'Numbers'], ['symbols', 'Symbols'], ['numpad', 'Num pad'], ['modifiers', 'Modifier keys'], ['arrows', 'Arrow and navigation'], ['others', 'Others']];
+  const curOf = p => typeof p.current === 'string' ? p.current : (p.current && p.current.preset);
+  // a single key: its keystroke, so the panel can say which one is in use
+  const keyCur = p => p.current && typeof p.current === 'object' && p.current.type === 'keystroke' && (p.current.keys || []).length === 1 ? p.current.keys[0] : null;
+  const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
+  const keyRow = (p, k, meta) => `<button class="act ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}"><span class="kcap">${esc(k.label)}</span>${meta ? `<span class="m">${meta}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
+  const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
+  const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
+  // the presets a control can take: keys never get the ring, gestures only on a button that can be held and moved
+  const allowedFor = p => new Set(p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'buttons' ? S.presets.buttons.filter(k => (S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy)) : S.presets.keys.filter(k => k !== 'action_ring'));
+  function drawerItems(sec, p) {
+    const ok = allowedFor(p || S.picker);
+    return (OPTS_CATS[sec] || []).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
+  }
+  const recBox = p => `<div class="recbox" data-act="rec-start"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? 'Press the keys to record' : 'Click here, then press the keys'}</div><div class="keys">${(p.chord || []).length ? p.chord.map(x => `<span>${esc(keyName(x))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">Release to finish. Esc cancels.</div></div>
+        <div class="hint">Or type it: <input class="text" data-field="typed" placeholder="ctrl+alt+shift+z" style="width:200px;margin-left:8px" value="${esc(p.typed || '')}"></div>`;
+  function drawerSection(p, k) {
+    if (k === 'rec') {
+      const ok = allowedFor(p), mouse = p.section === 'buttons' || p.section === 'thumbwheel';
+      const r = mouse ? null : RECOMMEND[p.cid];
+      const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
+      const rows = [Object.assign(presetItem('native'), { label: own, meta: 'Default' })];
+      for (const c of (r || []).slice(1)) if (OPTS_CARD[c] && ok.has(OPTS_CARD[c])) rows.push(presetItem(OPTS_CARD[c]));
+      if (mouse) for (const k of MOUSE_RECOMMEND[p.cid] || []) if (ok.has(k) && S.presets.all[k]) rows.push(presetItem(k));
+      if (p.section === 'thumbwheel') return `<div class="acts">${rows.map(i => actRow(p, i)).join('')}</div>`;
+      const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
+      return `<div class="acts">${rows.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+    }
+    if (k === 'smart') return sec('Run a command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}">`) +
+        sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
+        sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`) +
+        sec('Open application', `<div class="applist smart-apps">${appTabHtml(Object.assign({}, p, { q: '' }))}</div>`);
+    const groups = groupsFor(p).map(([g, l]) => { const items = drawerItems(g, p); return items.length ? `<div class="kgroup"><div class="kg-t">${l}</div><div class="acts">${items.map(i => actRow(p, i)).join('')}</div></div>` : ''; }).join('');
+    if (p.section === 'thumbwheel') return groups;
+    const keys = KEY_GROUP_NAMES.map(([g, l]) => `<div class="kgroup"><div class="kg-t">${l}</div><div class="kgrid">${KEY_GROUPS[g].map(x => keyCap(p, x)).join('')}</div></div>`).join('');
+    return groups + keys;
+  }
+  function renderPickerDrawer(foot) {
+    const p = S.picker, q = (p.q || '').trim().toLowerCase();
+    const fold = p.fold || (p.fold = { rec: true });
+    let list;
+    if (q) {
+      const hits = [];
+      for (const [g, l] of groupsFor(p)) for (const i of drawerItems(g, p)) if (i.label.toLowerCase().includes(q)) hits.push(actRow(p, Object.assign(i, { meta: l })));
+      if (p.section !== 'thumbwheel') for (const [g, l] of KEY_GROUP_NAMES) for (const x of KEY_GROUPS[g]) if (x.label.toLowerCase() === q || (q.length > 1 && x.label.toLowerCase().includes(q))) hits.push(keyRow(p, x, l));
+      if (p.section !== 'thumbwheel' && ('keystroke assignment'.includes(q) || 'shortcut'.includes(q))) hits.unshift(`<button class="act" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><span class="m">Recommended</span></button>`);
+      list = `<div class="acts">${hits.join('') || '<div class="row hint">No actions match</div>'}</div>`;
+    } else {
+      list = sectionsFor(p).map(([k, l]) => `<div class="acc ${fold[k] ? 'open' : ''}"><button class="acc-head" data-act="acc-toggle" data-key="${k}"><span class="grow">${l}</span><i class="fa-solid fa-chevron-down chev"></i></button>${fold[k] ? `<div class="acc-body">${drawerSection(p, k)}</div>` : ''}</div>`).join('');
+    }
+    return `<div class="drawer-wrap"><div class="dlg drawer" data-stop>
+      <div class="dlg-head"><span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span></div>
+      <div class="dlg-body">
+        <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input data-field="q" placeholder="Search all actions" value="${esc(p.q || '')}"></div>
+        <div class="acc-list">${list}</div>
+      </div>
+      ${foot}
+    </div></div>`;
+  }
+  // Backlight, laid out like a key's panel: the keyboard stays where it is, its settings on the right
+  const BL_STEPS = 6;
+  function renderPointerPanel(d) {
+    return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
+      <div class="dlg-head"><span class="dh-key">Modify settings</span><span class="dh-sub">Point &amp; scroll</span></div>
+      <div class="dlg-body">${pointerSettings(d)}</div>
+    </div></div>`;
+  }
+  function renderBacklightPanel(d) {
+    const st = d.state.backlight, s = (d.config.settings || {}).backlight || {}, n = st.num_levels || 8;
+    const on = s.enabled ?? st.enabled, auto = (s.mode || (st.mode === 3 ? 'manual' : 'auto')) !== 'manual';
+    const level = s.level ?? st.level, dur = s.duration_hands_out ?? st.duration_hands_out ?? 5;
+    // six steps spread over the keyboard's own levels (1 .. n-1)
+    const stepLevel = i => Math.max(1, Math.round(i * (n - 1) / BL_STEPS));
+    const steps = Array.from({ length: BL_STEPS }, (_, k) => k + 1).map(i => `<button class="${level >= stepLevel(i) ? 'on' : ''}" style="height:${10 + i * 5}px" data-act="bl-level" data-key="${stepLevel(i)}" title="Level ${i} of ${BL_STEPS}"></button>`).join('');
+    const body = row('Backlighting', '', sw(on, 'data-act="setting" data-path="backlight.enabled"')) +
+      (on ? `<div class="row"><div class="grow"><div class="lbl">Backlight duration</div><div class="sub">Stays on after your hands leave the keys</div></div></div>
+        <div class="row bl-slider">${range('data-act="setting-range" data-path="backlight.duration_hands_out" data-out="bld"', dur, 1, 300, 1)}<span class="val" data-out="bld">${fmtOut('bld', dur)}</span></div>` +
+        row('Automatic brightness', 'Follows the light in the room', sw(auto, 'data-act="setting" data-path="backlight.mode" data-on="auto" data-off="manual"')) +
+        (auto ? '' : `<div class="row"><div class="grow"><div class="lbl">Brightness</div><div class="sub">Level ${Math.max(0, [...Array(BL_STEPS).keys()].filter(k => level >= stepLevel(k + 1)).length)} of ${BL_STEPS}</div></div><div class="levels">${steps}</div></div>`) : '') +
+      row('Battery saving mode', 'Backlight off at 20% battery or less, until charging', sw(!!s.battery_saving, 'data-act="setting" data-path="backlight.battery_saving"'));
+    return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
+      <div class="dlg-head"><span class="dh-key">Modify settings</span><span class="dh-sub">Backlight</span></div>
+      <div class="dlg-body"><div class="card">${body}</div></div>
+      <div class="dlg-foot"><button class="btn flat" data-act="bl-reset"><i class="fa-solid fa-rotate-left"></i>Reset backlighting</button></div>
     </div></div>`;
   }
   function renderPair() {
@@ -783,7 +1062,7 @@
     const c = S.conflicts[0], needsBuild = agentNeedsBuild();
     const booting = !S.ready || (S.connected && !S.loaded);
     return `<div class="window"><main class="main empty-wrap">
-      <header class="hb"><span class="title">LogiMX</span><div class="right"><div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid ${S.theme.includes('dark') ? 'fa-moon' : 'fa-sun'}"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
+      <header class="hb"><span class="title">LogiMX</span><div class="right"><div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
       ${c ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(c.name)} is running.</strong> Two programs diverting the same buttons will fight over the device.</span><button class="bact" data-act="stop-tool" data-tool="${esc(c.name)}">Stop ${esc(c.name)}</button></div>` : ''}
       <div class="empty"><div class="ring"><i class="${booting || S.agentBusy ? 'fa-solid fa-spinner fa-spin' : S.connected ? 'fa-brands fa-usb' : 'fa-solid fa-power-off'}"></i></div>
         <div class="t">${booting ? 'Looking for devices…' : S.connected ? 'No devices found' : S.agentBusy ? esc(S.buildStep || 'Starting the agent…') : 'Agent not running'}</div>
@@ -828,7 +1107,7 @@
   function bind() {
     root.querySelectorAll('[data-stop]').forEach(e => e.onclick = ev => ev.stopPropagation());
     root.querySelectorAll('.nav-item').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.dev || S.dev));
-    root.querySelectorAll('.hotspot').forEach(h => h.onclick = () => openPicker({ dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
+    root.querySelectorAll('.hotspot').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
     root.querySelectorAll('[data-act]').forEach(b => {
       const act = b.dataset.act;
       if (b.tagName === 'INPUT' && b.type === 'range') {
@@ -840,8 +1119,8 @@
     });
     root.querySelectorAll('[data-field]').forEach(i => {
       i.onclick = e => e.stopPropagation();
-      i.oninput = () => { if (S.dlg === 'report') { S.report = Object.assign({}, S.report, { [i.dataset.field]: i.value }); return; } if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
-      i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } };
+      i.oninput = () => { if (S.dlg === 'picker' && S.picker && S.picker.drawer) { const f = i.dataset.field; S.picker[f] = i.value; if (f === 'cmd' || f === 'text' || f === 'open') S.picker.cat = 'cmd'; else if (f === 'typed') S.picker.cat = 'key'; if (f === 'q') render(); return; } if (S.dlg === 'report') { S.report = Object.assign({}, S.report, { [i.dataset.field]: i.value }); return; } if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
+      i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } if (e.key === 'Enter' && S.dlg === 'picker' && S.picker && S.picker.drawer && ['cmd', 'text', 'open'].includes(i.dataset.field)) { e.preventDefault(); S.picker.cat = 'cmd'; onAction('pick-assign'); } };
     });
     if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording && !recorderActive()) armRecorder();
     const typed = root.querySelector('[data-field="typed"]');
@@ -860,14 +1139,14 @@
     // A re-render replaces the search box, and focusing it again would drop the caret to the
     // start, so anything typed next lands in front of what is already there.
     const q = root.querySelector('[data-field="q"]');
-    if (q && S.dlg === 'picker' && S.picker.cat !== 'key') setTimeout(() => {
+    if (q && S.dlg === 'picker' && (S.picker.cat !== 'key' || S.picker.drawer) && !S.picker.recording) setTimeout(() => {
       if (document.activeElement === q) return;
       q.focus();
       const n = q.value.length;
       try { q.setSelectionRange(n, n); } catch (e) {}
     }, 20);
   }
-  function fmtOut(k, v) { if (k === 'pf') { const f = (((dev() || {}).state || {}).force || [])[0]; return f ? Math.round((v - f.min) * 100 / Math.max(1, f.max - f.min)) + '%' : String(v); } if (k === 'pspeed' || k === 'sst' || k === 'dpi' || k === 'tws') return String(v); if (k === 'thr') return v + '%'; if (k === 'dur') return (v / 1000).toFixed(1) + ' s'; return String(v); }
+  function fmtOut(k, v) { if (k === 'pf') { const f = (((dev() || {}).state || {}).force || [])[0]; return f ? Math.round((v - f.min) * 100 / Math.max(1, f.max - f.min)) + '%' : String(v); } if (k === 'pspeed' || k === 'sst' || k === 'dpi' || k === 'tws') return String(v); if (k === 'thr') return v + '%'; if (k === 'bld') return v >= 60 ? `${Math.floor(v / 60)} min${v % 60 ? ' ' + (v % 60) + ' s' : ''}` : v + ' s'; if (k === 'dur') return (v / 1000).toFixed(1) + ' s'; return String(v); }
   function appTabHtml(p) {
     const q = (p.q || '').toLowerCase();
     const match = a => !q || (a.name || '').toLowerCase().includes(q) || (a.wm_class || '').toLowerCase().includes(q) || (a.id || '').toLowerCase().includes(q);
@@ -932,7 +1211,7 @@
     const section = t.section, cid = t.cid;
     const current = section === 'gesture' ? null : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
     const ctl = typeof cid === 'number' && section !== 'ring' && d ? d.controls.find(c => c.cid === cid) : null;
-    S.picker = { dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.cat === 'key' };
+    S.picker = { drawer: !!t.drawer, fold: t.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.drawer ? false : t.cat === 'key' };
     S.dlg = 'picker'; render();
   }
   async function assignPicked(action) {
@@ -953,6 +1232,7 @@
     } else {
       await setAssign(d, p.section, p.cid, action, p.profile);
     }
+    if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; render(); toast('Assigned ' + presetLabel(action)); return; }
     S.dlg = null; toast('Assigned ' + presetLabel(action)); render();
   }
 
@@ -960,9 +1240,11 @@
     const d = dev(); const key = b && b.dataset.key;
     switch (act) {
       case 'page': go(b.dataset.page); return;
-      case 'go-home': go('home'); return;
+      case 'go-home': if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
+      case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
-      case 'home-page': go(b.dataset.page, key); return;
+      case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
+      case 'home-page': S.blClosed = false; go(b.dataset.page, key); return;
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
       case 'win-close': window.agent.windowAction('close'); return;
@@ -989,14 +1271,17 @@
       case 'stop-tool': { const r = await window.agent.stopTool(b.dataset.tool); toast(r && r.ok ? `${b.dataset.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; }
       case 'open': window.agent.openExternal(b.dataset.url); return;
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
-      case 'close-dlg': stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
+      case 'close-dlg': if (S.dlg === 'picker' && S.picker && S.picker.drawer) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
       case 'pick': openPicker({ dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
       case 'pick-gesture': openPicker({ dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
+      case 'acc-toggle': { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); render(); return; }
+      case 'rec-open': { const p = S.picker; p.q = ''; p.fold = Object.assign({}, p.fold, { rec: true }); p.sel = null; p.selKey = null; if (p.cat === 'key') { stopRecorder(); p.recording = false; p.cat = 'all'; } else { p.cat = 'key'; p.recording = true; } render(); return; }
+      case 'pick-key': { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; root.querySelectorAll('.drawer .act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-key' && x.dataset.key === key)); root.querySelectorAll('.drawer .kc').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return; }
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
-      case 'pick-item': S.picker.sel = key; root.querySelectorAll('.act').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return;
-      case 'rec-start': if (S.picker.recording) return; S.picker.recording = true; render(); return;
-      case 'pick-launch': { S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
+      case 'pick-item': if (S.picker.drawer) return assignPicked(key); S.picker.sel = key; root.querySelectorAll(S.picker.drawer ? '.drawer .act, .drawer .kc' : '.act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-item' && x.dataset.key === key)); return;
+      case 'rec-start': if (S.picker.drawer) S.picker.cat = 'key'; if (S.picker.recording) return; S.picker.recording = true; render(); return;
+      case 'pick-launch': { if (S.picker.drawer) { S.picker.cat = 'app'; S.picker.launch = key; S.picker.cmd = S.picker.text = S.picker.open = ''; return onAction('pick-assign'); } S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
@@ -1062,6 +1347,7 @@
       case 'haptic-level': await setSetting(d, ['haptic', 'level'], Number(b.value)); window.agent.call('haptic_play', { id: d.id, waveform: 4 }).catch(() => {}); return;
       case 'haptic-play': window.agent.call('haptic_play', { id: d.id, waveform: Number(key) }).catch(e => toast(e.message, true)); return;
       case 'panel-force-reset': { const f = ((d.state || {}).force || [])[0]; if (f) { await setSetting(d, ['panel_force'], f.default); render(); } return; }
+      case 'bl-reset': { const def = (((await window.agent.call('defaults', { id: d.id })).settings || {}).backlight) || { enabled: true, mode: 'auto' }; for (const k of ['enabled', 'mode']) if (k in def) await setSetting(d, ['backlight', k], def[k]); await setSetting(d, ['backlight', 'battery_saving'], false); toast('Backlighting reset'); render(); return; }
       case 'bl-level': await setSetting(d, ['backlight', 'mode'], 'manual'); await setSetting(d, ['backlight', 'level'], Number(key)); render(); return;
       case 'step': { const st = (d.state || {}).backlight || {}, s = (d.config.settings || {}).backlight || {}; const v = Math.max(Number(b.dataset.lo), Math.min(Number(b.dataset.hi), (s[key] ?? st[key] ?? 0) + Number(b.dataset.d))); await setSetting(d, ['backlight', key], v); render(); return; }
       case 'thumb-speed': { const tw = assignment(d, 'thumbwheel'); let a = typeof tw === 'string' ? Object.assign({}, S.presets.all[tw], { preset: tw }) : Object.assign({}, tw || S.presets.all.hscroll); a.gain = Number(b.value) * 1.6; await setAssign(d, 'thumbwheel', '', a); return; }
@@ -1073,7 +1359,7 @@
       case 'general-range': await setGeneral({ [key]: Number(b.value) }); return;
       case 'osd-event': { const ev = Object.assign({ mic: true, smartshift: true, backlight: true, host: true, dpi: false }, S.general.osd_events || {}); ev[key] = !b.classList.contains('on'); await setGeneral({ osd_events: ev }); render(); return; }
       case 'ui': { const v = !b.classList.contains('on'); S.ui = await window.agent.uiSettings({ [key]: v }) || Object.assign(S.ui, { [key]: v }); render(); return; }
-      case 'fwupd': toast('Run: fwupdmgr get-devices, then fwupdmgr update'); return;
+      case 'fwupd': toast('Are you serious now ?'); setTimeout(() => toast('You must be a Windows user !'), 2200); return;
       case 'check-updates': { const r = await window.agent.checkUpdates(); if (!r.ok) return toast('Update check failed: ' + r.error, true); const cur = S.status.version || VERSION; const newer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) > (y[i] || 0)) return true; if ((x[i] || 0) < (y[i] || 0)) return false; } return false; }; const has = r.latest && newer(r.latest, cur); toast(has ? `Version ${r.latest} is available` : `You are on the latest version (${cur})`); if (has && r.url) window.agent.openExternal(r.url); return; }
       case 'reset-overrides': { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { const keep = { name: profs[key].name, match: profs[key].match }; profs[key] = keep; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } toast('Overrides cleared'); render(); return; }
       case 'reset-buttons': { const defs = ((await window.agent.call('defaults', { id: d.id })).profiles || {}).default || {}; const btns = defs.buttons || {}; for (const cid of Object.keys(btns)) await setAssign(d, 'buttons', cid, btns[cid]); if (defs.thumbwheel) await setAssign(d, 'thumbwheel', null, defs.thumbwheel); toast('Buttons reset to defaults'); render(); return; }
@@ -1167,6 +1453,12 @@
   }
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; render(); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recorder) { S.dlg = null; render(); } });
+  // on Home the arrow keys page through the devices when there are more than fit
+  document.addEventListener('keydown', e => {
+    if (S.page !== 'home' || S.dlg || recorder || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || /input|textarea|select/i.test((e.target || {}).tagName || '')) return;
+    const b = root.querySelector(`.home-arrow[data-key="${e.key === 'ArrowLeft' ? -1 : 1}"]:not([disabled])`);
+    if (b) { e.preventDefault(); onAction('home-step', b); }
+  });
   window.agent.onStatus(st => {
     S.connected = !!st.connected;
     if (st.connected) { S.agentBusy = false; S.agentErr = null; refresh(); }
@@ -1176,7 +1468,12 @@
   window.agent.onEvent(msg => {
     const { event, data } = msg;
     if (event === 'device' || event === 'device_added') { merge(data); if (!S.dev) S.dev = data.id; render(); }
-    else if (event === 'device_removed') { S.devices = S.devices.filter(d => d.id !== data.id); if (S.dev === data.id) S.dev = S.devices[0] ? S.devices[0].id : null; render(); }
+    else if (event === 'device_removed') {
+      // keep the card, greyed out, so a device that dropped off (asleep, out of range) stays in view
+      const gone = S.devices.find(d => d.id === data.id); if (gone) gone.offline = true;
+      if (S.dev === data.id && S.page !== 'home') go('home');
+      render();
+    }
     else if (event === 'battery') { const d = S.devices.find(x => x.id === data.id); if (d) { d.battery = data.battery; render(); } }
     else if (event === 'app') { S.status.app = data.app || ''; }
     else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) d.profile = data.profile; }

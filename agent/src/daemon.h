@@ -51,6 +51,9 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     // so it is provisional until a later read confirms it. Alerts must not fire on it.
     void setBattery(std::optional<hidpp::Battery> b, bool confirmed = true) { battery_ = b; batteryConfirmed_ = confirmed; }
     bool batteryConfirmed() const { return batteryConfirmed_; }
+    // false while the receiver reports the device's link as down (asleep, switched off, out of range)
+    bool online() const { return online_.load(); }
+    void setOnline(bool on) { online_.store(on); }
 
   private:
     json actionFor(int cid);
@@ -64,6 +67,7 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     std::string profileName_ = "default";
     std::optional<hidpp::Battery> battery_;
     bool batteryConfirmed_ = false;
+    std::atomic<bool> online_{true};
     std::set<int> down_, diverted_;
     std::set<int> rawDiverted_;   // controls whose raw XY is diverted as well (gesture assignments)
     json state_;

@@ -120,7 +120,7 @@ json ManagedDevice::summary() {
     return {{"id", id()}, {"pid", pid_}, {"name", dev_->name()}, {"friendly_name", dev_->friendlyName()},
             {"kind", kind_}, {"firmware", dev_->firmware()}, {"serial", dev_->serial().empty() ? serial_ : dev_->serial()},
             {"transport", hidpp::kReceivers.count(t_.info().product) ? "bolt" : "bluetooth"},
-            {"index", dev_->index()}, {"battery", batteryJson()},
+            {"index", dev_->index()}, {"online", online_.load()}, {"battery", batteryJson()},
             {"profile", profileName_}, {"features", feats}, {"controls", controls}, {"state", state_},
             {"config", cfg_}};
 }
@@ -165,6 +165,8 @@ json ManagedDevice::readState(bool full) {
         }
         st["hosts"] = hostsCache_;
         if (auto fi = dev_->fnInversion()) st["fn_swap"] = *fi;
+        if (auto dk = dev_->disableKeys()) st["disable_keys"] = {{"supported", dk->supported}, {"disabled", dk->disabled}};
+        if (auto pf = dev_->platform()) st["platform"] = {{"platform", pf->platform}, {"source", pf->source}, {"auto", pf->autoPlatform}};
     } catch (const std::exception& e) {
         WARN("%s: readState: %s", dev_->name().c_str(), e.what());
     }
@@ -186,6 +188,12 @@ bool ManagedDevice::cue(const std::string& name) {
     if (wave < 0) return false;
     try { dev_->playHaptic(wave); } catch (...) { return false; }
     return true;
+}
+
+// battery saving: the backlight stays off while the keyboard runs on a battery at 20% or less
+static bool backlightSaving(const json& cfg, const std::optional<hidpp::Battery>& b) {
+    return cfg.value("settings", json::object()).value("backlight", json::object()).value("battery_saving", false) &&
+           b && !b->charging && !b->externalPower && b->percent <= 20;
 }
 
 void ManagedDevice::applySettings(const std::string& only) {
@@ -215,9 +223,24 @@ void ManagedDevice::applySettings(const std::string& only) {
             std::string m = b.value("mode", "auto");
             int mode = m == "manual" ? 3 : (m == "temporary" ? 2 : 1);
             auto opt = [&](const char* k) -> std::optional<int> { return b.contains(k) ? std::optional<int>(b[k].get<int>()) : std::nullopt; };
-            dev_->setBacklight(b.value("enabled", true), mode, b.value("level", 0), opt("duration_hands_out"), opt("duration_hands_in"), opt("duration_powered"));
+            dev_->setBacklight(b.value("enabled", true) && !backlightSaving(cfg_, battery_), mode, b.value("level", 0), opt("duration_hands_out"), opt("duration_hands_in"), opt("duration_powered"));
         }
         if (dev_->has(hidpp::FN_INVERSION_K375S) && want("fn_swap")) dev_->setFnInversion(s["fn_swap"].get<bool>());
+        if (dev_->has(hidpp::DISABLE_KEYS) && want("disable_keys")) {
+            static const std::pair<const char*, int> bits[] = {{"caps_lock", 0x01}, {"num_lock", 0x02}, {"scroll_lock", 0x04}, {"insert", 0x08}, {"win", 0x10}};
+            int mask = 0;
+            for (auto& [k, b] : bits) if (s["disable_keys"].value(k, false)) mask |= b;
+            dev_->setDisabledKeys(mask);
+        }
+        // keep the layout: pin the one in use as set by software, so the keyboard stops switching
+        // it on its own. The MX Keys S refuses to be put back to detecting (0xFF is an invalid
+        // argument), so letting go sets what the keyboard itself would pick.
+        if (dev_->has(hidpp::MULTIPLATFORM) && want("keep_layout")) {
+            if (auto pf = dev_->platform()) {
+                if (s["keep_layout"].get<bool>()) { if (pf->source < 2) dev_->setPlatform(pf->platform); }
+                else if (pf->platform != pf->autoPlatform) dev_->setPlatform(pf->autoPlatform);
+            }
+        }
         if (kind_ == "mouse" && want("pointer_speed") && s["pointer_speed"].is_number()) applyPointerSpeed(s["pointer_speed"].get<double>());
     } catch (const std::exception& e) {
         WARN("%s: applySettings: %s", dev_->name().c_str(), e.what());
@@ -346,9 +369,11 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
         // which the engine maps to right / up / next
         engine_->thumbwheel(-ev.data["rotation"].get<int>(), profile_.value("thumbwheel", json("native")));
     } else if (ev.kind == "battery") {
+        bool wasSaving = backlightSaving(cfg_, battery_);
         battery_ = hidpp::Battery{ev.data["percent"].get<int>(), ev.data["level"].get<std::string>(),
                                   ev.data["charging"].get<bool>(), ev.data["external_power"].get<bool>()};
         batteryConfirmed_ = true;
+        if (backlightSaving(cfg_, battery_) != wasSaving) applySettings("backlight");
         daemon_.broadcast("battery", {{"id", id()}, {"battery", batteryJson()}});
     } else if (ev.kind == "wireless") {
         if (ev.data.value("reconnect", false)) {
@@ -844,13 +869,18 @@ void Daemon::onNotification(hidpp::Transport& t, const hidpp::Notification& n) {
     }
     if (n.featureIndex == 0x41 && n.reportId == 0x10) {  // receiver: device connect / disconnect
         bool linkDown = !n.data.empty() && (n.data[0] & 0x40);
-        if (linkDown) return;
-        if (pairing_.load()) return;   // the pairing path attaches the new device once the handshake is done
         DevPtr md;
         for (auto& m : snapshot())
             if (&m->transport() == &t && m->dev().index() == n.deviceIndex) md = m;
+        if (linkDown) {
+            // tell the UI the device is out of reach; the summary is built off this reader thread
+            if (md && md->online()) { md->setOnline(false); std::thread([this, md] { broadcast("device", md->summary()); }).detach(); }
+            return;
+        }
+        if (pairing_.load()) return;   // the pairing path attaches the new device once the handshake is done
         if (md) {
-            std::thread([md] { std::this_thread::sleep_for(800ms); md->reapply(); }).detach();
+            md->setOnline(true);
+            std::thread([this, md] { std::this_thread::sleep_for(800ms); md->reapply(); broadcast("device", md->summary()); }).detach();
         } else {
             hidpp::Node node{t.path(), t.info().name, t.info().vendor, t.info().product, t.info().bustype};
             uint8_t idx = n.deviceIndex;
@@ -906,7 +936,10 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
         return json(lo + ((c.get<int>() - lo) / step) * step);
     }
     if (k == "pointer_speed") { if (!v.is_number()) throw std::runtime_error("pointer_speed must be a number"); return json(std::max(-1.0, std::min(1.0, v.get<double>()))); }
-    if (k == "fn_swap") return boolean();
+    if (k == "fn_swap" || k == "keep_layout") return boolean();
+    if (k == "disable_keys" && path.size() == 2) {
+        for (auto n : {"caps_lock", "num_lock", "scroll_lock", "insert", "win"}) if (path[1] == n) return boolean();
+    }
     if (k == "smartshift" && path.size() == 2) {
         if (path[1] == "mode") return oneOf({"ratchet", "freespin"});
         if (path[1] == "threshold") return clampInt(1, 255);
@@ -924,7 +957,7 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
     if (k == "hires" && path.size() == 2 && (path[1] == "enabled" || path[1] == "invert")) return boolean();
     if (k == "thumbwheel" && path.size() == 2 && path[1] == "invert") return boolean();
     if (k == "backlight" && path.size() == 2) {
-        if (path[1] == "enabled") return boolean();
+        if (path[1] == "enabled" || path[1] == "battery_saving") return boolean();
         if (path[1] == "mode") return oneOf({"auto", "manual", "temporary"});
         if (path[1] == "level") return clampInt(0, std::max(0, st.value("backlight", json::object()).value("num_levels", 8) - 1));
         if (path[1] == "duration_hands_out" || path[1] == "duration_hands_in") return clampInt(1, 600);
