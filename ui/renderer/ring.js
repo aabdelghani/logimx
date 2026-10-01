@@ -33,6 +33,7 @@
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
   function build() {
     slotsEl.innerHTML = slots.map((s, i) => {
+      if (!s) return '';   // an empty slot is not drawn at all
       const c = Math.cos(ang(i)), sn = Math.sin(ang(i));
       const bx = CX + RR * c, by = CY + RR * sn;
       // each button springs out from the middle, one after another around the ring

@@ -99,41 +99,37 @@ Everything
 
 ## Screenshots
 
-| Action ring | Action ring settings |
+| Welcome | Mouse buttons |
 |---|---|
-| ![Action ring](screenshots/action-ring-overlay.png) | ![Action ring settings](screenshots/action-ring.png) |
+| ![Welcome](screenshots/home.png) | ![Button actions](screenshots/mouse-button-panel.png) |
 
-| Gestures | Point and scroll |
+| Action ring | Action ring overlay |
 |---|---|
-| ![Gestures](screenshots/mouse-gestures.png) | ![Point and scroll](screenshots/mouse-point-scroll.png) |
+| ![Action ring](screenshots/action-ring.png) | ![Action ring overlay](screenshots/action-ring-overlay.png) |
 
-| Keyboard | Backlight |
+| Keyboard | Key actions |
 |---|---|
-| ![Keys](screenshots/keyboard-keys.png) | ![Backlight](screenshots/keyboard-backlight.png) |
+| ![Keys](screenshots/keyboard-keys.png) | ![Key actions](screenshots/action-picker.png) |
 
-| Action picker | Easy-Switch |
+| Backlight | Point and scroll |
 |---|---|
-| ![Picker](screenshots/action-picker.png) | ![Easy-Switch](screenshots/easy-switch.png) |
+| ![Backlight](screenshots/keyboard-backlight.png) | ![Point and scroll](screenshots/mouse-point-scroll.png) |
 
-| Battery & info | Notifications and overlays |
+| Device settings | Notifications and overlays |
 |---|---|
-| ![Battery](screenshots/battery-info.png) | ![Notifications](screenshots/notifications.png) |
+| ![Device settings](screenshots/device-settings.png) | ![Notifications](screenshots/notifications.png) |
+
+| Dark theme | GNOME theme |
+|---|---|
+| ![Dark](screenshots/dark-theme.png) | ![GNOME](screenshots/light-theme.png) |
 
 | Emoji picker | Tray status panel |
 |---|---|
 | ![Emoji picker](screenshots/emoji-picker.png) | ![Tray panel](screenshots/tray-panel.png) |
 
-| First run | Dark theme |
+| First run | Report a problem |
 |---|---|
-| ![First run](screenshots/first-run.png) | ![Dark](screenshots/dark-theme.png) |
-
-| Ubuntu theme | Applications |
-|---|---|
-| ![Ubuntu](screenshots/ubuntu-theme.png) | ![Applications](screenshots/applications.png) |
-
-| Report a problem | |
-|---|---|
-| ![Report a problem](screenshots/report-problem.png) | |
+| ![First run](screenshots/first-run.png) | ![Report a problem](screenshots/report-problem.png) |
 
 ## Install
 
