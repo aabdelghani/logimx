@@ -497,3 +497,9 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dnav-item.on i { color: var(--accbg); }
 .dnav-item.foot { margin-top: auto; }
 .devview2 .cfg-top { justify-content: flex-end; border-bottom: 0; }
+/* Home: the greeting sits in the top row, level with Add device */
+header.hb .left .hello { font-size: 30px; font-weight: 700; letter-spacing: -.01em; padding-left: 14px; -webkit-app-region: drag; }
+header.hb { height: 64px; }
+.content.landing { padding-top: 0; }
+.content.landing .dev-state { font-size: 15px; }
+.content.landing .dev-state > i.fa-solid:not(.dev-bolt) { font-size: 18px; }

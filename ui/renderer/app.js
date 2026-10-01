@@ -184,7 +184,7 @@
     const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
     const cname = conflict ? S.conflicts[0].name : '';
     const left = mode === 'home'
-      ? ''
+      ? `<span class="hello">${greeting()}</span>`
       : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
     const controls = `<div class="right">
@@ -550,8 +550,7 @@
           <div class="dev-state ${st.cls}">${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
         </div></div>`;
     }).join('');
-    return `<div class="home-hero"><div><div class="hello">${greeting()}</div></div></div>
-      <div class="home-grid">${cards}</div>`;
+    return `<div class="home-grid">${cards}</div>`;
   }
 
   function pageApps() {
