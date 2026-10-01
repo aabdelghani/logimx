@@ -546,9 +546,8 @@
           <div class="dev-links">${pages.map(p => `<button class="pill" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('')}</div>
         </div></div>`;
     }).join('');
-    const add = `<button class="dev-card add" data-act="pair"><i class="fa-solid fa-plus"></i><span class="dev-name">Add a device</span><span class="dev-sub">Pair with a receiver or Bluetooth</span></button>`;
     return `<div class="home-hero"><div><div class="hello">${greeting()}</div><div class="hint">${esc(summary)}</div></div>${S.status.app ? `<div class="hint now"><i class="fa-solid fa-window-maximize"></i>In use: ${esc(S.status.app)}</div>` : ''}</div>
-      <div class="home-grid">${cards}${add}</div>`;
+      <div class="home-grid">${cards}</div>`;
   }
 
   function pageApps() {
