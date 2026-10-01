@@ -524,3 +524,13 @@ header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .dnav .cfg-back .hbtn { width: 34px; height: 34px; font-size: 18px; }
 .devview2 { grid-template-columns: 260px 1fr; }
 .devview2 .cfg-top .right { height: 64px; }
+/* the keyboard fades in; the device's page list enters from the left, one item after another */
+@keyframes kb-fade { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes from-left { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.content > .page.enter > .kb-photo { animation: kb-fade .7s ease-out both; }
+.dnav.enter .cfg-back { animation: from-left .32s cubic-bezier(.2,.7,.2,1) both; }
+.dnav.enter nav > * { animation: from-left .36s cubic-bezier(.2,.7,.2,1) both; }
+.dnav.enter nav > :nth-child(1) { animation-delay: 40ms; } .dnav.enter nav > :nth-child(2) { animation-delay: 80ms; }
+.dnav.enter nav > :nth-child(3) { animation-delay: 120ms; } .dnav.enter nav > :nth-child(4) { animation-delay: 160ms; }
+.dnav.enter nav > :nth-child(5) { animation-delay: 200ms; } .dnav.enter nav > :nth-child(n+6) { animation-delay: 240ms; }
+@media (prefers-reduced-motion: reduce) { .dnav.enter *, .page.enter > .kb-photo { animation: none !important; } }

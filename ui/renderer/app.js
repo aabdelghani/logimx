@@ -158,7 +158,7 @@
   // ============================================================ render
   // Animations run when something new appears, not on every refresh: the page when it is
   // navigated to, the dialog when it opens. A refresh of the same page redraws it in place.
-  let lastPageKey = null, lastDlg = null;
+  let lastPageKey = null, lastDlg = null, lastNavKey = null;
   function render() {
     stopRecorder();
     document.documentElement.setAttribute('data-theme', S.theme);
@@ -173,6 +173,10 @@
     root.innerHTML = html;
     if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
     if (dlgOpened) { const sc = root.querySelector('.scrim'); if (sc) sc.classList.add('enter'); }
+    // the page list slides in when a device is opened, not when moving between its pages
+    const dn = root.querySelector('.dnav'), navKey = dn ? 'dev|' + S.dev : null;
+    if (dn && navKey !== lastNavKey) dn.classList.add('enter');
+    lastNavKey = navKey;
     bind();
   }
 
