@@ -11,7 +11,7 @@
     thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
-  const VERSION = '0.6.18';
+  const VERSION = '0.6.19';
 
   // ------------------------------------------------------------------ rpc
   async function call(method, params) {
