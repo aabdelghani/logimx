@@ -412,6 +412,21 @@ header.hb .left .brand { height: auto; padding: 0 6px; }
 .tab.on::after { transform: scaleX(1); }
 .tab i { font-size: 12px; }
 @media (max-width: 980px) { .devview { grid-template-columns: 280px 1fr; } }
+/* the title bar is not a separate band: it takes the window's own colour and has no line under
+   it, and in the device view it is folded into the two columns */
+header.hb { background: transparent; border-bottom: 0; height: 52px; }
+.content.landing { padding-top: 6px; }
+.panel-top { display: flex; align-items: center; gap: 10px; height: 36px; margin: -12px -8px 0; -webkit-app-region: drag; }
+.panel-top .hbtn { -webkit-app-region: no-drag; background: transparent; }
+.panel-top .hbtn:hover { background: var(--btn); }
+.panel-title { font-size: 12px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+.cfg-top { display: flex; align-items: flex-end; gap: 12px; padding: 0 8px 0 20px; border-bottom: 1px solid var(--brd); flex: none; -webkit-app-region: drag; }
+.cfg-top .tabs { flex: 1; min-width: 0; border-bottom: 0; background: transparent; padding: 10px 0 0; }
+.cfg-top .tab, .cfg-top .right { -webkit-app-region: no-drag; }
+.cfg-top .right { display: flex; align-items: center; gap: 8px; height: 52px; }
+.dev-panel { padding-top: 18px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
 }
+.cfg-top .tabs { overflow-y: hidden; }
+.cfg-top .tabs::-webkit-scrollbar { display: none; }

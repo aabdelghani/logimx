@@ -187,27 +187,28 @@
       ? `<div class="brand"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span>LogiMX</div>`
       : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
-    let body;
-    if (mode === 'device') {
-      const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
-      body = `<div class="devview">${devicePanel(d)}<section class="dev-config"><nav class="tabs">${tabs}</nav><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
-    } else {
-      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div>${mode === 'home' ? `<div class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</div>` : ''}</div>`;
-    }
-    return `<div class="window">
-      <main class="main">
-        <header class="hb">
-          <div class="left">${left}</div>
-          <span class="title">${mode === 'home' ? '' : esc(title)}</span>
-          <div class="right">
+    const controls = `<div class="right">
             ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
             <button class="hbtn icon ${S.page === 'apps' ? 'on' : ''}" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button>
             <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid ${S.theme.includes('dark') ? 'fa-moon' : 'fa-sun'}"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-main" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-        </header>
+          </div>`;
+    let body;
+    if (mode === 'device') {
+      const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      body = `<div class="devview">${devicePanel(d)}<section class="dev-config"><div class="cfg-top"><nav class="tabs">${tabs}</nav>${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
+    } else {
+      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div>${mode === 'home' ? `<div class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</div>` : ''}</div>`;
+    }
+    return `<div class="window">
+      <main class="main">
+        ${mode === 'device' ? '' : `<header class="hb">
+          <div class="left">${left}</div>
+          <span class="title">${mode === 'home' ? '' : esc(title)}</span>
+          ${controls}
+        </header>`}
         ${agentDown}
         ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(cname === 'logid' ? 'logid' : 'Solaar')} is running.</strong> Both programs divert the same buttons; only one will win.</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">Stop ${esc(cname === 'logid' ? 'logid' : 'Solaar')}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
         ${body}
@@ -223,6 +224,7 @@
     const photo = isMouse(d) && MOUSE_PHOTOS[d.id] ? `<div class="photo-card">${mousePhoto(d)}</div>` : src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'} none"></i>`;
     const others = S.devices.filter(x => x.id !== d.id);
     return `<aside class="dev-panel ${isMouse(d) ? 'mouse' : 'kbd'}">
+      <div class="panel-top"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="panel-title">${esc(d.name)}</span></div>
       <div class="dev-hero">${photo}</div>
       <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="fa-solid ${d.transport === 'bluetooth' ? 'fa-bluetooth-b fa-brands' : 'fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
       <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
