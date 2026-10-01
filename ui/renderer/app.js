@@ -148,7 +148,7 @@
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
     haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-sun'],
-    home: ['Home', 'fa-house'], apps: ['Applications', 'fa-window-restore'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
+    home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'info']) : ['keys', 'backlight', 'easy', 'info'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
@@ -178,39 +178,58 @@
 
   function renderWindow() {
     const d = dev();
-    const title = S.appDetail ? (S.appDetail.name || 'Application') : (PAGES[S.page] ? PAGES[S.page][0] : 'LogiMX');
-    let nav = `<button class="nav-item ${S.page === 'home' && !S.appDetail ? 'active' : ''}" data-page="home"><i class="fa-solid fa-house"></i>Home</button>`;
-    for (const x of S.devices) {
-      const b = x.battery;
-      nav += `<div class="nav-head"><span>${esc(x.name)}</span><span>${b ? b.percent + '% · ' : ''}${x.transport === 'bolt' ? 'Bolt' : 'Bluetooth'}</span></div>`;
-      for (const p of devicePages(x)) nav += `<button class="nav-item ${S.page === p && S.dev === x.id && !S.appDetail ? 'active' : ''}" data-page="${p}" data-dev="${x.id}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`;
-    }
-    nav += `<div class="nav-head"><span>General</span><span></span></div>`;
-    for (const p of generalPages()) nav += `<button class="nav-item ${S.page === p ? 'active' : ''}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`;
-    const b = d && d.battery;
+    const devPage = !S.appDetail && d && S.page !== 'home' && (devicePages(d).includes(S.page) || S.page === 'thumb');
+    const mode = S.appDetail ? 'general' : S.page === 'home' ? 'home' : devPage ? 'device' : 'general';
+    const title = S.appDetail ? (S.appDetail.name || 'Application') : mode === 'device' ? d.name : (PAGES[S.page] ? PAGES[S.page][0] : 'LogiMX');
     const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
     const cname = conflict ? S.conflicts[0].name : '';
+    const left = mode === 'home'
+      ? `<div class="brand"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span>LogiMX</div>`
+      : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
+    const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
+    let body;
+    if (mode === 'device') {
+      const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      body = `<div class="devview">${devicePanel(d)}<section class="dev-config"><nav class="tabs">${tabs}</nav><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
+    } else {
+      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div>${mode === 'home' ? `<div class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</div>` : ''}</div>`;
+    }
     return `<div class="window">
-      <aside class="side">
-        <div class="brand"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span>LogiMX</div>
-        <nav class="nav">${nav}</nav>
-        <div class="side-foot ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i><span class="grow">${S.connected ? 'Agent connected' : S.agentBusy ? 'Starting the agent…' : 'Agent not running'} · v${S.status.version || VERSION}</span>${S.connected || S.agentBusy ? '' : '<button class="btn sm" data-act="start-agent">Start</button>'}</div>
-      </aside>
       <main class="main">
         <header class="hb">
-          ${S.appDetail ? `<div class="left"><button class="hbtn icon" data-act="back-apps" title="Back"><i class="fa-solid fa-arrow-left"></i></button></div>` : ''}
-          <span class="title">${esc(title)}</span>
+          <div class="left">${left}</div>
+          <span class="title">${mode === 'home' ? '' : esc(title)}</span>
           <div class="right">
-            ${S.page === 'home' && !S.appDetail ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button><button class="hbtn icon" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button><button class="hbtn icon" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>` : ''}
-            ${d && b && S.page !== 'home' ? `<button class="hbtn" data-act="goinfo" title="Battery"><i class="fa-solid ${batIcon(b)} ${batClass(b)}"></i>${b.percent}%${b.charging ? ' ⚡' : ''}</button>` : ''}
+            ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
+            <button class="hbtn icon ${S.page === 'apps' ? 'on' : ''}" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button>
+            <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid ${S.theme.includes('dark') ? 'fa-moon' : 'fa-sun'}"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
-            <div style="position:relative"><button class="hbtn icon" data-act="menu-main"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
+            <div style="position:relative"><button class="hbtn icon" data-act="menu-main" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </header>
+        ${agentDown}
         ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(cname === 'logid' ? 'logid' : 'Solaar')} is running.</strong> Both programs divert the same buttons; only one will win.</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">Stop ${esc(cname === 'logid' ? 'logid' : 'Solaar')}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
-        <div class="content"><div class="page">${renderPage(d)}</div></div>
+        ${body}
       </main></div>`;
+  }
+  // The device itself, on the left of its settings: photo (the mouse with its numbered buttons),
+  // battery, state, link and profile, and a way across to the other devices.
+  function devicePanel(d) {
+    const b = d.battery, st = batteryState(b), src = devicePhotoSrc(d);
+    const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
+    const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
+    const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
+    const photo = isMouse(d) && MOUSE_PHOTOS[d.id] ? `<div class="photo-card">${mousePhoto(d)}</div>` : src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'} none"></i>`;
+    const others = S.devices.filter(x => x.id !== d.id);
+    return `<aside class="dev-panel ${isMouse(d) ? 'mouse' : 'kbd'}">
+      <div class="dev-hero">${photo}</div>
+      <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="fa-solid ${d.transport === 'bluetooth' ? 'fa-bluetooth-b fa-brands' : 'fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
+      <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
+      <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
+      ${isMouse(d) && MOUSE_PHOTOS[d.id] ? '<div class="hint">Click a number to change what that button does.</div>' : ''}
+      ${others.length ? `<div class="dev-others"><div class="sec-title"><span>Other devices</span></div>${others.map(x => `<button class="other" data-act="home-open" data-key="${esc(x.id)}"><i class="fa-solid ${isMouse(x) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i><span class="grow">${esc(x.name)}</span>${x.battery ? `<span class="${batClass(x.battery)}">${x.battery.percent}%${x.battery.charging ? ' <i class="fa-solid fa-bolt"></i>' : ''}</span>` : ''}</button>`).join('')}</div>` : ''}
+    </aside>`;
   }
   const THEMES = [['light', 'Light', 'linear-gradient(135deg,#fff 50%,#3584e4 50%)'], ['dark', 'Dark', 'linear-gradient(135deg,#222 50%,#3584e4 50%)'], ['ubuntu', 'Ubuntu', 'linear-gradient(135deg,#fafafa 50%,#e95420 50%)'], ['ubuntu-dark', 'Ubuntu dark', 'linear-gradient(135deg,#2c2c2c 50%,#e95420 50%)']];
   const themeMenu = () => `<div class="menu" data-menu><div class="mhead">Appearance</div>${THEMES.map(([k, l, s]) => `<button data-act="theme" data-key="${k}"><span class="swatch" style="background:${s}"></span><span>${l}</span>${S.theme === k ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}</div>`;
@@ -220,6 +239,10 @@
     <button data-act="pair"><i class="fa-solid fa-plus"></i>Pair a device…</button>
     <button data-act="pause"><i class="fa-solid ${S.status.paused ? 'fa-play' : 'fa-pause'}"></i>${S.status.paused ? 'Resume diversion' : 'Pause diversion'}</button>
     <div class="sep"></div>
+    <button data-act="page" data-page="apps"><i class="fa-solid fa-layer-group"></i>Profiles</button>
+    ${S.devices.some(isMouse) ? '' : '<button data-act="page" data-page="ring"><i class="fa-solid fa-circle-notch"></i>Action ring</button>'}
+    <button data-act="page" data-page="notif"><i class="fa-solid fa-bell"></i>Notifications</button>
+    <button data-act="page" data-page="backup"><i class="fa-solid fa-cloud-arrow-down"></i>Backup & sync</button>
     <button data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button>
     <button data-act="page" data-page="about"><i class="fa-solid fa-circle-info"></i>About LogiMX</button>
     <div class="sep"></div>
@@ -305,9 +328,9 @@
     const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
     const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
     const twRow = d.controls.length ? `<div class="row"><span class="num">${buttonRows(d).length + 1}</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
-    const photo = mousePhoto(d);
+    const photo = '';   // the numbered photo is in the device panel beside this page
     return `<div class="${photo ? 'photo-col' : ''}">${photo ? `<div class="photo-card">${photo}</div>` : ''}
-      <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Applications</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
+      <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Profiles</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
         row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
         `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
   }
@@ -911,6 +934,7 @@
     const d = dev(); const key = b && b.dataset.key;
     switch (act) {
       case 'page': go(b.dataset.page); return;
+      case 'go-home': go('home'); return;
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'home-page': go(b.dataset.page, key); return;
       case 'goinfo': go('info', S.dev); return;
