@@ -534,3 +534,6 @@ header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .dnav.enter nav > :nth-child(3) { animation-delay: 120ms; } .dnav.enter nav > :nth-child(4) { animation-delay: 160ms; }
 .dnav.enter nav > :nth-child(5) { animation-delay: 200ms; } .dnav.enter nav > :nth-child(n+6) { animation-delay: 240ms; }
 @media (prefers-reduced-motion: reduce) { .dnav.enter *, .page.enter > .kb-photo { animation: none !important; } }
+/* the whole bar slides in at once */
+.dnav.enter nav > *, .dnav.enter .cfg-back { animation: none; }
+.dnav.enter { animation: from-left .36s cubic-bezier(.2,.7,.2,1) both; }
