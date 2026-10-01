@@ -475,3 +475,25 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dev-label { font-weight: 600; margin-left: 8px; color: var(--dim); }
 .dev-state.warn .dev-label, .dev-state.err .dev-label { color: inherit; }
 .dev-pct { color: inherit; }   /* same colour as the battery icon beside it */
+
+/* device view without the side panel: the settings take the whole window */
+.dev-config.solo { flex: 1; min-height: 0; }
+.cfg-back { display: flex; align-items: center; gap: 8px; height: 52px; margin-right: 18px; -webkit-app-region: no-drag; flex: none; }
+.cfg-back .hbtn { background: transparent; }
+.cfg-back .hbtn:hover { background: var(--btn); }
+.cfg-name { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.cfg-top { align-items: flex-end; padding-left: 10px; }
+.cfg-top .cfg-back { align-self: center; }
+
+/* device view: its pages down the left, nothing else there */
+.devview2 { flex: 1; min-height: 0; display: grid; grid-template-columns: 230px 1fr; }
+.dnav { background: var(--side); display: flex; flex-direction: column; padding: 0 10px 12px; -webkit-app-region: drag; }
+.dnav .cfg-back { height: 52px; margin: 0 0 6px; }
+.dnav nav { display: flex; flex-direction: column; gap: 2px; }
+.dnav-item { -webkit-app-region: no-drag; border: 0; background: transparent; color: var(--fg); font: 500 14px var(--font); text-align: left; padding: 9px 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: background .14s; }
+.dnav-item i { width: 16px; text-align: center; color: var(--dim); transition: color .14s; }
+.dnav-item:hover { background: var(--btnh); }
+.dnav-item.on { background: var(--btn); font-weight: 700; }
+.dnav-item.on i { color: var(--accbg); }
+.dnav-item.foot { margin-top: auto; }
+.devview2 .cfg-top { justify-content: flex-end; border-bottom: 0; }
