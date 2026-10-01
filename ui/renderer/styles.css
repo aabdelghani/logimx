@@ -474,3 +474,4 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dev-bolt { animation: bolt-pulse 1.4s ease-in-out infinite; }
 .dev-label { font-weight: 600; margin-left: 8px; color: var(--dim); }
 .dev-state.warn .dev-label, .dev-state.err .dev-label { color: inherit; }
+.dev-pct { color: inherit; }   /* same colour as the battery icon beside it */
