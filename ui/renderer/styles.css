@@ -513,3 +513,14 @@ header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .content > .page:has(> .kb-photo) { max-width: 1060px; }
 .kb-photo { display: flex; justify-content: center; margin: 4px auto 6px; width: 100%; }
 .kb-photo svg { width: 100%; max-width: 1060px; height: auto; display: block; margin: 0 auto; }
+/* device view: one background across both columns, the page list in capitals and centred in
+   its column, the device's name as large as the greeting with the back arrow beside it */
+.dnav { background: transparent; padding: 0 12px 12px 14px; }
+.dnav nav { flex: 1; justify-content: center; padding-bottom: 64px; }
+.dnav-item { text-transform: uppercase; letter-spacing: .06em; font-size: 13px; font-weight: 600; padding: 11px 14px; }
+.dnav-item.on { font-weight: 800; }
+.dnav .cfg-back { height: 64px; gap: 6px; }
+.dnav .cfg-name { font-size: 30px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.dnav .cfg-back .hbtn { width: 34px; height: 34px; font-size: 18px; }
+.devview2 { grid-template-columns: 260px 1fr; }
+.devview2 .cfg-top .right { height: 64px; }
