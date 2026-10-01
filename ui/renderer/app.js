@@ -511,6 +511,9 @@
   // The first thing seen: every connected device with its photo, its battery and whether it is
   // charging, how it is connected and which profile it is using. A card opens its device.
   const devicePhotoSrc = d => ((isMouse(d) ? MOUSE_PHOTOS : KEYBOARD_PHOTOS)[d.id] || {}).src;
+  // Home shows a mouse from above; its own view shows it from the side with the buttons numbered
+  const TOP_VIEWS = { b034: 'b034-top.png', b035: 'b034-top.png', b043: 'b034-top.png', b042: 'b042-top.png', b048: 'b042-top.png' };
+  const homePhotoSrc = d => isMouse(d) && TOP_VIEWS[d.id] ? '../assets/devices/' + TOP_VIEWS[d.id] : devicePhotoSrc(d);
   function batteryState(b) {
     if (!b) return { label: 'Battery not reported', cls: '', icon: 'fa-battery-empty' };
     const plugged = b.charging || b.external_power;
@@ -532,7 +535,7 @@
     const summary = [`${devs.length} device${devs.length === 1 ? '' : 's'} connected`]
       .concat(charging ? [`${charging} charging`] : [], low.length ? [`${low.map(d => d.name).join(' and ')} ${low.length === 1 ? 'needs' : 'need'} charging`] : [], !charging && !low.length && devs.length ? ['batteries fine'] : []).join(' · ');
     const cards = devs.map(d => {
-      const b = d.battery, st = batteryState(b), src = devicePhotoSrc(d);
+      const b = d.battery, st = batteryState(b), src = homePhotoSrc(d);
       const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
       const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
       const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
@@ -544,7 +547,7 @@
           <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
         </div></div>`;
     }).join('');
-    return `<div class="home-hero"><div><div class="hello">${greeting()}</div><div class="hint">${esc(summary)}</div></div></div>
+    return `<div class="home-hero"><div><div class="hello">${greeting()}</div></div></div>
       <div class="home-grid">${cards}</div>`;
   }
 
