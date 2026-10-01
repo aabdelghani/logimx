@@ -173,7 +173,9 @@
     else if (!S.devices.length) html = renderEmpty();
     else html = renderWindow();
     html += renderDialog();
-    const drawerWill = !!(S.dlg === 'picker' && S.picker && S.picker.drawer);
+    // a key's panel or a settings panel (Backlight, Point & scroll): either one sends the page list out
+    const panelOn = () => !!(S.dlg === 'picker' && S.picker && S.picker.drawer) || (S.page !== 'home' && backlightPanel(dev()));
+    const drawerWill = panelOn();
     const moving = drawerWill !== lastDrawer ? root.querySelector('.dev-config .content > .page > :first-child') : null;
     const from = moving ? moving.getBoundingClientRect() : null;
     root.innerHTML = html;
@@ -184,17 +186,18 @@
     if (dn && navKey !== lastNavKey) dn.classList.add('enter');
     lastNavKey = navKey;
     // opening a key's panel sends the page list out to the left; closing it brings the list back in
-    const drawerNow = !!(S.dlg === 'picker' && S.picker && S.picker.drawer);
-    if (dn && drawerNow && !lastDrawer) dn.classList.add('leaving');
+    const drawerNow = panelOn();
+    if (dn && drawerNow && !lastDrawer) { dn.classList.add('leaving'); const w = root.querySelector('.devview2.panel-open .drawer-wrap'); if (w) w.classList.add('enter'); }
     if (dn && !drawerNow && lastDrawer) dn.classList.add('nav-back');
     lastDrawer = drawerNow;
     alignToNav();
     if (from) glideFrom(from, root.querySelector('.dev-config .content > .page > :first-child'));
     bind();
     keyTips();
+    ringDrag();
     // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
-    const mid = root.querySelector('.devview2.drawer-open .dev-config');
-    if (mid) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .cfg-top')) closeDrawer(); });
+    const mid = root.querySelector('.devview2.drawer-open:not(.panel-open) .dev-config');
+    if (mid) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
     // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
     const blMid = root.querySelector('.devview2.panel-open .dev-config');
     if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin')) closeDrawer(() => { S.blClosed = true; }); });
@@ -224,6 +227,37 @@
     setTimeout(() => { S.dlg = null; if (after) after(); render(); }, reduce ? 0 : 170);
   }
   // hovering a key on the photo shows its name and what it does now
+  // On the ring page an action can be dragged from the panel straight onto any slot of the ring
+  function ringDrag() {
+    const slotsEls = root.querySelectorAll('.rs-chip, .rs-lab');
+    if (!slotsEls.length || !(S.picker && S.picker.drawer && S.picker.section === 'ring')) return;
+    root.querySelectorAll('.drawer [data-act="pick-item"], .drawer [data-act="pick-key"], .drawer .kc').forEach(el => {
+      el.draggable = true;
+      el.ondragstart = e => {
+        const a = el.dataset.act === 'pick-key' ? { type: 'keystroke', keys: [el.dataset.key] } : el.dataset.key;
+        e.dataTransfer.setData('application/x-logimx-action', JSON.stringify(a));
+        e.dataTransfer.effectAllowed = 'copy';
+        document.body.classList.add('dragging-act');
+      };
+      el.ondragend = () => { document.body.classList.remove('dragging-act'); root.querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); };
+    });
+    slotsEls.forEach(t => {
+      const i = Number(t.dataset.cid), pair = () => root.querySelectorAll(`.rs-chip[data-cid="${i}"], .rs-lab[data-cid="${i}"]`);
+      t.ondragover = e => { if (!e.dataTransfer.types.includes('application/x-logimx-action')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; pair().forEach(x => x.classList.add('drop')); };
+      t.ondragleave = () => pair().forEach(x => x.classList.remove('drop'));
+      t.ondrop = async e => {
+        e.preventDefault();
+        let a; try { a = JSON.parse(e.dataTransfer.getData('application/x-logimx-action')); } catch (x) { return; }
+        const slots = ringSlots();
+        slots[i] = { action: a, label: presetLabel(a), icon: actionIcon(a) };
+        await saveRingSlots(slots);
+        document.body.classList.remove('dragging-act');
+        const p = S.picker; p.cid = i; p.label = RING_DIRS[i]; p.current = a; p.sel = null; p.selKey = null;
+        render(); toast(`Slot ${i + 1}: ${presetLabel(a)}`);
+      };
+    });
+  }
+  let lastPin = null;
   function keyTips() {
     const tip = root.querySelector('.kb-tip'), wrap = tip && tip.parentElement;
     if (!tip || !wrap) return;
@@ -243,13 +277,13 @@
     if (sel && box) {
       const vb = svg.viewBox.baseVal, r = sel.querySelector('rect, circle'), b = r.getBBox();
       const pin = document.createElement('div');
-      pin.className = 'kb-pin';
+      const pinKey = sel.dataset.cid; pin.className = 'kb-pin' + (pinKey === lastPin ? ' still' : ''); lastPin = pinKey;
       pin.innerHTML = `<span class="k">${esc(sel.dataset.name)}</span><span class="d ${sel.dataset.custom ? 'custom' : ''}">${esc(sel.dataset.does)}</span>`;
       pin.style.left = ((b.x + b.width / 2) / vb.width * 100) + '%';
       pin.style.top = (b.y / vb.height * 100) + '%';
       box.appendChild(pin);
       sel.onmouseenter = null;
-    }
+    } else lastPin = null;
   }
   // In a device's view the page starts level with the first item of the list on the left (the
   // keyboard lines up with KEYS); the list is centred in its column, so this is measured. The
@@ -295,7 +329,7 @@
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
           </div>` : `<div class="right">
             ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
-            <button class="hbtn icon ${S.page === 'apps' ? 'on' : ''}" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button>
+            ${mode === 'home' ? '' : `<button class="hbtn icon ${S.page === 'apps' ? 'on' : ''}" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button>`}
             <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-main" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
@@ -309,7 +343,7 @@
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
       const items = devicePages(d).filter(p => p !== 'info').map(p => p === 'easy' ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       const drawer = S.dlg === 'picker' && S.picker && S.picker.drawer, blp = !drawer && backlightPanel(d);
-      body = `<div class="devview2 ${drawer ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -420,7 +454,7 @@
       const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
       const nm = k === 'thumb' ? 'Thumb wheel' : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || 'Button');
       const left = x < P.w / 2;
-      return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
+      return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
     }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
@@ -496,9 +530,15 @@
     // gestures and the action ring share the held button: choosing one turns the other off
     const holdRows = `<div class="row"><div class="grow"><div class="lbl">When held</div><div class="sub">${mode === 'ring' ? 'Opens the action ring; gestures are off' : mode === 'gestures' ? 'Swipes run gestures; the action ring is off' : 'The button does what the mouse does by itself'}</div></div><span class="seg">${seg('gestures', 'Gestures')}${seg('ring', 'Action ring')}${seg('off', 'Off')}</span></div>` +
       `<div class="row"><div class="grow"><div class="lbl">Button</div><div class="sub">Each button that can be held has its own choice</div></div><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => { const ca = assignment(d, 'buttons', c.cid); const ct = (typeof ca === 'string' ? (S.presets.all[ca] || {}) : (ca || {})).type; return `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${isRingAction(ca) ? ' · action ring' : ct === 'gesture' ? ' · gestures' : ''}</option>`; }).join('')}</select></div>`;
-    if (mode === 'ring') return sec('Gesture button', card(holdRows)) + pageRing();
+    if (mode === 'ring') {
+      const rs = ringState();
+      const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}">${esc(p.name)}</button>`).join('') + '<button class="pill" data-act="ring-profile-add" title="New profile"><i class="fa-solid fa-plus"></i>New</button>';
+      const free = row('Keep the pointer visible and free', rs.free_pointer ? 'The pointer moves anywhere; the action under it is chosen' : 'The pointer hides and the mouse steers the ring', sw(rs.free_pointer, 'data-act="ring-free"'));
+      const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">Travel before it picks</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
+      return `<div class="ring-page">${ringStage()}<div class="rs-bar"><span></span><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button></div></div>`;
+    }
     if (mode === 'off') return sec('Gesture button', card(holdRows)) + `<div class="hint" style="margin-top:12px">Pick Gestures or Action ring to give the button something to do while it is held.</div>`;
-    const cell = (k, txt, cls = '') => `<button class="${cls} ${S.dir === k ? 'on' : ''}" data-act="dir" data-key="${k}">${txt}</button>`;
+    const cell = (k, txt, cls = '') => `<button class="${cls} ${S.dir === k ? 'on' : ''}" data-act="dir-pick" data-key="${k}">${txt}</button>`;
     const grid = `<div class="gest-grid"><div></div>${cell('up', '↑')}<div></div>${cell('left', '←')}${cell('tap', 'Tap', 'tap')}${cell('right', '→')}<div></div>${cell('down', '↓')}<div></div></div>`;
     const presetsRow = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(S.presets.all[k].label.replace('Gestures: ', ''))}</button>`).join('');
     return `<div class="photo-col" style="grid-template-columns:240px 1fr">${grid}
@@ -780,15 +820,43 @@
     await setGeneral({ ring: r });
   }
   const saveRingSlots = slots => { const r = ringState(); r.profiles[r.active].slots = slots; return saveRing({ profiles: r.profiles }); };
+  // Gestures & action ring in a device's view, laid out like the keyboard: the ring in the middle with
+  // each slot's action beside it; a slot opens its actions in the panel on the right
+  function ringStage() {
+    const slots = ringSlots();
+    const parts = slots.map((sl, i) => {
+      const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+      const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
+      const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
+      return `<button class="rs-chip ${sl ? '' : 'empty'} ${ringEditing(i) ? 'selected' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>` +
+        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(sl ? sl.label : 'Empty')}</div>`;
+    }).join('');
+    return `<div class="ring-stage"><div class="rs-disc">${parts}<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div></div></div>`;
+  }
+  // the ring's profiles, from the panel head: switch, add one, or remove the one in use
+  function ringProfileMenu() {
+    const rs = ringState(), cur = rs.profiles[rs.active];
+    const list = rs.profiles.map((pr, i) => `<button data-act="ring-profile" data-key="${i}"><i class="fa-solid fa-layer-group"></i>${esc(pr.name)}${i === rs.active ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('');
+    const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">Ring profiles</div>${list}<div class="sep"></div><button data-act="ring-profile-add"><i class="fa-solid fa-plus"></i>New profile</button>${rs.profiles.length > 1 ? `<button data-act="ring-profile-delete" class="danger"><i class="fa-solid fa-trash"></i>Remove "${esc(cur.name)}"</button>` : ''}</div>` : '';
+    return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="Ring profile"><i class="fa-solid fa-layer-group"></i><span>${esc(cur.name)}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;
+  }
+  // how the ring behaves, shown at the foot of the ring's action panel
+  function ringBehaviour() {
+    const rs = ringState();
+    const free = row('Keep the pointer visible and free', rs.free_pointer ? 'The pointer moves anywhere; the action under it is chosen' : 'The pointer hides and the mouse steers the ring', sw(rs.free_pointer, 'data-act="ring-free"'));
+    const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">Travel before it picks</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
+    return `<div class="ring-behaviour">${sec('Ring behaviour', card(free + feel))}</div>`;
+  }
+  const ringEditing = i => S.dlg === 'picker' && S.picker && S.picker.drawer && S.picker.section === 'ring' && S.picker.cid === i;
   function pageRing() {
     const rs = ringState(), slots = ringSlots();
     const filled = slots.filter(Boolean).length;
     const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}" title="${p.slots.filter(Boolean).length} of 8 slots filled">${esc(p.name)}</button>`).join('');
     const profilesRow = `<div class="row" style="gap:10px"><div class="chips grow">${pchips}<button class="pill" data-act="ring-profile-add" title="New profile"><i class="fa-solid fa-plus"></i>New</button></div><button class="btn flat" data-act="ring-profile-rename" title="Rename this profile"><i class="fa-solid fa-pen"></i></button><button class="btn flat" data-act="ring-profile-copy" title="Duplicate this profile"><i class="fa-solid fa-copy"></i></button>${rs.profiles.length > 1 ? '<button class="btn flat danger" data-act="ring-profile-delete" title="Delete this profile"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     // preview: the same geometry as the overlay, icons on a disc
-    const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
+    const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'} ${ringEditing(i) ? 'selected' : ''}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
     const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">${rs.free_pointer ? 'Hold the button, move the pointer onto an action and let go to run it' : 'Hold the button and nudge the mouse toward an action, then let go to run it'}; or tap the button and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
-    const rows = slots.map((sl, i) => `<div class="row"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
+    const rows = slots.map((sl, i) => `<div class="row ${ringEditing(i) ? 'editing' : ''}"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
     const travel = rs.travel;
     const free = `<div class="row"><div class="grow"><div class="lbl">Keep the pointer visible and free</div><div class="sub">${rs.free_pointer ? 'The pointer stays on screen and moves anywhere; the action under it is the one chosen' : 'While the button is held the pointer hides and the mouse steers the ring'}</div></div>${sw(rs.free_pointer, 'data-act="ring-free"')}</div>`;
     const feel = rs.free_pointer ? '' : `<div class="row"><div class="grow"><div class="lbl">Travel before it picks</div><div class="sub">How far the mouse moves before an action is chosen: lower is snappier, higher is calmer</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
@@ -891,8 +959,8 @@
   const RECOMMEND = { 10: ['Calculator'], 110: ['Show desktop'], 111: ['Lock screen'], 191: ['Screen capture', 'win_print_screen'], 199: ['Brightness down'], 200: ['Brightness up'], 212: ['Search'], 224: ['Task view'], 225: ['Notifications'], 226: ['Backlight down'], 227: ['Backlight up'], 228: ['Previous track'], 229: ['Play / Pause'], 230: ['Next track'], 231: ['Mute'], 232: ['Volume down'], 233: ['Volume up'], 234: ['Context menu'], 259: ['Dictation'], 264: ['Emoji menu', 'win_emoji'], 266: ['Screen snip'], 284: ['Mute microphone'] };
   // a mouse's buttons and thumb wheel: what Options+ recommends for each (recommendations_slot_win.json,
   // MX Master 3S), as LogiMX presets; its own function comes first as Default
-  const MOUSE_RECOMMEND = { 82: ['overview', 'show_desktop', 'smartshift_toggle', 'gesture_navigation', 'action_ring'], 83: ['copy', 'volume_down', 'undo', 'action_ring'], 86: ['paste', 'volume_up', 'redo', 'action_ring'],
-    195: ['gesture_navigation', 'overview', 'show_desktop', 'screenshot', 'app_switcher', 'action_ring'], 196: ['overview', 'middle_click', 'gesture_navigation', 'screenshot', 'action_ring'], 416: ['action_ring', 'overview', 'screenshot'],
+  const MOUSE_RECOMMEND = { 82: ['smartshift_toggle', 'overview', 'show_desktop', 'gesture_navigation', 'action_ring'], 83: ['copy', 'volume_down', 'undo', 'smartshift_toggle', 'action_ring'], 86: ['paste', 'volume_up', 'redo', 'smartshift_toggle', 'action_ring'],
+    195: ['gesture_navigation', 'overview', 'show_desktop', 'screenshot', 'app_switcher', 'smartshift_toggle', 'action_ring'], 196: ['overview', 'middle_click', 'gesture_navigation', 'screenshot', 'action_ring'], 416: ['action_ring', 'smartshift_toggle', 'overview', 'screenshot'],
     thumb: ['zoom_wheel', 'volume_wheel', 'tabs_wheel'] };
   const MOUSE_GROUP = ['middle_click', 'back', 'forward', 'dpi_cycle', 'smartshift_toggle', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'action_ring'];
   const WHEEL_GROUP = ['hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel', 'nothing'];
@@ -927,12 +995,17 @@
   const curOf = p => typeof p.current === 'string' ? p.current : (p.current && p.current.preset);
   // a single key: its keystroke, so the panel can say which one is in use
   const keyCur = p => p.current && typeof p.current === 'object' && p.current.type === 'keystroke' && (p.current.keys || []).length === 1 ? p.current.keys[0] : null;
-  const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
+  const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}${i.key === 'action_ring' ? '<span class="new-tag">New</span>' : ''}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
   const keyRow = (p, k, meta) => `<button class="act ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}"><span class="kcap">${esc(k.label)}</span>${meta ? `<span class="m">${meta}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
   const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
   const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
   // the presets a control can take: keys never get the ring, gestures only on a button that can be held and moved
-  const allowedFor = p => new Set(p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'buttons' ? S.presets.buttons.filter(k => (S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy)) : S.presets.keys.filter(k => k !== 'action_ring'));
+  const RING_RECOMMEND = ['overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause'];
+  const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
+  const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
+  const allowedFor = p => new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && (S.presets.all[k] || {}).type !== 'gesture')
+    : p.section === 'gesture' ? Object.keys(S.presets.all).filter(k => GESTURE_TYPES.includes(S.presets.all[k].type))
+    : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'buttons' ? S.presets.buttons.filter(k => (S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy)) : S.presets.keys.filter(k => k !== 'action_ring'));
   function drawerItems(sec, p) {
     const ok = allowedFor(p || S.picker);
     return (OPTS_CATS[sec] || []).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
@@ -942,14 +1015,24 @@
   function drawerSection(p, k) {
     if (k === 'rec') {
       const ok = allowedFor(p), mouse = p.section === 'buttons' || p.section === 'thumbwheel';
+      // a ring slot or a gesture has no function of its own: only suggestions
+      if (p.section === 'ring' || p.section === 'gesture') {
+        const sugg = (p.section === 'ring' ? RING_RECOMMEND : GESTURE_RECOMMEND).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
+        const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
+        return `<div class="acts">${sugg.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+      }
       const r = mouse ? null : RECOMMEND[p.cid];
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
       const rows = [Object.assign(presetItem('native'), { label: own, meta: 'Default' })];
       for (const c of (r || []).slice(1)) if (OPTS_CARD[c] && ok.has(OPTS_CARD[c])) rows.push(presetItem(OPTS_CARD[c]));
-      if (mouse) for (const k of MOUSE_RECOMMEND[p.cid] || []) if (ok.has(k) && S.presets.all[k]) rows.push(presetItem(k));
+      // Show action ring comes right after the button's own function
+      if (mouse) for (const k of [...(MOUSE_RECOMMEND[p.cid] || [])].sort((a, b) => (b === 'action_ring') - (a === 'action_ring'))) if (ok.has(k) && S.presets.all[k]) rows.push(presetItem(k));
       if (p.section === 'thumbwheel') return `<div class="acts">${rows.map(i => actRow(p, i)).join('')}</div>`;
       const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
-      return `<div class="acts">${rows.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+      // a button set to show the action ring gets a way straight to the ring's own settings
+      // set to show the action ring: a way to the ring's own settings, tucked under that row
+      const ringCfg = p.section === 'buttons' && isRingAction(p.current) ? `<button class="act ring-cfg" data-act="ring-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure action ring</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
+      return `<div class="acts">${rows.map(i => actRow(p, i) + (i.key === 'action_ring' ? ringCfg : '')).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
     }
     if (k === 'smart') return sec('Run a command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}">`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
@@ -971,13 +1054,15 @@
       if (p.section !== 'thumbwheel' && ('keystroke assignment'.includes(q) || 'shortcut'.includes(q))) hits.unshift(`<button class="act" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><span class="m">Recommended</span></button>`);
       list = `<div class="acts">${hits.join('') || '<div class="row hint">No actions match</div>'}</div>`;
     } else {
-      list = sectionsFor(p).map(([k, l]) => `<div class="acc ${fold[k] ? 'open' : ''}"><button class="acc-head" data-act="acc-toggle" data-key="${k}"><span class="grow">${l}</span><i class="fa-solid fa-chevron-down chev"></i></button>${fold[k] ? `<div class="acc-body">${drawerSection(p, k)}</div>` : ''}</div>`).join('');
+      list = sectionsFor(p).map(([k, l]) => `<div class="acc ${fold[k] ? 'open' : ''}"><button class="acc-head" data-act="acc-toggle" data-key="${k}"><span class="grow">${l}</span><i class="fa-solid fa-chevron-down chev"></i></button>${fold[k] ? `<div class="acc-body ${p.unfolded === k ? 'unfold' : ''}">${drawerSection(p, k)}</div>` : ''}</div>`).join('');
+      p.unfolded = null;
     }
     return `<div class="drawer-wrap"><div class="dlg drawer" data-stop>
-      <div class="dlg-head"><span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span></div>
+      <div class="dlg-head"><span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span>${p.section === 'ring' ? ringProfileMenu() : ''}</div>
       <div class="dlg-body">
         <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input data-field="q" placeholder="Search all actions" value="${esc(p.q || '')}"></div>
         <div class="acc-list">${list}</div>
+        ${p.section === 'ring' ? ringBehaviour() : ''}
       </div>
       ${foot}
     </div></div>`;
@@ -1107,6 +1192,8 @@
   function bind() {
     root.querySelectorAll('[data-stop]').forEach(e => e.onclick = ev => ev.stopPropagation());
     root.querySelectorAll('.nav-item').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.dev || S.dev));
+    // a button's name beside the mouse opens it just like its ring
+    root.querySelectorAll('.ms-lab[data-ring]').forEach(l => l.onclick = () => { const h = root.querySelector(`.hotspot.ms[data-cid="${l.dataset.ring}"]`); if (h && h.onclick) h.onclick(); });
     root.querySelectorAll('.hotspot').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
     root.querySelectorAll('[data-act]').forEach(b => {
       const act = b.dataset.act;
@@ -1204,12 +1291,20 @@
         }, onFinal);
       });
   }
+  // Gestures & action ring opens with the panel out: the first ring slot, or the chosen swipe
+  function openStagePanel(d) {
+    if (!d || !isMouse(d) || !gestureCapable(d).length) return;
+    const cid = gestureControl(d), a = assignment(d, 'buttons', cid), t = typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {});
+    if (isRingAction(a)) openPicker({ drawer: true, dev: d, section: 'ring', cid: 0, label: RING_DIRS[0] });
+    else if (t.type === 'gesture') openPicker({ drawer: true, dev: d, section: 'gesture', cid, label: SLOTS[S.dir][0], slot: SLOTS[S.dir][1] });
+  }
   function openPicker(t) {
     // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
     window.agent.call('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
     const d = t.dev || dev();
     const section = t.section, cid = t.cid;
-    const current = section === 'gesture' ? null : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
+    const gslot = section === 'gesture' && d && t.slot ? gestureObject(d, cid)[t.slot] : null;
+    const current = section === 'gesture' ? (gslot ? gslot.preset || gslot : null) : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
     const ctl = typeof cid === 'number' && section !== 'ring' && d ? d.controls.find(c => c.cid === cid) : null;
     S.picker = { drawer: !!t.drawer, fold: t.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.drawer ? false : t.cat === 'key' };
     S.dlg = 'picker'; render();
@@ -1220,6 +1315,7 @@
       const slots = ringSlots();
       slots[p.cid] = { action, label: presetLabel(action), icon: actionIcon(action) };
       await saveRingSlots(slots);
+      if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; render(); toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); return; }
       S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
     }
     if (p.section === 'gesture') {
@@ -1240,17 +1336,23 @@
     const d = dev(); const key = b && b.dataset.key;
     switch (act) {
       case 'page': go(b.dataset.page); return;
-      case 'go-home': if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
+      case 'go-home':
+        // with a panel open on the right, the back arrow folds the panel away first
+        if (S.dlg === 'picker' && S.picker && S.picker.drawer) { closeDrawer(); return; }
+        if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { S.blClosed = true; }); return; }
+        if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
-      case 'home-page': S.blClosed = false; go(b.dataset.page, key); return;
+      case 'home-page': S.blClosed = false; go(b.dataset.page, key); if (b.dataset.page === 'gestures') openStagePanel(dev()); return;
+      case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
       case 'win-close': window.agent.windowAction('close'); return;
       case 'quit': window.agent.windowAction('quit'); return;
       case 'menu-theme': S.menu = S.menu === 'theme' ? null : 'theme'; render(); return;
       case 'menu-main': S.menu = S.menu === 'main' ? null : 'main'; render(); return;
+      case 'menu-ringprof': S.menu = S.menu === 'ringprof' ? null : 'ringprof'; render(); return;
       case 'theme': S.theme = key; try { localStorage.setItem('theme', key); } catch (x) {} window.agent.setTheme(key); S.menu = null; render(); return;
       case 'theme-select': S.theme = b.value; try { localStorage.setItem('theme', b.value); } catch (x) {} window.agent.setTheme(b.value); render(); return;
       case 'start-agent': {
@@ -1273,9 +1375,17 @@
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
       case 'close-dlg': if (S.dlg === 'picker' && S.picker && S.picker.drawer) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
-      case 'pick': openPicker({ dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
-      case 'pick-gesture': openPicker({ dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
-      case 'acc-toggle': { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); render(); return; }
+      case 'pick': openPicker({ drawer: S.page === 'gestures' && (b.dataset.section === 'ring' || b.dataset.section === 'gesture'), dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
+      case 'pick-gesture': openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
+      case 'ring-config': {
+        // to the ring's settings: on this mouse's Gestures & action ring page when the button can carry
+        // it there, otherwise the Action ring page
+        const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, cap = dd && gestureCapable(dd).some(c => c.cid === p.cid);
+        stopRecorder();
+        if (cap) { S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid }); go('gestures', dd.id); openStagePanel(dd); } else go('ring');
+        return;
+      }
+      case 'acc-toggle': { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); p.unfolded = p.fold[key] ? key : null; render(); return; }
       case 'rec-open': { const p = S.picker; p.q = ''; p.fold = Object.assign({}, p.fold, { rec: true }); p.sel = null; p.selKey = null; if (p.cat === 'key') { stopRecorder(); p.recording = false; p.cat = 'all'; } else { p.cat = 'key'; p.recording = true; } render(); return; }
       case 'pick-key': { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; root.querySelectorAll('.drawer .act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-key' && x.dataset.key === key)); root.querySelectorAll('.drawer .kc').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return; }
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
@@ -1286,7 +1396,7 @@
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
       case 'ring-free': await saveRing({ free_pointer: !b.classList.contains('on') }); render(); return;
-      case 'ring-profile': await saveRing({ active: Number(key) }); render(); return;
+      case 'ring-profile': await saveRing({ active: Number(key) }); S.menu = null; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; render(); return;
       case 'ring-profile-add': prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); render(); }, 'Create'); return;
       case 'ring-profile-copy': { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast('Profile duplicated'); render(); return; }
       case 'ring-profile-rename': { const r = ringState(); prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return render(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); render(); }, 'Rename'); return; }

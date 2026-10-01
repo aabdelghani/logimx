@@ -52,7 +52,7 @@ PRESETS: dict[str, dict] = {
     "lock":              {"label": "Lock screen", "icon": "lock", "type": "keystroke", "keys": ["KEY_LEFTMETA", "KEY_L"]},
     "calculator":        {"label": "Calculator", "icon": "calc", "type": "keystroke", "keys": ["KEY_CALC"]},
     "emoji_picker":      {"label": "Emoji picker", "icon": "smile", "type": "ui", "event": "emoji"},
-    "action_ring":       {"label": "Action ring", "icon": "ring", "type": "ui", "event": "ring"},
+    "action_ring":       {"label": "Show action ring", "icon": "ring", "type": "ui", "event": "ring"},
     "emoji":             {"label": "Emoji (desktop shortcut)", "icon": "smile", "type": "keystroke", "keys": ["KEY_LEFTCTRL", "KEY_DOT"]},
     "context_menu":      {"label": "Context menu", "icon": "menu", "type": "keystroke", "keys": ["KEY_COMPOSE"]},
     "dictation":         {"label": "Dictation (needs a tool)", "icon": "mic", "type": "command", "cmd": ""},
@@ -77,7 +77,7 @@ PRESETS: dict[str, dict] = {
     "easy_switch_2":     {"label": "Switch to host 2", "icon": "host", "type": "change_host", "host": 1},
     "easy_switch_3":     {"label": "Switch to host 3", "icon": "host", "type": "change_host", "host": 2},
     "dpi_cycle":         {"label": "Cycle DPI", "icon": "speed", "type": "dpi_cycle", "levels": [800, 1000, 1600, 2400, 4000]},
-    "smartshift_toggle": {"label": "Toggle SmartShift (ratchet / free spin)", "icon": "wheel", "type": "smartshift_toggle"},
+    "smartshift_toggle": {"label": "Shift wheel mode", "icon": "wheel", "type": "smartshift_toggle"},
     "open_home":         {"label": "Open home folder", "icon": "folder", "type": "open", "target": "~"},
     "gesture_navigation": {
         "label": "Gestures: navigation", "icon": "gesture", "type": "gesture", "threshold": 60,
