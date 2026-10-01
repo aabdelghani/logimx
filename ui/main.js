@@ -576,8 +576,8 @@ function registerShortcuts() {
 function createWindow() {
   nativeTheme.themeSource = 'dark';
   win = new BrowserWindow({
-    width: 1380,
-    height: 800,
+    width: 1518,
+    height: 860,
     minWidth: 980,
     minHeight: 640,
     backgroundColor: '#0e1116',

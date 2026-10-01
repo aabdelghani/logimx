@@ -400,6 +400,32 @@ void Device::setFnInversion(bool on) {
     if (has(FN_INVERSION_K375S)) req(FN_INVERSION_K375S, 1, {fnHost(), static_cast<uint8_t>(on)});
 }
 
+std::optional<DisableKeysState> Device::disableKeys() {
+    if (!has(DISABLE_KEYS)) return std::nullopt;
+    Bytes caps = req(DISABLE_KEYS, 0), cur = req(DISABLE_KEYS, 1);
+    DisableKeysState s;
+    s.supported = caps.empty() ? 0 : caps[0];
+    s.disabled = cur.empty() ? 0 : cur[0];
+    return s;
+}
+
+void Device::setDisabledKeys(int mask) {
+    if (has(DISABLE_KEYS)) req(DISABLE_KEYS, 2, {static_cast<uint8_t>(mask)});
+}
+
+// getHostPlatform answers host, status, platform index, source (0 default, 1 detected by the
+// keyboard, 2 set by software) and what the keyboard itself would pick
+std::optional<PlatformState> Device::platform() {
+    if (!has(MULTIPLATFORM)) return std::nullopt;
+    Bytes r = req(MULTIPLATFORM, 2, {0xFF});
+    if (r.size() < 5) return std::nullopt;
+    return PlatformState{r[2], r[3], r[4]};
+}
+
+void Device::setPlatform(int platform) {
+    if (has(MULTIPLATFORM)) req(MULTIPLATFORM, 3, {0xFF, static_cast<uint8_t>(platform)});
+}
+
 std::optional<Event> Device::classify(const Notification& n) const {
     if (n.deviceIndex != index_) return std::nullopt;
     const FeatureInfo* f = featureByIndex(n.featureIndex);

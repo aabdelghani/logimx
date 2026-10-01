@@ -17,7 +17,7 @@ enum Feature : uint16_t {
     CONFIG_CHANGE = 0x0020, UNIFIED_BATTERY = 0x1004, CHANGE_HOST = 0x1814, HOSTS_INFO = 0x1815,
     BACKLIGHT2 = 0x1982, HAPTIC = 0x19B0, FORCE_BUTTON = 0x19C0, SPECIAL_KEYS = 0x1B04, WIRELESS_STATUS = 0x1D4B, SMART_SHIFT = 0x2110,
     SMART_SHIFT_ENHANCED = 0x2111, HIRES_WHEEL = 0x2121, THUMB_WHEEL = 0x2150, ADJUSTABLE_DPI = 0x2201,
-    FN_INVERSION_K375S = 0x40A3, MULTIPLATFORM = 0x4531,
+    FN_INVERSION_K375S = 0x40A3, DISABLE_KEYS = 0x4521, MULTIPLATFORM = 0x4531,
 };
 
 struct FeatureInfo {
@@ -57,6 +57,10 @@ struct BacklightState {
     bool autoSupported() const { return supported & 0x08; }
     bool permManualSupported() const { return supported & 0x20; }
 };
+// 0x4521: a bit per key the keyboard can switch off (caps, num, scroll lock, insert, Win/Super)
+struct DisableKeysState { int supported = 0, disabled = 0; };
+// 0x4531: the OS layout the keyboard uses on this host, and whether it was set or detected
+struct PlatformState { int platform = 0, source = 0, autoPlatform = 0; };
 struct HostInfo { int index = 0; bool paired = false; int busType = 0; std::string name; };
 
 struct Event {
@@ -110,6 +114,10 @@ class Device {
     void invalidateFnHost() { fnHost_ = -1; }
     std::optional<bool> fnInversion();
     void setFnInversion(bool on);
+    std::optional<DisableKeysState> disableKeys();
+    void setDisabledKeys(int mask);
+    std::optional<PlatformState> platform();
+    void setPlatform(int platform);
 
     std::optional<Event> classify(const Notification& n) const;
     static Battery decodeBattery(const Bytes& r);
