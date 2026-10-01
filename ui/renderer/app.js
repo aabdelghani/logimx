@@ -184,7 +184,7 @@
     const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
     const cname = conflict ? S.conflicts[0].name : '';
     const left = mode === 'home'
-      ? `<div class="brand"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span>LogiMX</div>`
+      ? ''
       : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
     const controls = `<div class="right">
@@ -198,7 +198,10 @@
     let body;
     if (mode === 'device') {
       const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
-      body = `<div class="devview">${devicePanel(d)}<section class="dev-config"><div class="cfg-top"><nav class="tabs">${tabs}</nav>${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
+      // the device's pages listed down the left (the first is open by default) with Settings at the
+      // foot; the page itself on the right under the window buttons
+      const items = devicePages(d).map(p => `<button class="dnav-item ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      body = `<div class="devview2"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}</nav><button class="dnav-item foot" data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button></aside><section class="dev-config solo"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section></div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -330,7 +333,7 @@
     const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
     const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
     const twRow = d.controls.length ? `<div class="row"><span class="num">${buttonRows(d).length + 1}</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
-    const photo = '';   // the numbered photo is in the device panel beside this page
+    const photo = mousePhoto(d);
     return `<div class="${photo ? 'photo-col' : ''}">${photo ? `<div class="photo-card">${photo}</div>` : ''}
       <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Profiles</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
         row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
