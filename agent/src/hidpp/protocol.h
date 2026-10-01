@@ -14,7 +14,7 @@ using json = nlohmann::json;
 
 enum Feature : uint16_t {
     ROOT = 0x0000, FEATURE_SET = 0x0001, DEVICE_FW = 0x0003, DEVICE_NAME = 0x0005, FRIENDLY_NAME = 0x0007,
-    CONFIG_CHANGE = 0x0020, UNIFIED_BATTERY = 0x1004, CHANGE_HOST = 0x1814, HOSTS_INFO = 0x1815,
+    CONFIG_CHANGE = 0x0020, BATTERY_STATUS = 0x1000, UNIFIED_BATTERY = 0x1004, CHANGE_HOST = 0x1814, HOSTS_INFO = 0x1815,
     BACKLIGHT2 = 0x1982, HAPTIC = 0x19B0, FORCE_BUTTON = 0x19C0, SPECIAL_KEYS = 0x1B04, WIRELESS_STATUS = 0x1D4B, SMART_SHIFT = 0x2110,
     SMART_SHIFT_ENHANCED = 0x2111, HIRES_WHEEL = 0x2121, THUMB_WHEEL = 0x2150, ADJUSTABLE_DPI = 0x2201,
     FN_INVERSION_K375S = 0x40A3, DISABLE_KEYS = 0x4521, MULTIPLATFORM = 0x4531,
@@ -121,6 +121,7 @@ class Device {
 
     std::optional<Event> classify(const Notification& n) const;
     static Battery decodeBattery(const Bytes& r);
+    static Battery decodeBatteryStatus(const Bytes& r);
 
   private:
     int fnHost_ = -1;

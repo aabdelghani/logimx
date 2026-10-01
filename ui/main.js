@@ -541,11 +541,13 @@ async function showRing(deviceId, raw) {
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }
+    // whether the compositor kept the size asked for (a Wayland compositor may shrink or move it)
+    setTimeout(() => { if (w.isDestroyed()) return; const b = w.getBounds(), c = w.getContentBounds(); ringLog.push({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode, how: 'window', ms: 250, x: b.x, y: b.y, size: `${b.width}x${b.height} (asked ${R - X}x${Bm - Y}, content ${c.width}x${c.height})` }); if (ringLog.length > 10) ringLog.shift(); }, 250);
   };
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
 }
 ipcMain.on('ring-close', () => { if (ringWin && !ringWin.isDestroyed()) ringWin.hide(); });
-ipcMain.on('ring-diag', (_e, info) => { ringLog.push(Object.assign({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode }, info)); if (ringLog.length > 6) ringLog.shift(); });
+ipcMain.on('ring-diag', (_e, info) => { ringLog.push(Object.assign({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode }, info)); if (ringLog.length > 10) ringLog.shift(); });
 // haptic feedback on the mouse that opened the ring; mice without it, and rings opened from the
 // page, simply get none
 const ringCue = cue => { if (ringDevice) rpc('haptic_cue', { id: ringDevice, cue }).catch(() => {}); };
@@ -787,7 +789,7 @@ ipcMain.handle('diag-report', async () => {
   // how the ring found the pointer on its last openings: the thing that goes wrong on Wayland
   const disp = screen.getAllDisplays().map(d => `${d.bounds.width}x${d.bounds.height}@${d.bounds.x},${d.bounds.y}${d.scaleFactor !== 1 ? ' x' + d.scaleFactor : ''}`).join(', ');
   lines.push(`Displays: ${disp}; session ${process.env.XDG_SESSION_TYPE || '?'}, DISPLAY ${process.env.DISPLAY ? 'set' : 'unset'}, WAYLAND_DISPLAY ${process.env.WAYLAND_DISPLAY ? 'set' : 'unset'}, ozone ${process.env.ELECTRON_OZONE_PLATFORM_HINT || 'default'}`);
-  if (ringLog.length) lines.push('Ring openings (last first): ' + ringLog.slice().reverse().map(r => `${r.when} ${r.raw ? 'steered' : 'pointer'}: ${r.how} at ${r.ms} ms, drawn at (${r.x}, ${r.y})${r.guess ? `, last known (${Math.round(r.guess.x)}, ${Math.round(r.guess.y)})` : ''}`).join('; '));
+  if (ringLog.length) lines.push('Ring openings (last first): ' + ringLog.slice().reverse().map(r => r.how === 'window' ? `${r.when} window ${r.size} at (${r.x}, ${r.y})` : `${r.when} ${r.raw ? 'steered' : 'pointer'}: ${r.how} at ${r.ms} ms, drawn at (${r.x}, ${r.y})${r.dx !== undefined ? `, moved by (${r.dx}, ${r.dy})` : ''}${r.guess ? `, last known (${Math.round(r.guess.x)}, ${Math.round(r.guess.y)})` : ''}`).join('; '));
   else lines.push('Ring openings: none since the app started');
   const summary = redact(lines.join('\n'));
   const log = redact((logs || []).slice(-40).join('\n'));
