@@ -853,3 +853,13 @@ body.dragging-act .rs-chip { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* the settings tags pop in with the page, not each time their text updates */
 .bl-pin { animation: none; }
 .page.enter .bl-pin { animation: pin-in .22s cubic-bezier(0,0,.2,1) both; }
+/* the top bar's buttons, a size up */
+header.hb .right .hbtn.icon, .cfg-top .right .hbtn.icon { width: 40px; height: 40px; }
+header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 19px; }
+header.hb .right .hbtn.accent, .cfg-top .right .hbtn.soon-btn { font-size: 14px; padding: 9px 16px; }
+header.hb .right .hbtn.accent i { font-size: 15px; }
+/* empty ring slots: the dashed border sits inside the circle, so an empty slot is the same size and
+   centre as a filled one, and its highlight lines up */
+.rs-chip { box-sizing: border-box; }
+.rs-chip.empty.selected, .rs-chip.empty.drop { border: 2px solid var(--accbg); }
+.rs-chip.empty.selected { background: var(--accbg); color: #fff; border: 2px solid var(--accbg); transform: scale(1.15); box-shadow: 0 8px 22px color-mix(in srgb, var(--accbg) 45%, transparent); }

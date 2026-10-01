@@ -167,20 +167,21 @@
     document.documentElement.setAttribute('data-theme', S.theme);
     const pageKey = `${S.mode}|${S.page}|${S.dev}|${S.appDetail ? S.appDetail.key : ''}|${S.devices.length ? 1 : 0}`;
     const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
-    const dlgOpened = !!S.dlg && S.dlg !== lastDlg; lastDlg = S.dlg;
+    // coming back to the panel from a prompt over it is not a new opening
+    const dlgOpened = !!S.dlg && S.dlg !== lastDlg && !(S.dlg === 'picker' && lastDlg === 'prompt'); lastDlg = S.dlg;
     let html = '';
     if (S.mode === 'onboard') html = renderOnboard();
     else if (!S.devices.length) html = renderEmpty();
     else html = renderWindow();
     html += renderDialog();
     // a key's panel or a settings panel (Backlight, Point & scroll): either one sends the page list out
-    const panelOn = () => !!(S.dlg === 'picker' && S.picker && S.picker.drawer) || (S.page !== 'home' && backlightPanel(dev()));
+    const panelOn = () => !!(drawerUp()) || (S.page !== 'home' && backlightPanel(dev()));
     const drawerWill = panelOn();
     const moving = drawerWill !== lastDrawer ? root.querySelector('.dev-config .content > .page > :first-child') : null;
     const from = moving ? moving.getBoundingClientRect() : null;
     root.innerHTML = html;
     if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
-    if (dlgOpened) { const sc = root.querySelector('.scrim, .drawer-wrap'); if (sc) sc.classList.add('enter'); }
+    if (dlgOpened) { const sc = root.querySelector(S.dlg === 'picker' ? '.scrim, .drawer-wrap' : '.scrim'); if (sc) sc.classList.add('enter'); }
     // the page list slides in when a device is opened, not when moving between its pages
     const dn = root.querySelector('.dnav'), navKey = dn ? 'dev|' + S.dev : null;
     if (dn && navKey !== lastNavKey) dn.classList.add('enter');
@@ -324,13 +325,12 @@
       : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
     // a keyboard's own view keeps the corner to one action: add an application profile
-    const controls = mode === 'device' && !isMouse(d) ? `<div class="right">
+    const controls = mode === 'device' ? `<div class="right">
             <button class="hbtn soon-btn" disabled title="Coming soon: settings for a specific application"><i class="fa-solid fa-plus"></i>Add application<span class="soon-tag">Soon</span></button>
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
           </div>` : `<div class="right">
             ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
-            ${mode === 'home' ? '' : `<button class="hbtn icon ${S.page === 'apps' ? 'on' : ''}" data-act="page" data-page="apps" title="Profiles: settings per application"><i class="fa-solid fa-layer-group"></i></button>`}
-            <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-sliders"></i></button>
+            <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
             <div style="position:relative"><button class="hbtn icon" data-act="menu-main" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
@@ -342,7 +342,7 @@
       // foot; the page itself on the right under the window buttons
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
       const items = devicePages(d).filter(p => p !== 'info').map(p => p === 'easy' ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
-      const drawer = S.dlg === 'picker' && S.picker && S.picker.drawer, blp = !drawer && backlightPanel(d);
+      const drawer = drawerUp(), blp = !drawer && backlightPanel(d);
       body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
@@ -435,7 +435,7 @@
     if (!P) return '';
     if (plain) return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/></svg>`;
     const order = buttonRows(d).map(([cid]) => cid);
-    const editing = k => S.dlg === 'picker' && S.picker && S.picker.drawer && String(S.picker.cid) === String(k);
+    const editing = k => drawerUp() && String(S.picker.cid) === String(k);
     const shown = P.spots.filter(([k]) => k === 'thumb' ? d.controls.length : order.includes(k));
     const spots = shown.map(([k, x, y]) => {
       const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
@@ -477,7 +477,7 @@
     if (!P) return '';
     const hot = plain ? '' : P.spots.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, x, y]) => {
       const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid);
-      const editing = S.dlg === 'picker' && S.picker && S.picker.drawer && S.picker.cid === cid;
+      const editing = drawerUp() && S.picker.cid === cid;
       return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'} ${editing ? 'selected' : ''}" data-section="keys" data-cid="${cid}" data-name="${esc(ctl ? ctl.label : cid)}" data-does="${esc(isNative(a) ? (ctl ? ctl.label : 'Default') : presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/></g>`;
     }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${hot}</svg>`;
@@ -847,7 +847,7 @@
     const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">Travel before it picks</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
     return `<div class="ring-behaviour">${sec('Ring behaviour', card(free + feel))}</div>`;
   }
-  const ringEditing = i => S.dlg === 'picker' && S.picker && S.picker.drawer && S.picker.section === 'ring' && S.picker.cid === i;
+  const ringEditing = i => drawerUp() && S.picker.section === 'ring' && S.picker.cid === i;
   function pageRing() {
     const rs = ringState(), slots = ringSlots();
     const filled = slots.filter(Boolean).length;
@@ -1140,7 +1140,8 @@
       <div class="dlg-body">${p.fields.map(f => `<label class="hint">${esc(f.label)}<input class="text" style="display:block;width:100%;margin-top:4px" data-field="${f.key}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" ${f.list ? `list="dl-${f.key}"` : ''}>${f.list ? `<datalist id="dl-${f.key}">${f.list.map(o => `<option value="${esc(o.value)}">${esc(o.label || '')}</option>`).join('')}</datalist>` : ''}</label>`).join('')}${p.note ? `<div class="hint">${p.note}</div>` : ''}</div>
       <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="prompt-ok">${esc(p.ok || 'OK')}</button></div></div></div></div>`;
   }
-  function prompt(title, fields, onOk, ok, note) { S.prompt = { title, fields, onOk, ok, note }; S.dlg = 'prompt'; render(); setTimeout(() => { const i = root.querySelector('.dlg input'); if (i) i.focus(); }, 30); }
+  const drawerUp = () => !!(S.picker && S.picker.drawer && (S.dlg === 'picker' || (S.dlg === 'prompt' && S.prompt && S.prompt.back === 'picker')));
+  function prompt(title, fields, onOk, ok, note) { S.prompt = { title, fields, onOk, ok, note, back: drawerUp() ? 'picker' : null }; S.dlg = 'prompt'; render(); setTimeout(() => { const i = root.querySelector('.dlg input'); if (i) i.focus(); }, 30); }
 
   // ----------------------------------------------------------- states
   function renderEmpty() {
@@ -1291,13 +1292,6 @@
         }, onFinal);
       });
   }
-  // Gestures & action ring opens with the panel out: the first ring slot, or the chosen swipe
-  function openStagePanel(d) {
-    if (!d || !isMouse(d) || !gestureCapable(d).length) return;
-    const cid = gestureControl(d), a = assignment(d, 'buttons', cid), t = typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {});
-    if (isRingAction(a)) openPicker({ drawer: true, dev: d, section: 'ring', cid: 0, label: RING_DIRS[0] });
-    else if (t.type === 'gesture') openPicker({ drawer: true, dev: d, section: 'gesture', cid, label: SLOTS[S.dir][0], slot: SLOTS[S.dir][1] });
-  }
   function openPicker(t) {
     // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
     window.agent.call('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
@@ -1338,13 +1332,13 @@
       case 'page': go(b.dataset.page); return;
       case 'go-home':
         // with a panel open on the right, the back arrow folds the panel away first
-        if (S.dlg === 'picker' && S.picker && S.picker.drawer) { closeDrawer(); return; }
+        if (drawerUp()) { closeDrawer(); return; }
         if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { S.blClosed = true; }); return; }
         if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
-      case 'home-page': S.blClosed = false; go(b.dataset.page, key); if (b.dataset.page === 'gestures') openStagePanel(dev()); return;
+      case 'home-page': S.blClosed = false; go(b.dataset.page, key); return;
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
@@ -1373,7 +1367,7 @@
       case 'stop-tool': { const r = await window.agent.stopTool(b.dataset.tool); toast(r && r.ok ? `${b.dataset.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; }
       case 'open': window.agent.openExternal(b.dataset.url); return;
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
-      case 'close-dlg': if (S.dlg === 'picker' && S.picker && S.picker.drawer) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
+      case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
       case 'pick': openPicker({ drawer: S.page === 'gestures' && (b.dataset.section === 'ring' || b.dataset.section === 'gesture'), dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
       case 'pick-gesture': openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
@@ -1382,7 +1376,7 @@
         // it there, otherwise the Action ring page
         const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, cap = dd && gestureCapable(dd).some(c => c.cid === p.cid);
         stopRecorder();
-        if (cap) { S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid }); go('gestures', dd.id); openStagePanel(dd); } else go('ring');
+        if (cap) { S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid }); go('gestures', dd.id); } else go('ring');
         return;
       }
       case 'acc-toggle': { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); p.unfolded = p.fold[key] ? key : null; render(); return; }
@@ -1397,10 +1391,10 @@
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
       case 'ring-free': await saveRing({ free_pointer: !b.classList.contains('on') }); render(); return;
       case 'ring-profile': await saveRing({ active: Number(key) }); S.menu = null; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; render(); return;
-      case 'ring-profile-add': prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); render(); }, 'Create'); return;
+      case 'ring-profile-add': S.menu = null; prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); render(); }, 'Create'); return;
       case 'ring-profile-copy': { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast('Profile duplicated'); render(); return; }
       case 'ring-profile-rename': { const r = ringState(); prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return render(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); render(); }, 'Rename'); return; }
-      case 'ring-profile-delete': { const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0]; await saveRing({ profiles: r.profiles, active: Math.max(0, r.active - 1) }); toast(`Profile "${gone.name}" deleted`); render(); return; }
+      case 'ring-profile-delete': { S.menu = null; const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0]; await saveRing({ profiles: r.profiles, active: Math.max(0, r.active - 1) }); toast(`Profile "${gone.name}" deleted`); render(); return; }
       case 'ring-clear': await saveRingSlots([]); toast('Slots cleared'); render(); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
@@ -1495,7 +1489,7 @@
       }
       case 'pair-confirm': { try { await call('pair_confirm', { address: key }); S.pair.step = 3; S.pair.done = 'Pairing… the device joins when it confirms'; } catch (x) { S.pair.error = x.message; } render(); return; }
       case 'pair-cancel': call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
-      case 'prompt-ok': { const p = S.prompt; const vals = {}; for (const f of p.fields) vals[f.key] = f.value || ''; S.dlg = null; await p.onOk(vals); return; }
+      case 'prompt-ok': { const p = S.prompt; const vals = {}; for (const f of p.fields) vals[f.key] = f.value || ''; S.dlg = p.back || null; await p.onOk(vals); return; }
       case 'report': { S.report = { what: '' }; S.dlg = 'report'; render(); const r = await window.agent.diagReport(); S.report = Object.assign({ what: (S.report || {}).what || '' }, r); if (S.dlg === 'report') render(); return; }
       case 'report-copy': window.agent.copy(reportBody(S.report, true)); toast('Report copied'); return;
       case 'report-open': {
@@ -1562,7 +1556,7 @@
     render();
   }
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; render(); } });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recorder) { S.dlg = null; render(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recorder) { S.dlg = S.dlg === 'prompt' && S.prompt && S.prompt.back ? S.prompt.back : null; render(); } });
   // on Home the arrow keys page through the devices when there are more than fit
   document.addEventListener('keydown', e => {
     if (S.page !== 'home' || S.dlg || recorder || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || /input|textarea|select/i.test((e.target || {}).tagName || '')) return;

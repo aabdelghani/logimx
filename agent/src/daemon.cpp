@@ -500,11 +500,6 @@ std::vector<Daemon::DevPtr> Daemon::snapshot() {
 int Daemon::run() {
     tracker_->start();
     INFO("app tracker backend: %s", tracker_->backend().c_str());
-    {
-        json bl = config_.listBackups();
-        long newest = bl.empty() ? 0 : bl[0].value("time", 0L);
-        if (std::time(nullptr) - newest > 86400) config_.backup("Automatic");
-    }
     signal(SIGTERM, [](int) { if (gDaemon) gDaemon->stop(); });
     signal(SIGINT, [](int) { if (gDaemon) gDaemon->stop(); });
 
