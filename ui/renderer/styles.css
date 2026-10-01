@@ -469,7 +469,7 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 
 /* Home: the battery as an icon with its percentage beside it, then what it is doing */
 .content.landing .dev-state { font-size: 18px; gap: 8px; }
-.content.landing .dev-state > i:first-child { font-size: 22px; }
+.content.landing .dev-state > i.fa-solid:not(.dev-bolt) { font-size: 22px; }
 .dev-pct { font-weight: 700; color: var(--fg); }
 .dev-bolt { animation: bolt-pulse 1.4s ease-in-out infinite; }
 .dev-label { font-weight: 600; margin-left: 8px; color: var(--dim); }
