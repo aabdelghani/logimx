@@ -383,6 +383,35 @@ textarea.text:focus { outline: 2px solid var(--accbg); outline-offset: -1px; }
 .page.enter .home-grid > * { animation: rise .36s cubic-bezier(.2,.7,.2,1) both; }
 .page.enter .home-grid > :nth-child(2) { animation-delay: 70ms; } .page.enter .home-grid > :nth-child(3) { animation-delay: 140ms; } .page.enter .home-grid > :nth-child(n+4) { animation-delay: 210ms; }
 @media (prefers-reduced-motion: reduce) { .dev-state.charging i, .bat-ring .bolt { animation: none; } }
+
+/* ---------------------------------------------------------------- landing and device view
+   No sidebar: Home is a landing page across the whole window, and a device opens with itself on
+   the left and its settings on the right, under a row of tabs. */
+header.hb .left .brand { height: auto; padding: 0 6px; }
+.hbtn.on { background: var(--accbg); color: #fff; }
+.content.landing > .page { max-width: 1100px; }
+.agent-line { max-width: 1100px; margin: 26px auto 0; font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 8px; }
+.agent-line i { font-size: 8px; color: var(--ok); } .agent-line.off i { color: var(--err); }
+.devview { flex: 1; min-height: 0; display: grid; grid-template-columns: 340px 1fr; }
+.dev-panel { border-right: 1px solid var(--brd); background: var(--side); padding: 22px 22px 18px; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.dev-hero { display: flex; align-items: center; justify-content: center; min-height: 170px; padding: 6px 0 4px; background: radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--accbg) 14%, transparent), transparent 70%); border-radius: 14px; }
+.dev-panel.mouse .dev-hero .photo-card { width: 82%; }
+.dev-panel.kbd .dev-hero img { width: 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,.25)); }
+.dev-hero > i.none { font-size: 64px; color: var(--dim); }
+.dev-others { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 1px solid var(--brd); }
+.dev-others .other { border: 0; background: var(--card); color: var(--fg); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; font: 600 13px var(--font); box-shadow: 0 0 0 1px var(--brd); transition: transform .14s, box-shadow .14s; }
+.dev-others .other:hover { transform: translateX(3px); box-shadow: 0 0 0 1px var(--accbg); }
+.dev-others .other .ok { color: var(--ok); } .dev-others .other .warn { color: var(--warn); } .dev-others .other .err { color: var(--err); }
+.dev-config { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.dev-config > .content { flex: 1; }
+.tabs { display: flex; gap: 2px; padding: 8px 20px 0; border-bottom: 1px solid var(--brd); background: var(--hb); overflow-x: auto; flex: none; }
+.tab { border: 0; background: transparent; color: var(--dim); font: 600 13px var(--font); padding: 10px 12px 11px; display: flex; align-items: center; gap: 8px; white-space: nowrap; position: relative; border-radius: 8px 8px 0 0; transition: color .14s, background .14s; }
+.tab:hover { color: var(--fg); background: var(--btn); }
+.tab.on { color: var(--fg); }
+.tab::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accbg); transform: scaleX(0); transition: transform .2s cubic-bezier(.2,.7,.2,1); }
+.tab.on::after { transform: scaleX(1); }
+.tab i { font-size: 12px; }
+@media (max-width: 980px) { .devview { grid-template-columns: 280px 1fr; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
 }
