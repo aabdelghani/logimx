@@ -4,175 +4,248 @@
 [![Latest release](https://img.shields.io/github/v/release/aabdelghani/logimx?color=2dd4bf&label=release)](https://github.com/aabdelghani/logimx/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-2dd4bf.svg)](#requirements)
-[![Agent: C++20](https://img.shields.io/badge/agent-C%2B%2B20-2dd4bf.svg)](agent)
-[![UI: Electron](https://img.shields.io/badge/UI-Electron-2dd4bf.svg)](ui)
-[![Devices: MX Master 3S and 4, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%203S%20%2F%204%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#features)
+[![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
+[![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
 
-Third-party configuration app for the MX Master 3S and MX Keys S on Linux. It brings full
-device configuration to GNOME, KDE and other desktops: button and key assignments, gestures,
-thumb wheel actions, SmartShift, DPI, smart backlighting, Easy-Switch and per-application
-profiles.
+LogiMX configures MX mice and keyboards on Linux, with full support for the **MX Master 4** and an
+**action ring**: eight actions of your choice around the pointer, opened by a button and chosen
+with a flick of the mouse. It also covers button and key assignments, gestures, the thumb wheel,
+SmartShift, DPI, the keyboard backlight and more, on GNOME, KDE and other desktops, on X11 and
+Wayland.
 
-LogiMX is an independent project. It is not affiliated with, endorsed by, or supported by
-the manufacturer of these devices. The device pictures in the app are the author's own and are
-part of this repository under its license.
+LogiMX is an independent project. It is not affiliated with, endorsed by, or supported by the
+manufacturer of these devices. The device pictures in the app belong to this repository and are
+covered by its license.
 
-![Buttons](screenshots/mouse-buttons.png)
-
-## How it is built
-
-A native agent owns the devices in the background; the desktop UI talks to it over a local socket.
-
-![Architecture](docs/architecture.png)
-
-```
-agent/          C++20 agent. HID++ 1.0/2.0 over hidraw, uinput for actions, X11 focus tracking,
-                JSON RPC over a UNIX socket. No runtime dependencies beyond libc, libstdc++, libX11.
-ui/             Electron UI, plain HTML/CSS/JS, talks to the agent over the socket.
-logimx/    Python implementation of the same agent (same RPC and config schema). It was
-                written first to validate the protocol against real hardware and is kept as a
-                reference and for scripting.
-udev/           hidraw and uinput access rule.
-systemd/        user service unit for the agent.
-```
-
-The agent talks HID++ directly to the receiver or to a Bluetooth device, diverts the controls you
-customise so the device sends HID++ events instead of the stock key, and synthesises the desktop
-action through a virtual input device. That works the same under X11 and Wayland because it sits
-below the compositor.
-
-## Features
-
-Mouse (MX Master 3S, MX Master 4)
-
-- Assign any action to the middle, back, forward, gesture and mode shift buttons, with
-  numbered callouts on a photo of the device
-- Gestures: tap plus four swipe directions on a gesture pad, one-shot or continuous,
-  adjustable sensitivity, any movement-capable button can be the gesture button
-- Thumb wheel: horizontal or vertical scroll, zoom, volume, tabs, workspaces, brightness,
-  direction and speed
-- DPI 200 to 8000, desktop pointer speed, SmartShift on/off and sensitivity, a SmartShift
-  toggle action, smooth scrolling, natural scroll direction
-- Battery with 7-day history, firmware, serial, Easy-Switch host cards with one-click switching
-- MX Master 4: the haptic panel as a button of its own (it opens the action ring out of the
-  box), haptic feedback on or off with its strength, a tick as the ring moves and a thud when an
-  action runs, a tick on gestures, sixteen patterns to try, how hard the panel has to be
-  pressed, and the ratchet force of the wheel
-- Action ring: eight actions of your choice around the pointer. It shares the gesture button with
-  gestures ("Gestures & action ring" page: Gestures, Action ring or Off). Hold the button, nudge the mouse toward
-  an action and let go to run it, or tap and click; or keep the pointer visible and free and
-  simply point at the action. Several profiles of eight actions can be kept and switched. It
-  takes the desktop's light or dark, accent colour and font, so it looks at home on Ubuntu,
-  Fedora and the rest
-
-Keyboard (MX Keys S; MX Keys, MX Keys for Mac, MX Keys for Business, MX Keys Mini and
-Mini for Mac / for Business have their own photo, layout and defaults but no hardware test yet)
-
-- Function row and special keys laid out from what the keyboard itself reports, with
-  clickable keys on a photo of that model
-- Built-in emoji picker: the Emoji key opens a searchable picker at the pointer
-  (categories, recents, keyboard navigation), Enter pastes into the focused app
-- Smart backlight: on/off, automatic or manual level, hands-away, hands-present and
-  on-power timers
-- Battery, firmware, Easy-Switch
-
-Everything
-
-- Adwaita-style window with four themes: Light, Dark, Ubuntu, Ubuntu dark
-- Action picker with categories, search, a keystroke recorder, shell commands, typed text,
-  open URL or folder, launch any installed application
-- Per-application profiles with an override view (overridden vs inherited per control),
-  suggestions from installed applications
-- On-screen overlays when a key changes device state: microphone mute, SmartShift mode,
-  backlight level, Easy-Switch host, DPI; position, duration and per-event switches
-- Tray indicator with battery levels, Easy-Switch, pause diversion; desktop notifications
-  for low battery (threshold configurable) and connect/disconnect
-- Global shortcuts: Super+Alt+1..3 switch host, Super+Alt+O toggles overlays,
-  Super+Alt+P pauses diversion
-- Bolt pairing wizard with passkey confirmation, first-run wizard (permissions with pkexec
-  udev install, devices, GNOME / macOS-like / Windows-like presets)
-- Backup & sync: automatic daily backups, manual backups, restore, export/import, reset,
-  read settings back from the device
-- Settings: start at login (systemd user service), tray, close-to-tray, start hidden,
-  appearance, update check; About with diagnostics log, export and copy
-- Hot plug through inotify; settings re-applied when a device reconnects
-
-## Screenshots
-
-| Welcome | Mouse buttons |
-|---|---|
-| ![Welcome](screenshots/home.png) | ![Button actions](screenshots/mouse-button-panel.png) |
-
-| Action ring | Action ring overlay |
+| Action ring | The ring on the desktop |
 |---|---|
 | ![Action ring](screenshots/action-ring.png) | ![Action ring overlay](screenshots/action-ring-overlay.png) |
 
-| Keyboard | Key actions |
-|---|---|
-| ![Keys](screenshots/keyboard-keys.png) | ![Key actions](screenshots/action-picker.png) |
+## Highlights
 
-| Backlight | Point and scroll |
-|---|---|
-| ![Backlight](screenshots/keyboard-backlight.png) | ![Point and scroll](screenshots/mouse-point-scroll.png) |
+- **Action ring.** Hold a button, flick toward an action, let go. Eight slots, several profiles,
+  drag and drop from the action list onto the ring, a free-pointer mode, and the desktop's own
+  light or dark style, accent colour and font. On the MX Master 4 each step of the ring is felt
+  as a haptic tick.
+- **MX Master 4.** Haptic feedback with its strength, the haptic panel as a button of its own
+  (it opens the action ring out of the box), how hard the panel must be pressed, and the ratchet
+  force of the wheel.
+- **Every button and key on a photo of the device**, with the actions for the one clicked in a
+  panel beside it.
 
-| Device settings | Notifications and overlays |
-|---|---|
-| ![Device settings](screenshots/device-settings.png) | ![Notifications](screenshots/notifications.png) |
+## Contents
 
-| Dark theme | GNOME theme |
-|---|---|
-| ![Dark](screenshots/dark-theme.png) | ![GNOME](screenshots/light-theme.png) |
-
-| Emoji picker | Tray status panel |
-|---|---|
-| ![Emoji picker](screenshots/emoji-picker.png) | ![Tray panel](screenshots/tray-panel.png) |
-
-| First run | Report a problem |
-|---|---|
-| ![First run](screenshots/first-run.png) | ![Report a problem](screenshots/report-problem.png) |
+- [Install](#install)
+- [Supported devices](#supported-devices)
+- [Features](#features)
+- [How it works](#how-it-works)
+- [Requirements](#requirements)
+- [Build from source](#build-from-source)
+- [Pairing to a Bolt receiver](#pairing-to-a-bolt-receiver)
+- [Command line](#command-line)
+- [Reporting a problem](#reporting-a-problem)
+- [Status](#status)
+- [Related projects](#related-projects)
+- [License](#license)
 
 ## Install
 
-Packages are attached to each [release](https://github.com/aabdelghani/logimx/releases). They are built
-on GitHub's runners by the [release workflow](https://github.com/aabdelghani/logimx/actions/workflows/release.yml)
-every time a version tag is pushed, so each asset can be traced back to a public build log.
+Packages are attached to each [release](https://github.com/aabdelghani/logimx/releases). They are
+built by CI from the tagged source.
 
-**Debian / Ubuntu (.deb)**: agent, CLI, udev rule, systemd user unit, desktop entry and the app.
+**Debian / Ubuntu (.deb)**: installs the app, the agent, the udev rule and a systemd user service.
 
 ```
 sudo apt install ./logimx_0.6.23_amd64.deb
-systemctl --user enable --now logimx      # agent for the current session (automatic after the next login)
-logimx                                    # or launch LogiMX from the app grid
+systemctl --user enable --now logimx      # starts the agent now; it starts by itself after the next login
+logimx                                    # or open LogiMX from the app grid
 ```
 
-**AppImage**: one file, no installation. The app starts the bundled agent itself and the first-run
-wizard installs the udev rule with pkexec.
+**AppImage**: a single file with nothing to install. It starts its own agent, and the first-run
+wizard installs the udev rule through pkexec.
 
 ```
 chmod +x LogiMX-0.6.23-x86_64.AppImage
 ./LogiMX-0.6.23-x86_64.AppImage
 ```
 
-Build the packages yourself with `packaging/deb/build.sh` and `cd ui && npm run dist:appimage`.
+## Supported devices
+
+| Device | Product id | State |
+|---|---|---|
+| MX Master 3S | b034 | Tested |
+| MX Master 4 | b042 | Tested |
+| MX Keys S | b378 | Tested |
+| MX Keys, MX Keys for Mac, MX Keys for Business | 408a, b35b, b361, b363 | Photo, layout and defaults included; reported working by users |
+| MX Keys Mini, Mini for Mac, Mini for Business | b369, b36a, b36e | Photo, layout and defaults included; not yet tested |
+
+Devices work through a Bolt or Unifying receiver and over Bluetooth.
+
+## Features
+
+### Action ring
+
+Eight actions around the pointer. Hold the button, move toward an action and release to run it,
+or tap the button and click. With "Keep the pointer visible and free" on, point at an action
+instead of steering. The ring takes the desktop's light or dark style, accent colour and font.
+Empty slots are left out.
+
+On its page, click a slot to choose its action, or drag an action from the panel onto a slot.
+Several ring profiles can be kept and switched from the panel.
+
+![Button actions with the action ring](screenshots/mouse-button-panel.png)
+
+### MX Master 4
+
+- Haptic feedback on or off, with its strength
+- A tick as the action ring moves from one action to the next, and a thud when an action runs
+- The haptic panel under the thumb as a button of its own; out of the box it opens the action ring
+- How hard the haptic panel has to be pressed
+- The ratchet force of the scroll wheel
+- Sixteen haptic patterns to try
+
+### Welcome screen
+
+The connected devices with their battery level. A device that is not connected is shown greyed
+out. When there are more devices than fit, arrows and the arrow keys page through them.
+
+![Welcome](screenshots/home.png)
+
+### Mouse buttons
+
+Each button is marked on a photo of the mouse with its name and current action. Clicking a button,
+or its name, opens its actions on the right:
+
+- **Recommended**: the button's own function, suggestions for that button, the action ring and a
+  keystroke recorder
+- **Smart actions**: run a command, type text, open a URL, file or folder, or launch an application
+- **Other actions**: navigation, editing, media and audio, device actions (DPI, SmartShift,
+  Easy-Switch, gestures) and any single key
+
+Choosing an action applies it at once.
+
+![Mouse buttons](screenshots/mouse-buttons.png)
+
+### Point and scroll
+
+DPI from 200 to 8000, desktop pointer speed, SmartShift with its sensitivity, smooth scrolling and
+natural scroll direction. The thumb wheel can scroll horizontally or vertically, zoom, or change
+volume, tabs, workspaces or brightness.
+
+![Point and scroll](screenshots/mouse-point-scroll.png)
+
+### Gestures
+
+A tap and four swipes on any button that can be held, each running one action once or repeatedly
+while the hand keeps moving. The button carries either gestures or the action ring.
+
+### Keyboard keys
+
+The keys the keyboard can reassign are marked on a photo of that model. Hovering shows what a key
+does; clicking it opens the same actions panel as the mouse, including every single key grouped as
+F keys, letters, numbers, symbols, number pad, modifiers and navigation.
+
+| Keyboard | Key actions |
+|---|---|
+| ![Keys](screenshots/keyboard-keys.png) | ![Key actions](screenshots/action-picker.png) |
+
+### Backlight
+
+On or off, automatic brightness from the light sensor or a fixed level, how long it stays on after
+the hands leave the keys, and a battery saving mode. A tag above the keyboard shows the current
+setting and opens the panel.
+
+![Backlight](screenshots/keyboard-backlight.png)
+
+### Device settings
+
+F1 to F12 as standard function keys or as the printed functions (Fn + Esc switches too), keeping
+the keyboard layout fixed, switching off Caps Lock, Num Lock, Scroll Lock, Insert or the Windows
+key, saving and restoring the device's settings, and the battery with its history over the last
+seven days.
+
+![Device settings](screenshots/device-settings.png)
+
+### Emoji picker
+
+The Emoji key opens a searchable picker at the pointer, with categories, recent emoji and keyboard
+navigation. Enter pastes into the focused application.
+
+![Emoji picker](screenshots/emoji-picker.png)
+
+### Overlays, tray and notifications
+
+- On-screen overlays when a key changes the device: microphone mute, SmartShift mode, backlight
+  level, Easy-Switch host and DPI, with position, duration and a switch per event
+- A tray indicator with battery levels, Easy-Switch and a pause switch
+- Desktop notifications for low battery (threshold configurable) and for devices connecting and
+  disconnecting
+- Global shortcuts: Super+Alt+1 to 3 switch host, Super+Alt+O turns overlays on or off,
+  Super+Alt+P pauses LogiMX
+
+| Notifications | Tray |
+|---|---|
+| ![Notifications](screenshots/notifications.png) | ![Tray panel](screenshots/tray-panel.png) |
+
+### Themes
+
+Light, Dark, Ubuntu and Ubuntu dark.
+
+| Dark | GNOME |
+|---|---|
+| ![Dark](screenshots/dark-theme.png) | ![GNOME](screenshots/light-theme.png) |
+
+### More
+
+- Per-application profiles, from the menu: a button or key can do something else while a given
+  application is in front, and everything not changed follows the default profile
+- Bolt pairing with passkey confirmation
+- First-run wizard: permissions (udev rule installed through pkexec), devices, and GNOME, macOS-like
+  or Windows-like presets
+- Backups on request, restore, export and import, reset, and reading settings back from the device
+- Start at login, close to the tray, start hidden, update check
+
+![First run](screenshots/first-run.png)
+
+## How it works
+
+A native agent owns the devices in the background. The desktop app talks to it over a local socket.
+
+![Architecture](docs/architecture.png)
+
+The agent talks HID++ to the receiver or to a Bluetooth device. It diverts the controls that are
+customised, so the device reports them to the agent instead of sending its own key, and performs
+the chosen action through a virtual input device. Because this happens below the compositor, it
+works the same on X11 and Wayland.
+
+```
+agent/          C++20 agent: HID++ 1.0 and 2.0 over hidraw, uinput for actions, focus tracking,
+                JSON RPC over a UNIX socket. Needs only libc, libstdc++ and libX11 at run time.
+ui/             Electron app in plain HTML, CSS and JavaScript.
+logimx/         Python version of the agent with the same RPC and settings format, kept as a
+                reference and for scripting.
+udev/           Access rule for hidraw and uinput.
+systemd/        User service for the agent.
+packaging/      .deb build.
+```
 
 ## Requirements
 
-- Linux with the kernel's HID++ receiver drivers (built into any mainstream distro)
-- g++ 11 or newer, cmake, ninja, libx11-dev
-- node 18 or newer for the UI
-- Read and write access to `/dev/hidraw*` for the receiver and to `/dev/uinput`
-  (`udev/60-logimx.rules`, or the rule that ships with Solaar)
+- Linux with the kernel's HID++ receiver drivers (included in mainstream distributions)
+- Read and write access to `/dev/hidraw*` and `/dev/uinput`, given by `udev/60-logimx.rules`
+  (installed by the .deb and by the first-run wizard)
+- On GNOME, the tray icon needs the AppIndicator extension (`gnome-shell-extension-appindicator`),
+  which Ubuntu ships enabled
 
-Stop other tools that divert the same buttons (Solaar, logid) while LogiMX runs, otherwise
-two programs fight over the device. On GNOME the tray icon needs the AppIndicator extension
-(`gnome-shell-extension-appindicator`), which Ubuntu ships enabled.
+Other tools that divert the same buttons, such as Solaar or logid, should not run at the same time.
 
-## Quick start (from source)
+## Build from source
+
+Needs g++ 11 or newer, cmake, ninja, libx11-dev and Node.js 18 or newer.
 
 ```
-./run-agent.sh -v            # terminal 1: builds on first run, logs to stderr
-./run-ui.sh                  # terminal 2: window and tray icon (--hidden starts in the tray)
-./agent/build/logimxctl devices
+./run-agent.sh -v            # terminal 1: builds the agent on first run and logs to the terminal
+./run-ui.sh                  # terminal 2: the window and the tray icon (--hidden starts in the tray)
 ```
 
 Install for the current user (agent in `~/.local/bin`, systemd user service):
@@ -182,19 +255,20 @@ Install for the current user (agent in `~/.local/bin`, systemd user service):
 sudo cp udev/60-logimx.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
 ```
 
-## Pairing to the receiver
+Packages: `packaging/deb/build.sh` for the .deb, `cd ui && npm run dist:appimage` for the AppImage.
 
-Use "Pair a device" in the app menu. If the device you are pairing is also known to Bluetooth on
-the same machine, the pairing can fail a few seconds after the passcode is typed: BlueZ keeps
-trying to reconnect to it and that traffic shares the 2.4 GHz band with the Bolt handshake. Pair
-with the adapter switched off instead:
+## Pairing to a Bolt receiver
+
+Use "Pair a device" in the menu. If the device is also known to Bluetooth on the same computer, the
+pairing can fail a few seconds after the passcode is typed, because BlueZ keeps trying to reach the
+device on the same radio band. In that case pair with Bluetooth switched off:
 
 ```
 ./pair-bolt.sh
 ```
 
-It powers Bluetooth down, holds discovery open until the device appears, shows the passcode, and
-restores Bluetooth on exit.
+It turns Bluetooth off, waits for the device, shows the passcode, and turns Bluetooth back on when
+it exits.
 
 ## Command line
 
@@ -211,41 +285,36 @@ logimxctl host b378 2
 logimxctl presets
 ```
 
-Configuration lives in `~/.config/logimx/config.json`. Device ids are the product ids
-(`b034` MX Master 3S, `b042` MX Master 4, `b378` MX Keys S), controls are HID++ control ids.
+Settings are kept in `~/.config/logimx/config.json`. Devices are identified by product id (see
+[Supported devices](#supported-devices)) and controls by their HID++ control id.
 
 ## Reporting a problem
 
-About, Report a problem gathers what is needed to reproduce it (versions, desktop, the devices and
-what they report, the last lines of the agent's log) and opens a new issue on GitHub in your browser
-with that filled in. You see the whole text first. Serial numbers, host names and your user name
-are removed, custom commands are reduced to their kind, and LogiMX itself sends nothing anywhere:
-the issue is filed by you, from your own account.
+About, Report a problem collects what is needed to reproduce an issue: versions, desktop, the
+devices and what they report, and the last lines of the agent's log. It opens a new GitHub issue in
+the browser with that text filled in, and the whole text is shown first. Serial numbers, host names
+and the user name are removed, and custom commands are reduced to their kind. LogiMX sends nothing
+itself; the issue is filed from your own account.
+
+![Report a problem](screenshots/report-problem.png)
 
 ## Status
 
-Tested on Ubuntu 24.04 with GNOME on X11, MX Master 3S, MX Master 4 and MX Keys S on a Bolt receiver.
-Bluetooth connections work the same way as the receiver (tested with the MX Keys S paired directly).
-The other MX Keys models are set up from their published key layouts and have not been on this
-bench; reports welcome. GNOME on Wayland
-tracks the focused application through the Shell introspection interface when it is enabled.
+Tested on Ubuntu 24.04 with GNOME on X11, with the MX Master 3S, MX Master 4 and MX Keys S on a Bolt
+receiver and the MX Keys S over Bluetooth. Users run it on Ubuntu with GNOME on Wayland, where the
+focused application is tracked through the Shell when that interface is enabled.
 
-Planned: more MX devices, pairing UI, KDE and Sway focus tracking, packaging.
+Planned: Easy-Switch and per-application settings from the device pages, more MX devices, and focus
+tracking on KDE and Sway.
 
 ## Related projects
 
-- [Solaar](https://github.com/pwr-Solaar/Solaar): device manager for Unifying and Bolt receivers, broad HID++ feature coverage
-- [logiops](https://github.com/PixlOne/logiops): daemon with gestures and SmartShift, configured through a text file
-- [libratbag](https://github.com/libratbag/libratbag) and Piper: DPI and button configuration for gaming mice
-
-LogiMX differs by pairing a native agent with a full desktop UI, per-application profiles
-and a gesture editor, so the day-to-day experience matches what users get on Windows and macOS.
-
-## Keywords
-
-MX Master 3S Linux, MX Keys S Linux, MX Master gestures Linux, thumb wheel Linux, SmartShift Linux,
-MX Keys backlight Linux, Bolt receiver Linux, Unifying receiver Linux, HID++ configuration,
-GNOME, KDE, Wayland, X11, uinput, hidraw.
+- [Solaar](https://github.com/pwr-Solaar/Solaar): device manager for Unifying and Bolt receivers
+  with broad HID++ feature coverage
+- [logiops](https://github.com/PixlOne/logiops): daemon with gestures and SmartShift, configured
+  through a text file
+- [libratbag](https://github.com/libratbag/libratbag) and Piper: DPI and button configuration for
+  gaming mice
 
 ## License
 
