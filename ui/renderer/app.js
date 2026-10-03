@@ -9,6 +9,7 @@
     theme: 'light', mode: 'app', page: 'home', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
     pair: { step: 1, found: [] }, ob: { step: 1, preset: 'gnome' }, appDetail: null, conflictDismissed: false,
     thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
+    flow: null, flowStatus: 'stopped', flowDetail: '',
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
   const VERSION = '0.6.23';
@@ -54,7 +55,7 @@
     return a.label || a.type;
   };
   const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor' };
-  const PRESET_ICON = { action_ring: 'fa-circle-notch', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
+  const PRESET_ICON = { action_ring: 'fa-circle-notch', volume_dial: 'fa-volume-high', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
     copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
     mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
     calculator: 'fa-calculator', emoji: 'fa-face-smile', emoji_picker: 'fa-face-smile', context_menu: 'fa-bars', dictation: 'fa-microphone', terminal: 'fa-terminal', close_window: 'fa-xmark', maximize: 'fa-window-maximize', minimize: 'fa-window-minimize', tile_left: 'fa-table-columns', tile_right: 'fa-table-columns',
@@ -151,10 +152,10 @@
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
     haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-lightbulb'],
-    home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
+    home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'], flow: ['Flow', 'fa-diagram-project'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'info']) : ['keys', 'backlight', 'easy', 'info'];
-  const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
+  const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'flow', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
@@ -388,6 +389,7 @@
     <div class="sep"></div>
     <button data-act="page" data-page="apps"><i class="fa-solid fa-layer-group"></i>Profiles</button>
     ${S.devices.some(isMouse) ? '' : '<button data-act="page" data-page="ring"><i class="fa-solid fa-circle-notch"></i>Action ring</button>'}
+    <button data-act="page" data-page="flow"><i class="fa-solid fa-diagram-project"></i>Flow</button>
     <button data-act="page" data-page="notif"><i class="fa-solid fa-bell"></i>Notifications</button>
     <button data-act="page" data-page="backup"><i class="fa-solid fa-cloud-arrow-down"></i>Backup & sync</button>
     <button data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button>
@@ -411,6 +413,7 @@
       case 'apps': return pageApps();
       case 'ring': return pageRing();
       case 'notif': return pageNotif();
+      case 'flow': return pageFlow();
       case 'backup': return pageBackup();
       case 'settings': return pageSettings();
       case 'about': return pageAbout();
@@ -886,6 +889,55 @@
       sec('Privacy', card(row('Telemetry', 'Off. LogiMX never sends data anywhere.', '<span class="val">Not available</span>')));
   }
 
+  // Flow: share the mouse, keyboard and clipboard with other computers on the LAN. LogiMX
+  // drives Deskflow (the open-source software KVM) under the hood; this computer is the
+  // server and the others join as clients. S.flow holds the last flow-info from main.
+  const FLOW_POS = [['left', 'Left', 'fa-arrow-left'], ['right', 'Right', 'fa-arrow-right'], ['up', 'Above', 'fa-arrow-up'], ['down', 'Below', 'fa-arrow-down']];
+  function flowRefresh() { window.agent.flowInfo().then(f => { S.flow = f; if (f) { S.flowStatus = f.status || (f.running ? 'running' : 'stopped'); } if (S.page === 'flow') render(); }); }
+  function pageFlow() {
+    const f = S.flow;
+    if (!f) { flowRefresh(); return sec('Flow', card(row('Loading…', '', ''))); }
+    if (!f.installed) {
+      const inst = S.flowStatus === 'installing';
+      return sec('Flow', card(
+        row('Flow needs its sharing engine', 'LogiMX shares the mouse, keyboard and clipboard between computers using Deskflow, an open-source tool. Install it once to turn Flow on.',
+          inst ? `<span class="val">Installing…</span>` : `<button class="btn primary" data-act="flow-install"><i class="fa-solid fa-download"></i>Install Flow support</button>`) +
+        (inst && S.flowDetail ? `<div class="row sub" style="color:var(--dim)">${esc(S.flowDetail)}</div>` : ''))) +
+        sec('', `<div class="hint">Deskflow is the open-source Barrier / Synergy fork. LogiMX only sets it up and runs it; nothing is sent anywhere online. <a href="#" data-act="open" data-url="https://deskflow.org">deskflow.org</a></div>`);
+    }
+    const peers = f.peers || [];
+    const st = S.flowStatus, on = f.running;
+    const statusText = on
+      ? (f.peer || st === 'peer' ? 'Connected — a computer is sharing this mouse and keyboard' : `Running — waiting for a computer to connect at ${f.ip || 'this computer'}`)
+      : st === 'error' ? (S.flowDetail || 'Flow stopped unexpectedly') : 'Off';
+    const statusCls = on ? (f.peer || st === 'peer' ? 'ok' : 'warn') : st === 'error' ? 'err' : '';
+    // this computer in the middle, each peer as a tile on its side
+    const tile = (label, cls) => `<div class="flow-node ${cls}">${esc(label)}</div>`;
+    const bySide = s => peers.filter(p => p.pos === s).map(p => tile(p.name, 'peer')).join('');
+    const gridPreview = `<div class="flow-grid">
+      <div class="fg up">${bySide('up')}</div>
+      <div class="fg left">${bySide('left')}</div>
+      ${tile(f.name + ' (this)', 'me')}
+      <div class="fg right">${bySide('right')}</div>
+      <div class="fg down">${bySide('down')}</div></div>`;
+    const peerRows = peers.length ? peers.map((p, i) => `<div class="row">
+        <span class="grow lbl">${esc(p.name)}</span>
+        <select class="sel" data-act="flow-peer-pos" data-i="${i}">${FLOW_POS.map(([v, l]) => `<option value="${v}" ${p.pos === v ? 'selected' : ''}>${l} of me</option>`).join('')}</select>
+        <button class="btn sm flat danger" data-act="flow-peer-del" data-i="${i}" title="Remove"><i class="fa-solid fa-trash"></i></button>
+      </div>`).join('') : `<div class="row sub" style="color:var(--dim)">No computers yet. Add the Mac or PC you want to reach.</div>`;
+    return sec('This computer', card(
+        row('Name', 'How other computers see this one', `<input class="text" data-act="flow-name" value="${esc(f.name)}" style="width:180px" ${on ? 'disabled' : ''}>`) +
+        row('Address', 'Where the others connect', `<span class="val flow-ip">${esc(f.ip || 'no network')}</span>`))) +
+      sec('Computers', card(peerRows + `<div class="row"><button class="btn sm" data-act="flow-peer-add" ${on ? 'disabled' : ''}><i class="fa-solid fa-plus"></i>Add computer</button></div>`), 'drag your pointer off this edge to reach them') +
+      (peers.length ? sec('Arrangement', card(`<div class="flow-arrange">${gridPreview}</div>`)) : '') +
+      sec('Sharing', card(
+        row('Share clipboard', 'Copy on one computer, paste on another', sw(f.clipboard !== false, 'data-act="flow-clip"')) +
+        `<div class="row sub" style="color:var(--dim)">The keyboard and mouse are always shared with the computer your pointer is on.</div>`)) +
+      sec('', card(`<div class="row"><div class="grow"><div class="lbl">Flow</div><div class="sub"><span class="dot ${statusCls}"></span>${esc(statusText)}</div></div>` +
+        (on ? `<button class="btn danger" data-act="flow-stop"><i class="fa-solid fa-stop"></i>Stop</button>` : `<button class="btn primary" data-act="flow-start"><i class="fa-solid fa-play"></i>Start Flow</button>`) + `</div>`)) +
+      sec('Connect another computer', `<div class="hint">On the Mac or PC, install <a href="#" data-act="open" data-url="https://deskflow.org">Deskflow</a>, choose <b>Client</b>, and connect to <b>${esc(f.ip || 'this computer')}</b>. Give that computer the screen name you typed for it above, and accept the security fingerprint the first time. Windows support comes next.</div>`);
+  }
+
   function pageAbout() {
     const links = [['fa-book', 'Documentation', 'https://github.com/aabdelghani/logimx#readme'], ['fa-code-branch', 'Source code', 'https://github.com/aabdelghani/logimx'], ['fa-bug', 'Report an issue', 'https://github.com/aabdelghani/logimx/issues'], ['fa-heart', 'Contributors', 'https://github.com/aabdelghani/logimx/graphs/contributors']];
     const logs = S.logs.length ? S.logs : [{ t: `${new Date().toLocaleTimeString()} INFO  agent ${S.connected ? 'connected' : 'not running'} · ${S.devices.length} device(s) · tracker ${S.status.tracker || 'n/a'}`, c: 'dim' }];
@@ -980,7 +1032,7 @@
   const OPTS_CATS = {
     nav: ['overview', 'show_desktop', 'app_switcher', 'workspace_prev', 'workspace_next', 'close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'tab_next', 'tab_prev', 'zoom_in', 'zoom_out', 'screenshot', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'emoji', 'dictation', 'context_menu', 'brightness_up', 'brightness_down', 'terminal'],
     edit: ['copy', 'paste', 'undo', 'redo', 'open_home'],
-    media: ['play_pause', 'prev_track', 'next_track', 'volume_up', 'volume_down', 'mute', 'mic_mute'],
+    media: ['volume_dial', 'play_pause', 'prev_track', 'next_track', 'volume_up', 'volume_down', 'mute', 'mic_mute'],
     other: ['easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'nothing'],
     mouse: MOUSE_GROUP, wheel: WHEEL_GROUP,
   };
@@ -1000,12 +1052,12 @@
   const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
   const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
   // the presets a control can take: keys never get the ring, gestures only on a button that can be held and moved
-  const RING_RECOMMEND = ['overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause'];
+  const RING_RECOMMEND = ['volume_dial', 'overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause'];
   const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
   const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
   const allowedFor = p => new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && (S.presets.all[k] || {}).type !== 'gesture')
     : p.section === 'gesture' ? Object.keys(S.presets.all).filter(k => GESTURE_TYPES.includes(S.presets.all[k].type))
-    : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'buttons' ? S.presets.buttons.filter(k => (S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy)) : S.presets.keys.filter(k => k !== 'action_ring'));
+    : p.section === 'thumbwheel' ? S.presets.wheel.filter(k => k !== 'volume_dial') : p.section === 'buttons' ? S.presets.buttons.filter(k => k !== 'volume_dial' && ((S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy))) : S.presets.keys.filter(k => k !== 'action_ring' && k !== 'volume_dial'));
   function drawerItems(sec, p) {
     const ok = allowedFor(p || S.picker);
     return (OPTS_CATS[sec] || []).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
@@ -1366,6 +1418,14 @@
       case 'dismiss-conflict': S.conflictDismissed = true; render(); return;
       case 'stop-tool': { const r = await window.agent.stopTool(b.dataset.tool); toast(r && r.ok ? `${b.dataset.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; }
       case 'open': window.agent.openExternal(b.dataset.url); return;
+      case 'flow-install': window.agent.flowInstall(); S.flowStatus = 'installing'; render(); return;
+      case 'flow-start': { const r = await window.agent.flowStart(); if (r && !r.ok) toast(r.error || 'Could not start Flow', true); flowRefresh(); return; }
+      case 'flow-stop': await window.agent.flowStop(); flowRefresh(); return;
+      case 'flow-name': { const v = (b.value || '').trim(); if (v) await window.agent.flowConfig({ name: v }); flowRefresh(); return; }
+      case 'flow-clip': { const cur = (S.flow || {}).clipboard !== false; await window.agent.flowConfig({ clipboard: !cur }); flowRefresh(); return; }
+      case 'flow-peer-add': prompt('Add computer', [{ key: 'name', label: 'Name', placeholder: 'macbook, work-pc…' }], async v => { const name = (v.name || '').trim(); if (!name) return; const peers = ((S.flow || {}).peers || []).slice(); if (peers.some(p => p.name === name)) return toast('That name is already added', true); peers.push({ name: name.replace(/[^A-Za-z0-9_-]/g, '-'), pos: 'right' }); await window.agent.flowConfig({ peers }); flowRefresh(); }, 'Add'); return;
+      case 'flow-peer-del': { const peers = ((S.flow || {}).peers || []).slice(); peers.splice(Number(b.dataset.i), 1); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
+      case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
       case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
@@ -1569,6 +1629,7 @@
     else { S.devices = []; S.loaded = false; if (st.starting) S.agentBusy = true; render(); }
   });
   window.agent.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
+  window.agent.onFlowEvent(m => { if (!m) return; S.flowStatus = m.status; S.flowDetail = m.detail || ''; if (S.flow) { S.flow.status = m.status; S.flow.peer = !!m.peer; S.flow.running = !(m.status === 'stopped' || m.status === 'error' || m.status === 'installing'); if (m.status === 'stopped' && m.detail && /installed/i.test(m.detail)) S.flow.installed = true; } if (S.page === 'flow') { flowRefresh(); } });
   window.agent.onEvent(msg => {
     const { event, data } = msg;
     if (event === 'device' || event === 'device_added') { merge(data); if (!S.dev) S.dev = data.id; render(); }

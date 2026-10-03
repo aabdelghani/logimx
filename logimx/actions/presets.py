@@ -53,6 +53,7 @@ PRESETS: dict[str, dict] = {
     "calculator":        {"label": "Calculator", "icon": "calc", "type": "keystroke", "keys": ["KEY_CALC"]},
     "emoji_picker":      {"label": "Emoji picker", "icon": "smile", "type": "ui", "event": "emoji"},
     "action_ring":       {"label": "Show action ring", "icon": "ring", "type": "ui", "event": "ring"},
+    "volume_dial":       {"label": "Volume (drag to set)", "icon": "volume", "type": "ui", "event": "volume_dial"},
     "emoji":             {"label": "Emoji (desktop shortcut)", "icon": "smile", "type": "keystroke", "keys": ["KEY_LEFTCTRL", "KEY_DOT"]},
     "context_menu":      {"label": "Context menu", "icon": "menu", "type": "keystroke", "keys": ["KEY_COMPOSE"]},
     "dictation":         {"label": "Dictation (needs a tool)", "icon": "mic", "type": "command", "cmd": ""},

@@ -26,6 +26,7 @@ function saveUi(u) { try { fs.mkdirSync(path.dirname(UI_SETTINGS_PATH), { recurs
 let uiSettings = null;
 const net = require('net');
 const os = require('os');
+const flow = require('./flow');
 
 const SOCKET = path.join(process.env.XDG_RUNTIME_DIR || `/run/user/${os.userInfo().uid}`, 'logimx.sock');
 const LOW = 20, CRITICAL = 10;
@@ -563,6 +564,24 @@ ipcMain.on('ring-pick', async (_e, { index }) => {
   catch (e) { if (Notification.isSupported()) new Notification({ title: 'Action ring', body: `${slot.label || 'Action'} did not run: ${e.message}` }).show(); }
 });
 ipcMain.handle('ring-show', () => showRing(null, false));
+// the ring's Volume slot: read and set the default output's level (PipeWire's wpctl, else pactl)
+ipcMain.handle('ring-vol-get', () => new Promise(res => {
+  execFile('wpctl', ['get-volume', '@DEFAULT_AUDIO_SINK@'], { timeout: 2000 }, (err, out) => {
+    if (!err) { const m = /Volume:\s*([\d.]+)/.exec(out || ''); return res({ level: m ? Math.round(parseFloat(m[1]) * 100) : 50, muted: /MUTED/.test(out || '') }); }
+    execFile('pactl', ['get-sink-volume', '@DEFAULT_SINK@'], { timeout: 2000 }, (e2, o2) => { const m = /(\d+)%/.exec(o2 || ''); res({ level: m ? Number(m[1]) : 50, muted: false }); });
+  });
+}));
+let volPending = null, volBusy = false;
+function volApply() {
+  if (volBusy || volPending === null) return;
+  const v = Math.max(0, Math.min(100, Math.round(volPending))); volPending = null; volBusy = true;
+  const next = () => { volBusy = false; volApply(); };
+  execFile('wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', `${v}%`], { timeout: 2000 }, err => {
+    if (!err) { execFile('wpctl', ['set-mute', '@DEFAULT_AUDIO_SINK@', '0'], { timeout: 2000 }, next); return; }
+    execFile('pactl', ['set-sink-volume', '@DEFAULT_SINK@', `${v}%`], { timeout: 2000 }, next);
+  });
+}
+ipcMain.on('ring-vol-set', (_e, v) => { volPending = Number(v); volApply(); });
 ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), displays: screen.getAllDisplays().map(d => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })), picker: emojiWin && !emojiWin.isDestroyed() ? { visible: emojiWin.isVisible(), bounds: emojiWin.getBounds() } : null }));
 ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 ipcMain.handle('general-changed', async () => { await refreshGeneral(); updateTray(); });
@@ -600,7 +619,103 @@ function createWindow() {
     const keep = !uiSettings || uiSettings.minimize !== false;
     if (!app.isQuitting && tray && keep) { e.preventDefault(); win.hide(); }
   });
-  win.on('closed', () => { win = null; });
+  win.on('show', () => btWatch(true));
+  win.on('hide', () => btWatch(false));
+  win.on('closed', () => { win = null; btWatch(false); });
+  flow.setWindow(win);
+}
+
+// ---------------------------------------------------------------- pairing-mode watch
+// While the window is open, a short Bluetooth scan now and then looks for an MX device that is
+// advertising in pairing mode (its name shows up and BlueZ has not paired it). Found one: a
+// notification names it, and clicking it pairs, trusts and connects it through bluetoothctl.
+// The scan is brief and spaced out because discovery shares the radio with audio and the Bolt band.
+const BT_SCAN_MS = 12000, BT_EVERY_MS = 90000, BT_RENOTIFY_MS = 10 * 60000;
+const btNotified = new Map();     // address -> when we last told the user
+let btScan = null, btTimer = null, btPairing = false;
+const stripAnsi = t => t.replace(/\x1b\[[0-9;]*m/g, '');
+const isMxName = n => /^(MX |MX-|Logi |Logitech MX|M7\d\d|Signature|Lift|Ergo)/i.test(n || '');
+function btInfo(addr) {
+  return new Promise(res => execFile('bluetoothctl', ['info', addr], { timeout: 4000 }, (err, out) => {
+    if (err) return res(null);
+    const get = k => { const m = new RegExp(`^\\s*${k}: (.*)$`, 'm').exec(out || ''); return m ? m[1].trim() : ''; };
+    res({ name: get('Name') || get('Alias'), paired: get('Paired') === 'yes', connected: get('Connected') === 'yes', icon: get('Icon') });
+  }));
+}
+async function btCandidate(addr, nameHint) {
+  if (btPairing) return;
+  const seen = btNotified.get(addr);
+  if (seen && Date.now() - seen < BT_RENOTIFY_MS) return;
+  const info = await btInfo(addr);
+  const name = (info && info.name) || nameHint;
+  if (!info || info.paired || info.connected || !isMxName(name)) return;
+  btNotified.set(addr, Date.now());
+  if (!Notification.isSupported()) return;
+  const kbd = /keyboard/i.test(info.icon) || /keys/i.test(name);
+  const n = new Notification({
+    title: `${name} is ready to connect`,
+    body: `It is in pairing mode. Click here to connect ${name} to this computer.`,
+    icon: path.join(__dirname, 'assets', kbd ? 'full-keyboard.png' : 'full-mouse.png'),
+    urgency: 'normal',
+  });
+  n.on('click', () => btPair(addr, name));
+  n.show();
+}
+function btScanOnce() {
+  if (btScan || btPairing) return;
+  let p;
+  try { p = spawn('bluetoothctl', ['--timeout', String(Math.round(BT_SCAN_MS / 1000)), 'scan', 'on']); } catch (e) { return; }
+  btScan = p;
+  let buf = '';
+  p.stdout.on('data', d => {
+    buf += stripAnsi(d.toString());
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const l of lines) {
+      // [NEW] Device AA:BB:.. MX Master 3S   /   [CHG] Device AA:BB:.. Name: MX Master 3S
+      const m = /\[(NEW|CHG)\] Device ([0-9A-F:]{17}) (?:Name: |Alias: )?(.*)$/i.exec(l);
+      if (m && isMxName(m[3])) btCandidate(m[2].toUpperCase(), m[3].trim());
+    }
+  });
+  p.on('error', () => { btScan = null; });
+  p.on('exit', () => { btScan = null; });
+}
+function btWatch(on) {
+  clearInterval(btTimer); btTimer = null;
+  if (!on) return;
+  setTimeout(btScanOnce, 1500);
+  btTimer = setInterval(() => { if (win && !win.isDestroyed() && win.isVisible()) btScanOnce(); }, BT_EVERY_MS);
+}
+// pair, trust and connect in one bluetoothctl session; a keyboard's passkey is shown to type
+function btPair(addr, name) {
+  if (btPairing) return;
+  btPairing = true;
+  if (btScan) { try { btScan.kill(); } catch (e) {} btScan = null; }
+  const say = (title, body) => { if (Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); };
+  say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
+  let p;
+  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = false; return say(`Could not connect ${name}`, 'bluetoothctl is not available.'); }
+  let out = '', done = false, step = 'pair';
+  const send = c => { try { p.stdin.write(c + '\n'); } catch (e) {} };
+  const finish = (ok, why) => {
+    if (done) return; done = true; btPairing = false;
+    send('scan off'); send('quit'); setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
+    if (ok) { btNotified.set(addr, Date.now() + 24 * 3600e3); say(`${name} is connected`, 'LogiMX will pick it up in a moment.'); }
+    else say(`Could not connect ${name}`, why || 'Put it back in pairing mode and try again from the notification.');
+  };
+  p.stdout.on('data', d => {
+    out += stripAnsi(d.toString());
+    const pk = /Passkey:? (\d{6})/i.exec(out) || /Confirm passkey (\d{6})/i.exec(out);
+    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
+    if (/Confirm passkey|Request confirmation/i.test(out) && !out.includes('[confirmed]')) { out += '[confirmed]'; send('yes'); }
+    if (step === 'pair' && /Pairing successful|AlreadyExists/i.test(out)) { step = 'connect'; send(`trust ${addr}`); send(`connect ${addr}`); }
+    if (step === 'connect' && /Connection successful/i.test(out)) finish(true);
+    if (/Failed to pair|AuthenticationFailed|AuthenticationCanceled|not available/i.test(out)) finish(false);
+    if (step === 'connect' && /Failed to connect/i.test(out)) finish(false, `${name} paired, but did not connect. Turn it off and on again.`);
+  });
+  p.on('exit', () => finish(false));
+  send('agent KeyboardDisplay'); send('default-agent'); send('scan on');
+  setTimeout(() => send(`pair ${addr}`), 3000);
+  setTimeout(() => finish(false, 'It took too long. Put it back in pairing mode and try again.'), 45000);
 }
 
 function showWindow() {
@@ -931,9 +1046,10 @@ if (!single) {
     if (uiSettings.tray !== false) createTray();
     connect();
     createWindow();
+    flow.init({ win, getUi: () => (uiSettings = uiSettings || loadUi()), setUi: p => { uiSettings = uiSettings || loadUi(); Object.assign(uiSettings, p); saveUi(uiSettings); } });
     try { registerShortcuts(); } catch (e) {}
   });
-  app.on('will-quit', () => globalShortcut.unregisterAll());
+  app.on('will-quit', () => { globalShortcut.unregisterAll(); flow.shutdown(); });
   app.on('window-all-closed', () => { /* stay in the tray */ });
-  app.on('before-quit', () => { app.isQuitting = true; });
+  app.on('before-quit', () => { app.isQuitting = true; flow.shutdown(); });
 }
