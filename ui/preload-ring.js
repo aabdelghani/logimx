@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('ring', {
   hover: index => ipcRenderer.send('ring-hover', { index }),
   close: () => ipcRenderer.send('ring-close'),
   diag: info => ipcRenderer.send('ring-diag', info),
+  volGet: () => ipcRenderer.invoke('ring-vol-get'),
+  volSet: v => ipcRenderer.send('ring-vol-set', v),
 });

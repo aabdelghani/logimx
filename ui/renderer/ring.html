@@ -18,6 +18,13 @@
     .bub { position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--bub); color: var(--bub-fg); display: flex; align-items: center; justify-content: center; font-size: 21px; box-shadow: 0 6px 18px rgba(0,0,0,.28); transition: transform .09s ease-out, background .09s, color .09s; animation: bub-in .28s cubic-bezier(.2,.9,.3,1.25) both; animation-delay: calc(var(--i) * 22ms); }
     #hub { animation: hub-in .2s cubic-bezier(.2,.9,.3,1.3) both; }
     #slots.moved .bub { animation: none; }
+    /* the Volume slot while it is being set: its level out of 100 beside the icon, with a bar */
+    .lab.dial { display: flex; align-items: baseline; gap: 2px; min-width: 96px; max-width: none; flex-wrap: wrap; }
+    .lab.dial .vol-n { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .lab.dial .vol-of { font-size: 13px; opacity: .6; }
+    .lab.dial .vol-bar { flex-basis: 100%; height: 4px; border-radius: 2px; background: var(--card-brd); margin-top: 6px; overflow: hidden; }
+    .lab.dial .vol-bar span { display: block; height: 100%; background: var(--acc); transition: width .06s linear; }
+    .bub.dialing { background: var(--acc); color: var(--acc-fg); transform: scale(1.14); }
     @media (prefers-reduced-motion: reduce) { .bub, #hub { animation: none; } }
     /* the nub that points from the chosen bubble at its label */
     .bub::after { content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px 9px 4px 9px; background: inherit; transform: rotate(var(--a)) translateX(24px) rotate(45deg) scale(0); transition: transform .09s ease-out; z-index: -1; }

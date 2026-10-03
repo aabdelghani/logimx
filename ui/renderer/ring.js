@@ -13,6 +13,35 @@
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
   let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
   let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false;
+  // the Volume slot: pressed and held, dragging right or left sets the level (shown next to its icon,
+  // out of 100); letting go of the click keeps the level and closes the ring
+  const PX_PER_STEP = 3;            // pointer travel for one percent
+  let dial = null;                  // { i, level, lastX, ready }
+  const isDial = i => i >= 0 && slots[i] && slots[i].action === 'volume_dial';
+  function dialShow() {
+    if (!dial) return;
+    const lab = slotsEl.querySelector(`.lab[data-i="${dial.i}"]`), bub = slotsEl.querySelector(`.bub[data-i="${dial.i}"]`);
+    if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
+    if (bub) { bub.classList.add('dialing'); const ic = bub.querySelector('i'); if (ic) ic.className = 'fa-solid ' + (dial.level === 0 ? 'fa-volume-xmark' : dial.level < 40 ? 'fa-volume-low' : 'fa-volume-high'); }
+  }
+  async function dialStart(i, y) {
+    if (dial && dial.i === i) return;
+    dial = { i, level: 50, lastX: y, tick: 0, ready: false };
+    try { const v = await window.ring.volGet(); if (dial && dial.i === i) { dial.level = v.level; dial.ready = true; } } catch (e) { if (dial) dial.ready = true; }
+    dialShow();
+  }
+  function dialMove(dx) {
+    if (!dial || !dial.ready) return;
+    dial.acc = (dial.acc || 0) + dx / PX_PER_STEP;            // right raises the volume, left lowers it
+    const step = Math.trunc(dial.acc); if (!step) return;
+    dial.acc -= step;
+    const before = dial.level;
+    dial.level = Math.max(0, Math.min(100, dial.level + step));
+    if (dial.level === before) return;
+    window.ring.volSet(dial.level);
+    if (Math.floor(dial.level / 5) !== Math.floor(before / 5)) window.ring.hover(dial.i);   // a tick every 5% on mice that can
+    dialShow();
+  }
   // Wayland: the compositor may still move or resize the full-screen window just after it appears,
   // which shifts a ring drawn in window coordinates away from the pointer. For a short while after
   // opening, the ring follows the pointer it sees; each correction goes into the problem report.
@@ -61,6 +90,7 @@
   document.addEventListener('mousemove', e => {
     if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); settleUntil = performance.now() + SETTLE_MS; settled = 0; return; }   // first sight of the pointer: the ring goes there
     if (raw) return;
+    if (dial) { dialMove(e.clientX - dial.lastX); dial.lastX = e.clientX; return; }   // pressed on the Volume slot: right and left set the level
     if (performance.now() < settleUntil && hover < 0) {
       const dx = e.clientX - CX, dy = e.clientY - CY;
       if (Math.hypot(dx, dy) > 1 && Math.hypot(dx, dy) < 160) {
@@ -73,12 +103,17 @@
     hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
     const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i);
   });
+  // the wheel over the ring turns the volume while the Volume slot is chosen
+  document.addEventListener('wheel', e => { if (dial) { e.preventDefault(); dialMove(e.deltaY > 0 ? -PX_PER_STEP * 2 : PX_PER_STEP * 2); } }, { passive: false });
   document.addEventListener('mouseleave', () => { if (!raw) { setHover(-1); hub.classList.remove('on'); } });
   document.addEventListener('mousedown', e => {
+    const di = raw ? hover : at(e.clientX, e.clientY);
+    if (isDial(di)) { setHover(di); dialStart(di, e.clientX); return; }
     if (raw) { if (hover >= 0 && slots[hover]) window.ring.pick(hover); return; }   // a click while steering picks the highlighted button
     const i = at(e.clientX, e.clientY);
     if (i >= 0 && slots[i]) window.ring.pick(i); else window.ring.close();
   });
+  document.addEventListener('mouseup', () => { if (dial) { dial = null; window.ring.close(); } });
   // keys arrive from the main process (the window has no focus of its own); Esc is handled there
   window.ring.onKey(({ key }) => { const n = Number(key); if (n >= 1 && n <= N && slots[n - 1]) window.ring.pick(n - 1); });
   window.ring.onShow(msg => {
@@ -88,7 +123,7 @@
     if (look.accent) { root.style.setProperty('--acc', look.accent); root.style.setProperty('--acc-fg', look.accentFg || '#fff'); }
     if (look.font) document.body.style.fontFamily = `"${look.font}", system-ui, sans-serif`;
     slots = Array.from({ length: N }, (_, i) => (msg.slots || [])[i] || null);
-    shownAt = Date.now(); last = null; vx = vy = 0;
+    shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on');
     setRaw(!!msg.raw);
@@ -104,6 +139,7 @@
   });
   window.ring.onMove(({ dx, dy }) => {
     if (!raw) setRaw(true);
+    if (dial) { dialMove(dx); return; }
     vx += dx * GAIN; vy += dy * GAIN;
     const d = Math.hypot(vx, vy);
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
@@ -114,6 +150,8 @@
   // the button that opened the ring was released: run what is chosen; a quick tap with nothing
   // chosen leaves the ring open for a click; letting go outside the ring dismisses it
   window.ring.onRelease(() => {
+    if (dial) return;
+    if (isDial(hover)) { if (raw) setRaw(false); return; }   // Volume is pressed, not picked by letting go: keep the ring open for it
     if (hover >= 0 && slots[hover]) { window.ring.pick(hover); return; }
     const tap = Date.now() - shownAt < 350;
     if (raw) {
