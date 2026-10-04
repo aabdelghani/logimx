@@ -925,3 +925,5 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 /* on the photo: what the shown app profile changes */
 .ms-lab.pv .d { color: var(--accbg); }
 .ms-lab.pv .k::after { content: " · app"; color: var(--accbg); }
+/* keyboard: keys the shown app profile changes */
+.hotspot.key-photo.pv rect { stroke: var(--accbg); stroke-width: 6; fill: color-mix(in srgb, var(--accbg) 35%, transparent); }

@@ -175,7 +175,7 @@
   const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy', 'flow'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
-  function go(page, devId) { if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
+  function go(page, devId) { if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
   // ============================================================ render
   // Animations run when something new appears, not on every refresh: the page when it is
@@ -507,7 +507,7 @@
     const hot = plain ? '' : P.spots.filter(([cid]) => d.controls.some(c => c.cid === cid)).map(([cid, x, y]) => {
       const a = assignment(d, 'keys', cid); const ctl = d.controls.find(c => c.cid === cid);
       const editing = drawerUp() && S.picker.cid === cid;
-      return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'} ${editing ? 'selected' : ''}" data-section="keys" data-cid="${cid}" data-name="${esc(ctl ? ctl.label : cid)}" data-does="${esc(isNative(a) ? (ctl ? ctl.label : 'Default') : presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/></g>`;
+      return `<g class="hotspot key-photo ${isNative(a) ? '' : 'assigned'} ${overridden(d, 'keys', cid) ? 'pv' : ''} ${editing ? 'selected' : ''}" data-section="keys" data-cid="${cid}" data-name="${esc(ctl ? ctl.label : cid)}" data-does="${esc(isNative(a) ? (ctl ? ctl.label : 'Default') : presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="12"/></g>`;
     }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${hot}</svg>`;
   }
@@ -819,9 +819,10 @@
     }
     return S.appIcons[key] ? `<img src="${S.appIcons[key]}" alt="">` : `<span class="pf-letter" style="background:${colorFor(p.name)}">${esc(p.name.charAt(0).toUpperCase())}</span>`;
   }
+  const deviceProfiles = d => Object.entries(((d && d.config) || {}).profiles || {}).filter(([k]) => k !== 'default').map(([key, p]) => ({ key, name: p.name || key, match: p.match || [] }));
   function profileBar() {
     const cur = S.editProfile || 'default';
-    const apps = allProfiles().map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+    const apps = deviceProfiles(dev()).map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
     return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings"><i class="fa-solid fa-globe"></i></button>${apps}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
   }
   function allProfiles() {
@@ -1619,10 +1620,10 @@
       case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
       case 'pf-add': prompt('Add application', [{ key: 'name', label: 'Name', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }, { key: 'cls', label: 'Window class to match', placeholder: 'firefox', value: S.status.app || '', list: (S.apps || []).filter(a => a.wm_class || a.id).map(a => ({ value: a.wm_class || a.id, label: a.name })) }], v => addProfile(v.name, v.cls, true), 'Add', S.status.app ? `Currently focused: ${esc(S.status.app)}` : ''); return;
       case 'pf-remove': {
-        const p = allProfiles().find(x => x.key === key); if (!p) return;
+        const dd = dev(), p = deviceProfiles(dd).find(x => x.key === key); if (!p) return;
         S.previewProfile = null;
-        S.confirm = { title: `Remove ${p.name} settings?`, text: `This permanently removes the custom settings for ${p.name} on all your devices. ${p.name} goes back to the global settings.`, ok: 'Remove', onOk: async () => {
-          for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
+        S.confirm = { title: `Remove ${p.name} settings?`, text: `This permanently removes the custom settings for ${p.name} on your ${dd.name}. In ${p.name}, it goes back to the global settings.`, ok: 'Remove', onOk: async () => {
+          const profs = JSON.parse(JSON.stringify(dd.config.profiles)); delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs }));
           if (S.editProfile === key) S.editProfile = null;
           toast(`${p.name} settings removed`);
         } };
@@ -1806,8 +1807,8 @@
     name = (name || '').trim(); cls = (cls || '').trim();
     if (!name || !cls) return toast('Name and window class are required', true);
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
-    if (here) { S.editProfile = key; S.dlg = null; render(); return; }   // from a device's profile bar: stay there, editing it
+    for (const dd of here ? [dev()] : S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
+    if (here) { S.editProfile = key; S.dlg = null; render(); return; }   // from a device's profile bar: that device only, editing it
     S.appDetail = { key, name, match: [cls] }; render();
   }
   // A starting point everyone gets once: LibreOffice Writer, with its thumb wheel zooming and the
@@ -1818,10 +1819,9 @@
     seeding = true;
     try {
       const has = S.devices.some(dd => Object.values((dd.config || {}).profiles || {}).some(p => (p.match || []).includes('libreoffice-writer')));
-      if (!has) for (const dd of S.devices) {
+      if (!has) for (const dd of S.devices.filter(isMouse)) {
         const profs = JSON.parse(JSON.stringify(dd.config.profiles));
-        profs['libreoffice-writer'] = Object.assign({ name: 'LibreOffice Writer', match: ['libreoffice-writer'] },
-          isMouse(dd) ? { buttons: { 83: 'undo', 86: 'redo', 196: 'smartshift_toggle' }, thumbwheel: 'zoom_wheel' } : {});
+        profs['libreoffice-writer'] = { name: 'LibreOffice Writer', match: ['libreoffice-writer'], buttons: { 83: 'undo', 86: 'redo', 196: 'smartshift_toggle' }, thumbwheel: 'zoom_wheel' };
         merge(await call('set_profiles', { id: dd.id, profiles: profs }));
       }
       S.ui = await window.agent.uiSettings({ seeded_profiles: true }) || S.ui;
