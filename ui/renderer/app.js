@@ -210,7 +210,8 @@
     ringDrag();
     // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
     const mid = root.querySelector('.devview2.drawer-open:not(.panel-open) .dev-config');
-    if (mid) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
+    // the ring opened from a button keeps its panel: the back arrow is the way out
+    if (mid && !(S.page === 'gestures' && S.cfgFrom)) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
     // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
     const blMid = root.querySelector('.devview2.panel-open .dev-config');
     if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { S.blClosed = true; }); });
@@ -1542,8 +1543,9 @@
         if (!cap) { go('ring'); return; }
         // the ring in the middle with its actions open on the right (the left bar folds away, as
         // with any panel); the back arrow returns to the mouse's Buttons
+        // the panel stays where it is and changes to the ring's: no closing and reopening on the way
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
-        go('gestures', dd.id);
+        S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
         S.cfgFrom = 'buttons';
         const slots = ringSlots(), first = Math.max(0, slots.findIndex(s => !s));
         openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
