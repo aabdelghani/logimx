@@ -3,11 +3,11 @@
 [![Release build](https://github.com/aabdelghani/logimx/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/logimx/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/aabdelghani/logimx?color=2dd4bf&label=release)](https://github.com/aabdelghani/logimx/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
-[![Platforms: Linux, Windows, macOS](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-2dd4bf.svg)](#requirements)
+[![Platforms: Linux, Windows, macOS](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20beta%20%C2%B7%20macOS%20beta-2dd4bf.svg)](#requirements)
 [![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
 [![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
 
-LogiMX configures MX mice and keyboards on Linux, Windows and macOS, with full support for the **MX Master 4** and an
+LogiMX configures MX mice and keyboards on Linux, Windows (beta) and macOS (beta), with full support for the **MX Master 4** and an
 **action ring**: eight actions of your choice around the pointer, opened by a button and chosen
 with a flick of the mouse. It also covers button and key assignments, gestures, the thumb wheel,
 SmartShift, DPI, the keyboard backlight and more. On Linux it runs on GNOME, KDE and other
@@ -69,19 +69,23 @@ chmod +x LogiMX-0.6.23-x86_64.AppImage
 ./LogiMX-0.6.23-x86_64.AppImage
 ```
 
-**Windows 10 and 11 (LogiMX-Setup-0.6.23.exe)**: a setup wizard. It shows the license, asks
+**Windows 10 and 11 (LogiMX-Setup-0.6.23.exe), beta**: a setup wizard. It shows the license, asks
 whether to install for you alone or for everyone on the computer, lets you choose the folder, and
 offers to start LogiMX at sign-in and to put a shortcut on the desktop. Nothing else is needed: no
 driver, no runtime. The setup is not signed yet, so SmartScreen asks once: choose **More info**,
 then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `%APPDATA%\LogiMX`.
 
-**macOS 11 or newer (LogiMX-0.6.23-arm64.dmg for Apple silicon, -x64.dmg for Intel)**: open the
+**macOS 11 or newer (LogiMX-0.6.23-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
 disk image, agree to the license and drag LogiMX to Applications. The app is not notarized yet, so
 the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
 Security > Open Anyway**). LogiMX then asks for the **Accessibility** permission, which it needs to
 press keys and buttons for you.
 
 Quit Logi Options+ while LogiMX runs on Windows or macOS: both drive the same devices.
+
+The Windows and macOS versions are in beta: they are built from the same code as the Linux
+version, but have not been through the same testing on real devices yet. If something does not
+work, the **Report a problem** button in the app opens a pre-filled issue.
 
 ## Supported devices
 
