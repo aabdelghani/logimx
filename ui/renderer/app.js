@@ -594,7 +594,13 @@
   function ptSummary(d, k) {
     const st = d.state || {}, s = d.config.settings || {};
     if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${dpi} DPI · speed ${Math.round(((s.pointer_speed ?? 0) + 1) * 50)}`; }
-    if (k === 'wheel') { const ss = s.smartshift || {}; return (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet' ? 'SmartShift on' : 'Free spin'; }
+    if (k === 'wheel') {
+      // all three of the wheel's settings: direction, smooth scrolling, SmartShift
+      const ss = s.smartshift || {}, hr = s.hires || {};
+      const natural = hr.invert ?? (st.hires || {}).invert ?? false, smooth = hr.enabled ?? (st.hires || {}).hires ?? true;
+      const shift = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
+      return `${natural ? 'Natural' : 'Standard'} · Smooth ${smooth ? 'on' : 'off'} · SmartShift ${shift ? 'on' : 'off'}`;
+    }
     const t = thumbInfo(d);
     return `Speed ${t.speed} · ${t.invert ? 'Inverted' : 'Standard'}`;
   }
