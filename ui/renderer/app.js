@@ -369,7 +369,7 @@
       const drawer = drawerUp(), blp = !drawer && (S.addPanel || backlightPanel(d));
       body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
-      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>Have a wish? Found a problem? I'm here to make it happen, I love to build!</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>Report an issue</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
+      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>Have a wish? Found a problem? I'm here to make it happen, I love to build!</span><span class="wish-promise"><i class="fa-solid fa-stopwatch"></i>Granted within 24 hours</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>Report an issue</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
     return `<div class="window">
       <main class="main">
@@ -1448,7 +1448,7 @@
     return `<div class="scrim" data-act="close-dlg"><div class="dlg" style="width:560px" data-stop>
       <div class="dlg-head">Make a wish<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="dlg-body">
-        <div class="wish-hero"><i class="fa-solid fa-wand-magic-sparkles"></i><div>Tell me what LogiMX should do for you. A button, a gesture, a device, anything: I read every wish.</div></div>
+        <div class="wish-hero"><i class="fa-solid fa-wand-magic-sparkles"></i><div>Tell me what LogiMX should do for you. A button, a gesture, a device, anything: I read every wish.<div class="wish-pledge">My promise: your wish lands within 24 hours. Rub the lamp, I'm already coding.</div></div></div>
         <label class="hint">Your wish<textarea class="text" data-field="wish" rows="5" style="display:block;width:100%;margin-top:4px;resize:vertical;font:inherit" placeholder="I wish LogiMX could…">${esc(w.what || '')}</textarea></label>
         <div class="hint"><i class="fa-solid fa-circle-info"></i> Nothing is sent by LogiMX. Your browser opens a new issue on GitHub with your wish, the LogiMX version, the system and the device names; it becomes public when you press Submit there.</div>
       </div>
@@ -2004,7 +2004,7 @@
         const w = S.wish, what = ((w && w.what) || '').trim(); if (!what) return;
         const title = 'Wish: ' + (what.split('\n')[0].length > 70 ? what.split('\n')[0].slice(0, 67) + '…' : what.split('\n')[0]);
         window.agent.openExternal(`${ISSUE_URL}?labels=enhancement&title=${encodeURIComponent(title)}&body=${encodeURIComponent(wishBody(w))}`);
-        S.dlg = null; toast('Thank you! Your wish is open in your browser'); render(); return;
+        S.dlg = null; toast('Wish received by the genie! Submit it on GitHub and the 24-hour clock starts'); render(); return;
       }
       case 'report-copy': window.agent.copy(reportBody(S.report, true)); toast('Report copied'); return;
       case 'report-open': {
