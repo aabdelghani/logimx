@@ -194,7 +194,7 @@
     else html = renderWindow();
     html += renderDialog();
     // a key's panel or a settings panel (Backlight, Point & scroll): either one sends the page list out
-    const panelOn = () => !!(drawerUp()) || (S.page !== 'home' && backlightPanel(dev()));
+    const panelOn = () => !!(drawerUp()) || (S.page !== 'home' && (S.addPanel || backlightPanel(dev())));
     const drawerWill = panelOn();
     const moving = drawerWill !== lastDrawer ? root.querySelector('.dev-config .content > .page > :first-child') : null;
     const from = moving ? moving.getBoundingClientRect() : null;
@@ -221,7 +221,7 @@
     if (mid && !(S.page === 'gestures' && S.cfgFrom)) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
     // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
     const blMid = root.querySelector('.devview2.panel-open .dev-config');
-    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { S.blClosed = true; }); });
+    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { if (S.addPanel) S.addPanel = false; else S.blClosed = true; }); });
   }
   // The keyboard moves and resizes when the panel opens or closes: draw it where it was and let it
   // glide to its new place, instead of snapping.
@@ -361,9 +361,9 @@
       // the device's pages listed down the left (the first is open by default) with Settings at the
       // foot; the page itself on the right under the window buttons
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
-      const items = navPages(d).map(p => p === 'easy' && !(isMouse(d) && MOUSE_BOTTOMS[d.id]) ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
-      const drawer = drawerUp(), blp = !drawer && backlightPanel(d);
-      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+      const items = navPages(d).map(p => p === 'easy' && !easyView(d) ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      const drawer = drawerUp(), blp = !drawer && (S.addPanel || backlightPanel(d));
+      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -492,7 +492,7 @@
   // control id with the centre of its key cap in photo pixels; only the controls the connected
   // keyboard reports are drawn. A keyboard with no entry here gets no photo, only the key tiles.
   const KEYBOARD_PHOTOS = (() => {
-    const s = { src: '../assets/devices/b378.png', w: 2596, h: 800, kw: 99, kh: 75, spots: [[199, 288, 142], [200, 402, 142], [226, 517, 142], [227, 632, 142], [259, 749, 143], [264, 862, 142], [284, 976, 142], [228, 1090, 142], [229, 1206, 142], [230, 1320, 142], [231, 1433, 142], [232, 1547, 142], [233, 1663, 142], [10, 2157, 142], [266, 2274, 142], [234, 2388, 142], [111, 2503, 142]] };
+    const s = { src: '../assets/devices/b378.png', w: 2596, h: 800, kw: 99, kh: 75, hosts: [[0, 1800, 145], [1, 1915, 145], [2, 2030, 145]], spots: [[199, 288, 142], [200, 402, 142], [226, 517, 142], [227, 632, 142], [259, 749, 143], [264, 862, 142], [284, 976, 142], [228, 1090, 142], [229, 1206, 142], [230, 1320, 142], [231, 1433, 142], [232, 1547, 142], [233, 1663, 142], [10, 2157, 142], [266, 2274, 142], [234, 2388, 142], [111, 2503, 142]] };
     const keys = { src: '../assets/devices/b35b.png', w: 2004, h: 618, kw: 76, kh: 57, spots: [[199, 222, 109], [200, 310, 109], [224, 399, 109], [225, 488, 109], [110, 575, 109], [226, 665, 109], [227, 753, 109], [228, 842, 109], [229, 931, 109], [230, 1019, 109], [231, 1108, 109], [232, 1194, 109], [233, 1284, 109], [10, 1665, 109], [191, 1755, 109], [234, 1844, 109], [111, 1932, 109]] };
     const mac = { src: '../assets/devices/b361.png', w: 2004, h: 618, kw: 76, kh: 57, spots: [[199, 222, 109], [200, 310, 109], [224, 399, 109], [225, 488, 109], [226, 575, 109], [227, 665, 109], [228, 753, 109], [229, 842, 109], [230, 931, 109], [231, 1019, 109], [232, 1108, 109], [233, 1194, 109], [13, 1284, 109], [10, 1665, 109], [191, 1755, 109], [234, 1844, 109], [111, 1932, 109]] };
     const business = { src: '../assets/devices/b363.png', w: 2004, h: 618, kw: 76, kh: 57, spots: [[199, 222, 109], [200, 310, 109], [226, 399, 109], [227, 488, 109], [259, 575, 109], [264, 665, 109], [284, 753, 109], [228, 842, 109], [229, 931, 109], [230, 1019, 109], [231, 1108, 109], [232, 1194, 109], [233, 1284, 109], [10, 1665, 109], [266, 1755, 109], [234, 1844, 109], [111, 1932, 109]] };
@@ -702,6 +702,22 @@
     }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
+  // The keyboard's Easy-Switch keys outlined on its photo, the computer on each named above it; the
+  // names fan out so three neighbouring keys still get readable labels
+  function keyboardEasyPhoto(d) {
+    const P = KEYBOARD_PHOTOS[d.id], h = d.state.hosts;
+    const on = i => backlightPanel(d) && S.esSel === i;
+    // stacked above and to the left of the keys, one row each (1 nearest the keyboard), so the names
+    // never collide however narrow the page gets; each row's line runs down to its key
+    const lx = P.hosts[0][1] - 110, ly = i => -70 - i * 140;
+    const keys = P.hosts.map(([i, x, y]) => `<g class="hotspot kb-es es ${h.current === i ? 'cur' : ''} ${on(i) ? 'selected' : ''}" data-cid="${i}"><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="14"/></g>`).join('');
+    const lines = P.hosts.map(([i, x, y]) => `<polyline class="ms-line ${on(i) ? 'on' : ''}" points="${x},${y - P.kh / 2} ${x},${ly(i)} ${lx},${ly(i)}"/>`).join('');
+    const labels = P.hosts.map(([i]) => {
+      const t = hostInfo(h, i);
+      return `<div class="ms-lab es-lab kbl ${on(i) ? 'on' : ''} ${t.cur ? 'custom' : ''}" data-ring="${i}" style="left:${(lx / P.w * 100).toFixed(2)}%;top:${(ly(i) / P.h * 100).toFixed(2)}%"><span class="k">${t.state}</span><span class="d"><b class="es-n">${i + 1}</b>${esc(t.name)}</span></div>`;
+    }).join('');
+    return `<div class="es-kbwrap"><svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${keys}</svg>${labels}</div>`;
+  }
   // the computer picked on the photo: switch to it, pair, rename; and switching for every device at once
   function renderEasyPanel(d) {
     const h = d.state.hosts, i = S.esSel ?? h.current, t = hostInfo(h, i);
@@ -721,7 +737,7 @@
   function pageEasy(d) {
     const h = (d.state || {}).hosts;
     if (!h) return sec('Easy-Switch', card(row('Not supported by this device', '', '')));
-    if (isMouse(d) && MOUSE_BOTTOMS[d.id]) return `<div class="photo-card ms-photo es-photo">${easyPhoto(d)}</div>`;
+    if (easyView(d)) return isMouse(d) ? `<div class="photo-card ms-photo es-photo">${easyPhoto(d)}</div>` : `<div class="kb-photo es-kbp">${keyboardEasyPhoto(d)}</div>`;
     const cards = [0, 1, 2].map(i => {
       const n = h.names[i] || { index: i, paired: false, name: '', bus_type: 0 };
       const cur = h.current === i, empty = !n.paired;
@@ -772,7 +788,8 @@
   }
 
 
-  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && !S.previewProfile && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && isMouse(d) && MOUSE_BOTTOMS[d.id] && (d.state || {}).hosts)));
+  const easyView = d => !!(d && (d.state || {}).hosts && (isMouse(d) ? MOUSE_BOTTOMS[d.id] : (KEYBOARD_PHOTOS[d.id] || {}).hosts));
+  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && !S.previewProfile && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && easyView(d))));
   // the tag pinned above the keyboard on the Backlight page, saying how the backlight is set right now
   function backlightTag(d) {
     const st = d.state.backlight, s = (d.config.settings || {}).backlight || {}, n = st.num_levels || 8;
@@ -1345,6 +1362,28 @@
       <div class="dlg-body">${p.fields.map(f => `<label class="hint">${esc(f.label)}<input class="text" style="display:block;width:100%;margin-top:4px" data-field="${f.key}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" ${f.list ? `list="dl-${f.key}"` : ''}>${f.list ? `<datalist id="dl-${f.key}">${f.list.map(o => `<option value="${esc(o.value)}">${esc(o.label || '')}</option>`).join('')}</datalist>` : ''}</label>`).join('')}${p.note ? `<div class="hint">${p.note}</div>` : ''}</div>
       <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="prompt-ok">${esc(p.ok || 'OK')}</button></div></div></div></div>`;
   }
+  // + in the profile bar: the device's applications to choose from, like a key's actions. Global
+  // settings is listed first (what everything starts from), then each installed application with its
+  // icon; one picked with its check mark, Add puts it in the profile bar to configure from there.
+  function renderAddPanel(d) {
+    const have = new Set(deviceProfiles(d).flatMap(p => p.match.map(m => m.toLowerCase())));
+    const apps = (S.apps || []).filter(a => a.name && !/logimx/i.test(a.wm_class || a.id || '')).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const icon = a => { const u = (S.appIconById || {})[a.id]; return u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`; };
+    const rows = apps.map(a => {
+      const added = have.has((a.wm_class || a.id || '').toLowerCase());
+      return `<button class="act add-app ${S.addSel === a.id ? 'on' : ''} ${added ? 'added' : ''}" data-act="add-pick" data-key="${esc(a.id)}" data-name="${esc(a.name.toLowerCase())}" ${added ? 'disabled' : ''}><span class="ic app-ic" data-icon="${esc(a.id)}">${icon(a)}</span><span class="t">${esc(a.name)}</span>${added ? '<span class="m">Added</span>' : ''}<i class="fa-solid fa-check chk"></i></button>`;
+    }).join('');
+    return `<div class="drawer-wrap"><div class="dlg drawer bl-panel add-panel" data-stop>
+      <div class="dlg-head"><span class="dh-key">Add application</span><span class="dh-sub">${esc(d.name)}</span></div>
+      <div class="dlg-body">
+        <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input class="text add-q" placeholder="Search applications" value=""></div>
+        <div class="acts"><button class="act on" disabled><span class="ic app-ic"><i class="fa-solid fa-globe"></i></span><span class="t">Global settings</span><span class="m">Every application</span><i class="fa-solid fa-check chk"></i></button></div>
+        <div class="kg-t" style="margin:14px 0 6px">Applications</div>
+        <div class="acts add-list">${rows || '<div class="row hint">No applications found</div>'}</div>
+      </div>
+      <div class="dlg-foot"><span></span><div class="r"><button class="btn primary" data-act="add-confirm" ${S.addSel ? '' : 'disabled'}><i class="fa-solid fa-plus"></i>Add</button></div></div>
+    </div></div>`;
+  }
   // a yes/no question; the safe answer (Cancel) is the highlighted one
   function renderConfirm() {
     const p = S.confirm;
@@ -1419,6 +1458,16 @@
     root.querySelectorAll('.nav-item').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.dev || S.dev));
     // a button's name beside the mouse opens it just like its ring
     root.querySelectorAll('.ms-lab[data-ring]').forEach(l => l.onclick = () => { const h = root.querySelector(`.hotspot.ms[data-cid="${l.dataset.ring}"]`); if (h && h.onclick) h.onclick(); });
+    // the add panel: filter as you type; icons fill in as they load
+    const addq = root.querySelector('.add-panel .add-q');
+    if (addq) addq.oninput = () => { const q = addq.value.trim().toLowerCase(); root.querySelectorAll('.add-list .add-app').forEach(r => { r.style.display = !q || r.dataset.name.includes(q) ? '' : 'none'; }); };
+    root.querySelectorAll('.add-panel .app-ic[data-icon]').forEach(el => {
+      const id = el.dataset.icon; S.appIconById = S.appIconById || {};
+      if (id in S.appIconById) return;
+      S.appIconById[id] = null;
+      const a = (S.apps || []).find(x => x.id === id); if (!a) return;
+      window.agent.appIcon({ icon: a.icon, id: a.id }).then(u => { if (!u) return; S.appIconById[id] = u; root.querySelectorAll(`.add-panel .app-ic[data-icon="${CSS.escape(id)}"]`).forEach(x => { x.innerHTML = `<img src="${u}" alt="">`; }); }).catch(() => {});
+    });
     // hovering an app in the profile bar previews it; leaving the bar shows what was there again
     root.querySelectorAll('.pbar .pf-app').forEach(b => b.onmouseenter = () => { const k = b.dataset.key; if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; render(); } });
     const pbar = root.querySelector('.pbar'); if (pbar) pbar.onmouseleave = () => { if (S.previewProfile) { S.previewProfile = null; render(); } };
@@ -1571,7 +1620,7 @@
         }
         // with a panel open on the right, the back arrow folds the panel away first
         if (drawerUp()) { closeDrawer(); return; }
-        if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { S.blClosed = true; }); return; }
+        if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { if (S.addPanel) S.addPanel = false; else S.blClosed = true; }); return; }
         if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
@@ -1618,7 +1667,10 @@
       case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
       case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
-      case 'pf-add': prompt('Add application', [{ key: 'name', label: 'Application', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name), true), 'Add'); return;
+      case 'pf-add': { if (S.addPanel) return; S.addPanel = true; S.addSel = null; S.dlg = null; S.picker = null; S.previewProfile = null; if (!S.apps) { try { S.apps = await window.agent.call('applications'); } catch (e) { S.apps = []; } } render(); return; }
+      case 'add-pick': { S.addSel = key; root.querySelectorAll('.add-list .add-app').forEach(x => x.classList.toggle('on', x.dataset.key === key)); const ok = root.querySelector('[data-act=add-confirm]'); if (ok) ok.disabled = false; return; }
+      case 'add-confirm': { const a = (S.apps || []).find(x => x.id === S.addSel); if (!a) return; closeDrawer(() => { S.addPanel = false; S.addSel = null; }); await addProfile(a.name, a.wm_class || a.id || appClass(a.name), 'bar'); return; }
+      case 'pf-add-old': prompt('Add application', [{ key: 'name', label: 'Application', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name), true), 'Add'); return;
       case 'pf-remove': {
         const dd = dev(), p = deviceProfiles(dd).find(x => x.key === key); if (!p) return;
         S.previewProfile = null;
@@ -1815,6 +1867,7 @@
     if (/logimx/i.test(cls)) return toast('LogiMX itself cannot have a profile', true);
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     for (const dd of here ? [dev()] : S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
+    if (here === 'bar') { toast(`${name} added. Click it to set it up.`); render(); return; }   // the add panel: in the bar, set up when clicked
     if (here) { S.editProfile = key; S.dlg = null; render(); return; }   // from a device's profile bar: that device only, editing it
     S.appDetail = { key, name, match: [cls] }; render();
   }

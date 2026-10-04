@@ -927,3 +927,20 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .ms-lab.pv .k::after { content: " · app"; color: var(--accbg); }
 /* keyboard: keys the shown app profile changes */
 .hotspot.key-photo.pv rect { stroke: var(--accbg); stroke-width: 6; fill: color-mix(in srgb, var(--accbg) 35%, transparent); }
+/* keyboard Easy-Switch: the host keys outlined on the photo, their computers named above */
+.es-kbwrap { position: relative; width: 100%; max-width: 1060px; margin: 170px auto 0; }
+.es-kbwrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+.hotspot.kb-es rect { fill: color-mix(in srgb, var(--accbg) 18%, transparent); stroke: var(--accbg); stroke-width: 5; cursor: pointer; }
+.hotspot.kb-es.cur rect { fill: color-mix(in srgb, var(--accbg) 60%, transparent); }
+.hotspot.kb-es.selected rect { fill: var(--accbg); stroke: #fff; stroke-width: 6; }
+.ms-lab.kbl { translate: calc(-100% - 6px) -50%; align-items: flex-end; text-align: right; }
+/* the add-application panel: an icon per application, the picked one checked */
+.add-panel .act .app-ic { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; flex: none; }
+.add-panel .act .app-ic img { width: 24px; height: 24px; object-fit: contain; }
+.add-panel .act .app-ic > i { color: var(--accbg); font-size: 16px; }
+.add-panel .act .chk { margin-left: auto; opacity: 0; }
+.add-panel .act.on .chk { opacity: 1; color: var(--accbg); }
+.add-panel .act.added { opacity: .5; cursor: default; }
+.add-panel .act:disabled { cursor: default; }
+.add-panel .add-list { max-height: none; }
+.add-panel .dlg-body > .acts { flex: none; min-height: 0; overflow: visible; }
