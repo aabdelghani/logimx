@@ -16,7 +16,7 @@
       (st.connected ? (devs || '<div class="empty">No devices found</div>') : '<div class="empty">Agent not running</div>') +
       `<div class="sep"></div>` +
       `<button class="act" data-act="open"><i class="fa-solid fa-window-maximize"></i>Open LogiMX</button>` +
-      `<button class="act" data-act="pause"><i class="fa-solid ${st.paused ? 'fa-play' : 'fa-pause'}"></i>${st.paused ? 'Resume diversion' : 'Pause diversion'}</button>` +
+      `<button class="act" data-act="pause"><i class="fa-solid ${st.paused ? 'fa-play' : 'fa-pause'}"></i>${st.paused ? 'Resume custom buttons' : 'Pause custom buttons'}</button>` +
       `<button class="act" data-act="quit"><i class="fa-solid fa-power-off"></i>Quit</button>`;
   }
   document.addEventListener('click', ev => {

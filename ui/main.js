@@ -177,7 +177,7 @@ function updateTray() {
     const b = d.battery;
     return `${d.name}: ${b ? b.percent + '%' + (b.charging ? ' charging' : '') : 'battery n/a'}`;
   });
-  tray.setToolTip(connected ? (lines.length ? lines.join('\n') + (paused ? '\nDiversion paused' : '') : 'LogiMX: no devices') : 'LogiMX: agent not running');
+  tray.setToolTip(connected ? (lines.length ? lines.join('\n') + (paused ? '\nCustom buttons paused' : '') : 'LogiMX: no devices') : 'LogiMX: agent not running');
   const items = [];
   if (!connected) items.push({ label: 'Agent not running', enabled: false });
   else if (!devices.length) items.push({ label: 'No devices', enabled: false });
@@ -196,7 +196,7 @@ function updateTray() {
     items.push({ type: 'separator' });
   }
   items.push({ label: 'Open LogiMX', icon: menuIcon('window'), click: showWindow });
-  items.push({ label: paused ? 'Resume diversion' : 'Pause diversion', icon: menuIcon(paused ? 'play' : 'pause'), enabled: connected, click: () => rpc(paused ? 'resume_diversion' : 'pause_diversion').then(() => refreshGeneral().then(updateTray)).catch(() => {}) });
+  items.push({ label: paused ? 'Resume custom buttons' : 'Pause custom buttons', icon: menuIcon(paused ? 'play' : 'pause'), enabled: connected, click: () => rpc(paused ? 'resume_diversion' : 'pause_diversion').then(() => refreshGeneral().then(updateTray)).catch(() => {}) });
   items.push({ label: 'Status panel', icon: menuIcon('panel'), click: () => showTrayPanel() });
   items.push({ label: 'Quit', icon: menuIcon('power'), click: () => { app.isQuitting = true; app.quit(); } });
   tray.setContextMenu(Menu.buildFromTemplate(items));

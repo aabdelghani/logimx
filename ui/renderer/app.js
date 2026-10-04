@@ -404,7 +404,7 @@
     <button data-act="export"><i class="fa-solid fa-download"></i>Export settings…</button>
     <button data-act="import"><i class="fa-solid fa-upload"></i>Import settings…</button>
     <button data-act="pair"><i class="fa-solid fa-plus"></i>Pair a device…</button>
-    <button data-act="pause"><i class="fa-solid ${S.status.paused ? 'fa-play' : 'fa-pause'}"></i>${S.status.paused ? 'Resume diversion' : 'Pause diversion'}</button>
+    <button data-act="pause"><i class="fa-solid ${S.status.paused ? 'fa-play' : 'fa-pause'}"></i>${S.status.paused ? 'Resume custom buttons' : 'Pause custom buttons'}</button>
     <div class="sep"></div>
     <button data-act="page" data-page="apps"><i class="fa-solid fa-layer-group"></i>Profiles</button>
     ${S.devices.some(isMouse) ? '' : '<button data-act="page" data-page="ring"><i class="fa-solid fa-circle-notch"></i>Action ring</button>'}
