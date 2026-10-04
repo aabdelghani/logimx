@@ -314,6 +314,9 @@
     if (!first || !page) return;
     // the device's Settings page runs from the top of the window, not from KEYS
     if (box.closest('.dev-config.full')) { page.style.paddingTop = '0px'; return; }
+    // the action ring is centred in the space it has (lined up with the list it ran off the bottom)
+    const ring = page.firstElementChild && page.firstElementChild.classList.contains('ring-page') ? page.firstElementChild : null;
+    if (ring) { const cs = getComputedStyle(box), free = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - ring.getBoundingClientRect().height; page.style.paddingTop = Math.max(0, Math.floor(free / 2)) + 'px'; return; }
     const pad = parseFloat(getComputedStyle(box).paddingTop) || 0, origin = box.getBoundingClientRect().top + pad;
     let target = first.getBoundingClientRect().top;
     // the keyboard is centred on the list rather than lined up with its top
