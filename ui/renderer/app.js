@@ -168,7 +168,7 @@
   const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy', 'flow'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
-  function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
+  function go(page, devId) { if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
   // ============================================================ render
   // Animations run when something new appears, not on every refresh: the page when it is
@@ -1424,6 +1424,8 @@
     switch (act) {
       case 'page': go(b.dataset.page); return;
       case 'go-home':
+        // opened from a button's Configure: back to the mouse's Buttons, panel and all
+        if (S.cfgFrom && S.page === 'gestures') { const to = S.cfgFrom; const back = () => { S.cfgFrom = null; S.page = to; S.picker = null; }; if (drawerUp()) closeDrawer(back); else { back(); render(); } return; }
         // with a panel open on the right, the back arrow folds the panel away first
         if (drawerUp()) { closeDrawer(); return; }
         if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { S.blClosed = true; }); return; }
@@ -1488,6 +1490,8 @@
         stopRecorder();
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
         go('gestures', dd.id);
+        S.cfgFrom = 'buttons';
+        render();
         return;
       }
       case 'ring-config': {
@@ -1495,7 +1499,14 @@
         // it there, otherwise the Action ring page
         const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, cap = dd && gestureCapable(dd).some(c => c.cid === p.cid);
         stopRecorder();
-        if (cap) { S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid }); go('gestures', dd.id); } else go('ring');
+        if (!cap) { go('ring'); return; }
+        // the ring in the middle with its actions open on the right (the left bar folds away, as
+        // with any panel); the back arrow returns to the mouse's Buttons
+        S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
+        go('gestures', dd.id);
+        S.cfgFrom = 'buttons';
+        const slots = ringSlots(), first = Math.max(0, slots.findIndex(s => !s));
+        openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
         return;
       }
       case 'acc-toggle': { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); p.unfolded = p.fold[key] ? key : null; render(); return; }
