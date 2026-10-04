@@ -903,3 +903,25 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .es-lab.custom .es-n { background: var(--accbg); color: #fff; }
 .ms-lab.on .es-n { background: #fff; color: var(--accbg); }
 .ms-photo.es-photo { width: 330px; max-width: none; }
+/* profile bar, top right of a device's view: global, one icon per app profile, + */
+.pbar { display: flex; align-items: center; gap: 8px; margin-right: 6px; -webkit-app-region: no-drag; }
+.pf { position: relative; width: 34px; height: 34px; border-radius: 10px; border: 2px solid transparent; background: var(--btn); color: var(--fg); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; transition: background .14s, border-color .14s; }
+.pf:hover { background: var(--btnh); }
+.pf.on { border-color: var(--accbg); background: color-mix(in srgb, var(--accbg) 14%, transparent); }
+.pf i { font-size: 15px; }
+.pf.on > i { color: var(--accbg); }
+.pf img { width: 24px; height: 24px; object-fit: contain; }
+.pf-letter { width: 22px; height: 22px; border-radius: 6px; color: #fff; font: 700 13px var(--font); display: flex; align-items: center; justify-content: center; }
+.pf-add { background: transparent; border: 2px dashed var(--brd); color: var(--dim); }
+.pf-add:hover { border-color: var(--accbg); color: var(--accbg); background: transparent; }
+.pf-wrap { position: relative; display: flex; }
+.pf-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: 0; padding: 0; background: var(--fg); color: var(--win); display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 2; }
+.pf-x i { font-size: 10px; }
+.pf-x:hover { background: var(--err); color: #fff; }
+.pf-wrap:hover .pf-x { display: flex; }
+/* the name, shown at once on hover (the native tooltip waits a second) */
+.pf[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; translate: -50% 0; white-space: nowrap; padding: 5px 9px; border-radius: 7px; background: var(--fg); color: var(--win); font: 600 12px var(--font); pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 30; }
+.pf[data-tip]:hover::after { opacity: 1; }
+/* on the photo: what the shown app profile changes */
+.ms-lab.pv .d { color: var(--accbg); }
+.ms-lab.pv .k::after { content: " · app"; color: var(--accbg); }

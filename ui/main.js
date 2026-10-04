@@ -862,6 +862,31 @@ function setAutostart(on) {
   if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=LogiMX\nIcon=logimx\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
   else { try { fs.unlinkSync(desktop); } catch (e) {} }
 }
+// An application's icon for the profile bar, as a data URL. Linux names icons by theme name
+// (looked up in hicolor and pixmaps, the way a launcher would); Windows and macOS ask the shell for
+// the icon of the app's shortcut or bundle. null when there is none to show.
+const appIcons = new Map();
+ipcMain.handle('app-icon', async (_e, spec) => {
+  const key = JSON.stringify(spec || {});
+  if (appIcons.has(key)) return appIcons.get(key);
+  let url = null;
+  try {
+    if (!plat.IS_LINUX) {
+      if (spec && spec.id && fs.existsSync(spec.id)) url = (await app.getFileIcon(spec.id, { size: 'normal' })).toDataURL();
+    } else if (spec && spec.icon) {
+      const name = spec.icon;
+      const roots = [path.join(os.homedir(), '.local/share/icons'), '/usr/share/icons', '/var/lib/flatpak/exports/share/icons', path.join(os.homedir(), '.local/share/flatpak/exports/share/icons')];
+      const sizes = ['64x64', '48x48', '128x128', '96x96', '256x256', '32x32', 'scalable'];
+      const tries = path.isAbsolute(name) ? [name] : [];
+      for (const r of roots) for (const s of sizes) for (const ext of ['png', 'svg']) tries.push(path.join(r, 'hicolor', s, 'apps', `${name}.${ext}`));
+      for (const ext of ['png', 'svg', 'xpm']) tries.push(path.join('/usr/share/pixmaps', `${name}.${ext}`));
+      const hit = tries.find(f => { try { return fs.statSync(f).isFile(); } catch (e) { return false; } });
+      if (hit && !hit.endsWith('.xpm')) url = `data:${hit.endsWith('.svg') ? 'image/svg+xml' : 'image/png'};base64,${fs.readFileSync(hit).toString('base64')}`;
+    }
+  } catch (e) {}
+  appIcons.set(key, url);
+  return url;
+});
 // macOS: posting key and button actions needs the Accessibility permission for LogiMX
 ipcMain.handle('accessibility', (_e, prompt) => ({ trusted: plat.accessibilityTrusted(prompt), needed: plat.IS_MAC }));
 ipcMain.handle('open-accessibility', () => plat.openAccessibilitySettings());

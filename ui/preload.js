@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('agent', {
   installUdev: () => ipcRenderer.invoke('install-udev'),
   accessibility: prompt => ipcRenderer.invoke('accessibility', !!prompt),
   openAccessibility: () => ipcRenderer.invoke('open-accessibility'),
+  appIcon: spec => ipcRenderer.invoke('app-icon', spec),
   stopTool: name => ipcRenderer.invoke('stop-tool', name),
   windowAction: a => ipcRenderer.invoke('window-action', a),
   uiSettings: (patch) => ipcRenderer.invoke('ui-settings', patch || null),

@@ -32,7 +32,14 @@
   const isMouse = d => d && d.kind !== 'keyboard';
   const isNative = a => !a || a === 'native';
   const profileOf = (d, key) => (((d.config || {}).profiles || {})[key || 'default']) || {};
-  const assignment = (d, section, cid, prof) => section === 'thumbwheel' ? profileOf(d, prof).thumbwheel : ((profileOf(d, prof)[section] || {})[String(cid)]);
+  // The profile the device view shows: one being previewed (hover in the profile bar), else the one
+  // picked for editing, else the global one. An app profile only holds what it changes; anything
+  // it leaves alone comes from the global profile, the same way the agent applies it.
+  const shownProfile = () => S.previewProfile || S.editProfile || 'default';
+  const ownAssignment = (d, section, cid, prof) => section === 'thumbwheel' ? profileOf(d, prof).thumbwheel : ((profileOf(d, prof)[section] || {})[String(cid)]);
+  const assignment = (d, section, cid, prof) => { const p = prof || shownProfile(); const v = ownAssignment(d, section, cid, p); return v === undefined && p !== 'default' ? ownAssignment(d, section, cid, 'default') : v; };
+  // set in the shown profile (not the global one) on a control: marked on the photo
+  const overridden = (d, section, cid) => shownProfile() !== 'default' && ownAssignment(d, section, cid, shownProfile()) !== undefined;
   // Icon for an assignment: the preset's own icon, else its type's, and the key's printed
   // function only while the key is left to the device.
   const assignIcon = (a, native) => {
@@ -154,7 +161,7 @@
   const range = (attrs, val, min, max, step) => `<input type="range" ${attrs} min="${min}" max="${max}" step="${step}" value="${val}" style="width:160px">`;
   const setSetting = async (d, path, value) => { const st = await call('set_setting', { id: d.id, path, value }); d.state = st; let x = d.config.settings || (d.config.settings = {}); for (const p of path.slice(0, -1)) { x[p] = x[p] || {}; x = x[p]; } x[path[path.length - 1]] = value; };
   const setGeneral = async patch => { try { S.general = await call('set_general', patch); } catch (e) { Object.assign(S.general, patch); } window.agent.generalChanged(); };
-  const setAssign = async (d, section, control, action, profile) => { merge(await call('set_assignment', { id: d.id, profile: profile || 'default', section, control: section === 'thumbwheel' ? '' : String(control), action })); };
+  const setAssign = async (d, section, control, action, profile) => { merge(await call('set_assignment', { id: d.id, profile: profile || S.editProfile || 'default', section, control: section === 'thumbwheel' ? '' : String(control), action })); };
 
   // ------------------------------------------------------------- nav
   const PAGES = {
@@ -339,7 +346,7 @@
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
     // a keyboard's own view keeps the corner to one action: add an application profile
     const controls = mode === 'device' ? `<div class="right">
-            <button class="hbtn soon-btn" disabled title="Coming soon: settings for a specific application"><i class="fa-solid fa-plus"></i>Add application<span class="soon-tag">Soon</span></button>
+            ${profileBar()}
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
           </div>` : `<div class="right">
             ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
@@ -410,6 +417,8 @@
 
   function renderPage(d) {
     if (S.appDetail) return pageAppDetail(S.appDetail);
+    // previewing an app profile from another of the device's pages: show the controls it changes
+    if (S.previewProfile && d && S.page !== 'buttons' && S.page !== 'keys' && devicePages(d).includes(S.page)) return isMouse(d) ? pageButtons(d) : pageKeys(d);
     switch (S.page) {
       case 'buttons': return d ? pageButtons(d) : '';
       case 'gestures': return d ? pageGestures(d) : '';
@@ -473,7 +482,8 @@
       const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
       const nm = k === 'thumb' ? 'Thumb wheel' : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || 'Button');
       const left = x < P.w / 2;
-      return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
+      const ov = k === 'thumb' ? overridden(d, 'thumbwheel') : overridden(d, 'buttons', k);
+      return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'} ${ov ? 'pv' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
     }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
@@ -762,7 +772,7 @@
   }
 
 
-  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && isMouse(d) && MOUSE_BOTTOMS[d.id] && (d.state || {}).hosts)));
+  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && !S.previewProfile && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && isMouse(d) && MOUSE_BOTTOMS[d.id] && (d.state || {}).hosts)));
   // the tag pinned above the keyboard on the Backlight page, saying how the backlight is set right now
   function backlightTag(d) {
     const st = d.state.backlight, s = (d.config.settings || {}).backlight || {}, n = st.num_levels || 8;
@@ -793,6 +803,26 @@
     for (const sec of ['buttons', 'keys']) for (const [cid, a] of Object.entries(p[sec] || {})) if (JSON.stringify(a) !== JSON.stringify((def[sec] || {})[cid])) n++;
     if (p.thumbwheel !== undefined && JSON.stringify(p.thumbwheel) !== JSON.stringify(def.thumbwheel)) n++;
     return n;
+  }
+  // ----------------------------------------------------------- profile bar
+  // Top right of a device's view: the global settings, one icon per application profile, and +.
+  // Hovering an app previews its changes on the device; clicking it edits that profile; its ×
+  // removes it (after asking).
+  function profileIcon(p) {
+    const cls = (p.match[0] || '').toLowerCase(), apps = S.apps || [];
+    const a = apps.find(x => (x.wm_class || '').toLowerCase() === cls || (x.id || '').toLowerCase() === cls) || apps.find(x => (x.name || '').toLowerCase() === p.name.toLowerCase());
+    const key = p.key;
+    S.appIcons = S.appIcons || {};
+    if (a && !(key in S.appIcons)) {
+      S.appIcons[key] = null;
+      window.agent.appIcon({ icon: a.icon, id: a.id }).then(u => { if (u) { S.appIcons[key] = u; render(); } }).catch(() => {});
+    }
+    return S.appIcons[key] ? `<img src="${S.appIcons[key]}" alt="">` : `<span class="pf-letter" style="background:${colorFor(p.name)}">${esc(p.name.charAt(0).toUpperCase())}</span>`;
+  }
+  function profileBar() {
+    const cur = S.editProfile || 'default';
+    const apps = allProfiles().map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+    return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings"><i class="fa-solid fa-globe"></i></button>${apps}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
   }
   function allProfiles() {
     const map = {};
@@ -1084,6 +1114,7 @@
     if (S.dlg === 'picker') return S.picker && S.picker.drawer ? '' : renderPicker();
     if (S.dlg === 'pair') return renderPair();
     if (S.dlg === 'prompt') return renderPrompt();
+    if (S.dlg === 'confirm') return renderConfirm();
     if (S.dlg === 'report') return renderReport();
     return '';
   }
@@ -1313,6 +1344,14 @@
       <div class="dlg-body">${p.fields.map(f => `<label class="hint">${esc(f.label)}<input class="text" style="display:block;width:100%;margin-top:4px" data-field="${f.key}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" ${f.list ? `list="dl-${f.key}"` : ''}>${f.list ? `<datalist id="dl-${f.key}">${f.list.map(o => `<option value="${esc(o.value)}">${esc(o.label || '')}</option>`).join('')}</datalist>` : ''}</label>`).join('')}${p.note ? `<div class="hint">${p.note}</div>` : ''}</div>
       <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="prompt-ok">${esc(p.ok || 'OK')}</button></div></div></div></div>`;
   }
+  // a yes/no question; the safe answer (Cancel) is the highlighted one
+  function renderConfirm() {
+    const p = S.confirm;
+    return `<div class="scrim" data-act="close-dlg"><div class="dlg" style="width:440px" data-stop>
+      <div class="dlg-head">${esc(p.title)}<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="dlg-body"><div class="hint" style="font-size:14px">${esc(p.text)}</div></div>
+      <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="confirm-ok">${esc(p.ok)}</button><button class="btn primary" data-act="close-dlg" autofocus>Cancel</button></div></div></div></div>`;
+  }
   const drawerUp = () => !!(S.picker && S.picker.drawer && (S.dlg === 'picker' || (S.dlg === 'prompt' && S.prompt && S.prompt.back === 'picker')));
   function prompt(title, fields, onOk, ok, note) { S.prompt = { title, fields, onOk, ok, note, back: drawerUp() ? 'picker' : null }; S.dlg = 'prompt'; render(); setTimeout(() => { const i = root.querySelector('.dlg input'); if (i) i.focus(); }, 30); }
 
@@ -1379,6 +1418,9 @@
     root.querySelectorAll('.nav-item').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.dev || S.dev));
     // a button's name beside the mouse opens it just like its ring
     root.querySelectorAll('.ms-lab[data-ring]').forEach(l => l.onclick = () => { const h = root.querySelector(`.hotspot.ms[data-cid="${l.dataset.ring}"]`); if (h && h.onclick) h.onclick(); });
+    // hovering an app in the profile bar previews it; leaving the bar shows what was there again
+    root.querySelectorAll('.pbar .pf-app').forEach(b => b.onmouseenter = () => { const k = b.dataset.key; if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; render(); } });
+    const pbar = root.querySelector('.pbar'); if (pbar) pbar.onmouseleave = () => { if (S.previewProfile) { S.previewProfile = null; render(); } };
     root.querySelectorAll('.hotspot.pt').forEach(h => h.onclick = () => onAction('pt-pick', h));
     root.querySelectorAll('.hotspot.es').forEach(h => h.onclick = () => onAction('es-pick', h));
     root.querySelectorAll('.hotspot:not(.pt):not(.es)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
@@ -1486,7 +1528,7 @@
     const gslot = section === 'gesture' && d && t.slot ? gestureObject(d, cid)[t.slot] : null;
     const current = section === 'gesture' ? (gslot ? gslot.preset || gslot : null) : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
     const ctl = typeof cid === 'number' && section !== 'ring' && d ? d.controls.find(c => c.cid === cid) : null;
-    S.picker = { drawer: !!t.drawer, fold: t.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.drawer ? false : t.cat === 'key' };
+    S.picker = { drawer: !!t.drawer, fold: t.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || S.editProfile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.drawer ? false : t.cat === 'key' };
     S.dlg = 'picker'; render();
   }
   async function assignPicked(action) {
@@ -1574,6 +1616,19 @@
       case 'flow-peer-del': { const peers = ((S.flow || {}).peers || []).slice(); peers.splice(Number(b.dataset.i), 1); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
+      case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
+      case 'pf-add': prompt('Add application', [{ key: 'name', label: 'Name', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }, { key: 'cls', label: 'Window class to match', placeholder: 'firefox', value: S.status.app || '', list: (S.apps || []).filter(a => a.wm_class || a.id).map(a => ({ value: a.wm_class || a.id, label: a.name })) }], v => addProfile(v.name, v.cls, true), 'Add', S.status.app ? `Currently focused: ${esc(S.status.app)}` : ''); return;
+      case 'pf-remove': {
+        const p = allProfiles().find(x => x.key === key); if (!p) return;
+        S.previewProfile = null;
+        S.confirm = { title: `Remove ${p.name} settings?`, text: `This permanently removes the custom settings for ${p.name} on all your devices. ${p.name} goes back to the global settings.`, ok: 'Remove', onOk: async () => {
+          for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
+          if (S.editProfile === key) S.editProfile = null;
+          toast(`${p.name} settings removed`);
+        } };
+        S.dlg = 'confirm'; render(); return;
+      }
+      case 'confirm-ok': { const p = S.confirm; S.dlg = null; S.confirm = null; render(); if (p && p.onOk) { await p.onOk(); render(); } return; }
       case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
       case 'pick': openPicker({ drawer: S.page === 'gestures' && (b.dataset.section === 'ring' || b.dataset.section === 'gesture'), dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
@@ -1747,12 +1802,31 @@
       case 'ob-preset': S.ob.preset = key; render(); return;
     }
   }
-  async function addProfile(name, cls) {
+  async function addProfile(name, cls, here) {
     name = (name || '').trim(); cls = (cls || '').trim();
     if (!name || !cls) return toast('Name and window class are required', true);
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
+    if (here) { S.editProfile = key; S.dlg = null; render(); return; }   // from a device's profile bar: stay there, editing it
     S.appDetail = { key, name, match: [cls] }; render();
+  }
+  // A starting point everyone gets once: LibreOffice Writer, with its thumb wheel zooming and the
+  // side buttons undoing and redoing. Seeded the first time a mouse is seen; removing it is final.
+  let seeding = false;
+  async function seedProfiles() {
+    if (seeding || !S.ui || S.ui.seeded_profiles || !S.devices.some(isMouse)) return;
+    seeding = true;
+    try {
+      const has = S.devices.some(dd => Object.values((dd.config || {}).profiles || {}).some(p => (p.match || []).includes('libreoffice-writer')));
+      if (!has) for (const dd of S.devices) {
+        const profs = JSON.parse(JSON.stringify(dd.config.profiles));
+        profs['libreoffice-writer'] = Object.assign({ name: 'LibreOffice Writer', match: ['libreoffice-writer'] },
+          isMouse(dd) ? { buttons: { 83: 'undo', 86: 'redo', 196: 'smartshift_toggle' }, thumbwheel: 'zoom_wheel' } : {});
+        merge(await call('set_profiles', { id: dd.id, profiles: profs }));
+      }
+      S.ui = await window.agent.uiSettings({ seeded_profiles: true }) || S.ui;
+      render();
+    } catch (e) { } finally { seeding = false; }
   }
   async function applyPreset(k) {
     const P = { gnome: { tap: 'overview', up: 'workspace_prev', down: 'workspace_next', left: 'tab_prev', right: 'tab_next' },
@@ -1782,6 +1856,7 @@
       if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPagesAll.includes(S.page) && S.page !== 'home') S.page = devicePages(S.devices[0])[0]; }
       S.connected = true; S.loaded = true;
       render();
+      seedProfiles();
       // the rest is not needed to show the device, so let it arrive afterwards
       if (!S.apps) window.agent.call('applications').then(a => { S.apps = a; }).catch(() => { S.apps = []; });
       try { S.backups = await window.agent.call('list_backups'); } catch (e) { S.backups = []; }
