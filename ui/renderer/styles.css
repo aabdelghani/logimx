@@ -734,7 +734,8 @@ header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .home-grid.from-right > * { animation: home-from-right .32s cubic-bezier(0, 0, .2, 1) both; }
 .home-grid.from-left > * { animation: home-from-left .32s cubic-bezier(0, 0, .2, 1) both; }
 /* a device that is not connected: faded, greyed, and not clickable */
-.dev-card.off { opacity: .45; filter: grayscale(1); cursor: default; pointer-events: none; }
+.dev-card.off { opacity: .45; filter: grayscale(1); }
+.dev-card.off:hover { opacity: .7; }
 .dev-state.off { color: var(--dim); gap: 8px; }
 @media (prefers-reduced-motion: reduce) { .home-grid.from-right > *, .home-grid.from-left > * { animation: none; } }
 /* Easy-Switch: the options under the hosts sit back, dimmed, until pointed at */
@@ -976,3 +977,6 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 .rs-hub.back:hover { transform: scale(1.08); }
 .rs-hub.back i { font-size: 20px !important; }
 .rs-disc.in-folder::before { border-color: color-mix(in srgb, var(--accbg) 50%, transparent); }
+/* a device that is not connected: its view still opens and changes are kept; the pill says so */
+.dnav-bat.offline { background: var(--btn); }
+.dnav-bat.offline, .dnav-bat.offline i { color: var(--dim); }

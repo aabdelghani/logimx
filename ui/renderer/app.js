@@ -183,13 +183,6 @@
   let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
   function render() {
     stopRecorder();
-    // a device that is not connected cannot be changed: its view closes back to the device list,
-    // where it stays greyed out until it is back
-    const cd = dev();
-    if (cd && isOffline(cd) && S.page !== 'home' && (devicePages(cd).includes(S.page) || S.page === 'thumb')) {
-      S.page = 'home'; S.dlg = null; S.picker = null; S.menu = null; S.appDetail = null; S.cfgFrom = null; S.ringPath = [];
-      toast(`${cd.name} is not connected`);
-    }
     document.documentElement.setAttribute('data-theme', S.theme);
     const pageKey = `${S.mode}|${S.page}|${S.dev}|${S.appDetail ? S.appDetail.key : ''}|${S.devices.length ? 1 : 0}`;
     const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
@@ -880,6 +873,8 @@
   const homePhotoSrc = d => isMouse(d) && TOP_VIEWS[d.id] ? '../assets/devices/' + TOP_VIEWS[d.id] : devicePhotoSrc(d);
   // the foot of the device's page list: battery icon and percentage on a pill, which opens Battery & info
   function navBattery(d) {
+    // not connected: changes are kept and reach the device when it is back
+    if (isOffline(d)) return `<div class="dnav-bat offline" title="Changes are saved and applied when it reconnects"><i class="fa-solid fa-link-slash"></i><span>Not connected</span></div>`;
     const b = d.battery, st = batteryState(b);
     return `<div class="dnav-bat ${b ? st.cls : 'none'}" title="${esc(st.label)}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span>${b.percent}%</span>` : '<span>Info</span>'}${b && b.charging ? '<i class="fa-solid fa-bolt"></i>' : ''}</div>`;
   }
@@ -917,7 +912,7 @@
       const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
       // photo, battery and state only: the name is in the tooltip, the link is an icon
       const linkIcon = d.transport === 'bluetooth' ? '<i class="fa-brands fa-bluetooth-b"></i>' : '<i class="fa-solid fa-wifi"></i>';
-      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" ${off ? 'aria-disabled="true"' : 'data-act="home-open"'} data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? 'Not connected' : esc(link)}">
+      return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? 'Not connected' : esc(link)}">
         <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="${esc(d.name)}">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
         <div class="dev-body centered">
           ${off ? '<div class="dev-state off"><i class="fa-solid fa-link-slash"></i><span class="dev-label">Not connected</span></div>' : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
@@ -1709,12 +1704,10 @@
         if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }); return; }
         if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
-      case 'home-open': { const hd = S.devices.find(x => x.id === key); if (!hd || isOffline(hd)) return; }
-        go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
+      case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
       // Point & scroll opens on the mouse alone, like Buttons; its tag or the mouse opens the panel
-      case 'home-page': { const hd = S.devices.find(x => x.id === key); if (hd && isOffline(hd)) return; }
-        S.blClosed = b.dataset.page === 'pointer' || b.dataset.page === 'easy'; S.ptSel = null; S.esSel = null; go(b.dataset.page, key); return;
+      case 'home-page': S.blClosed = b.dataset.page === 'pointer' || b.dataset.page === 'easy'; S.ptSel = null; S.esSel = null; go(b.dataset.page, key); return;
       case 'es-pick': { const i = Number(b.dataset.cid); if (!S.blClosed && S.esSel === i) { closeDrawer(() => { S.blClosed = true; }); return; } S.esSel = i; S.blClosed = false; render(); return; }
       case 'pt-pick': { const k = b.dataset.cid; if (!S.blClosed && S.ptSel === k) { closeDrawer(() => { S.blClosed = true; }); return; } S.ptSel = k; S.blClosed = false; render(); return; }
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
