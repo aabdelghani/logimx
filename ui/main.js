@@ -183,6 +183,8 @@ function updateTray() {
   else if (!devices.length) items.push({ label: 'No devices', enabled: false });
   for (const d of devices) {
     const b = d.battery;
+    // not connected: its name only, nothing to switch or read until it is back
+    if (d.online === false) { items.push({ label: `${d.name}   not connected`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false }, { type: 'separator' }); continue; }
     const bat = b ? `${b.percent}%${b.charging ? ' · charging' : b.percent <= LOW ? ' · charge soon' : ''}` : 'battery n/a';
     items.push({ label: `${d.name}   ${bat}`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false });
     if (b) items.push({ label: `      ${batteryBar(b.percent)}`, enabled: false });

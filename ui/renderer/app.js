@@ -183,6 +183,13 @@
   let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
   function render() {
     stopRecorder();
+    // a device that is not connected cannot be changed: its view closes back to the device list,
+    // where it stays greyed out until it is back
+    const cd = dev();
+    if (cd && isOffline(cd) && S.page !== 'home' && (devicePages(cd).includes(S.page) || S.page === 'thumb')) {
+      S.page = 'home'; S.dlg = null; S.picker = null; S.menu = null; S.appDetail = null; S.cfgFrom = null; S.ringPath = [];
+      toast(`${cd.name} is not connected`);
+    }
     document.documentElement.setAttribute('data-theme', S.theme);
     const pageKey = `${S.mode}|${S.page}|${S.dev}|${S.appDetail ? S.appDetail.key : ''}|${S.devices.length ? 1 : 0}`;
     const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
@@ -1702,10 +1709,12 @@
         if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }); return; }
         if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
-      case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
+      case 'home-open': { const hd = S.devices.find(x => x.id === key); if (!hd || isOffline(hd)) return; }
+        go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
       // Point & scroll opens on the mouse alone, like Buttons; its tag or the mouse opens the panel
-      case 'home-page': S.blClosed = b.dataset.page === 'pointer' || b.dataset.page === 'easy'; S.ptSel = null; S.esSel = null; go(b.dataset.page, key); return;
+      case 'home-page': { const hd = S.devices.find(x => x.id === key); if (hd && isOffline(hd)) return; }
+        S.blClosed = b.dataset.page === 'pointer' || b.dataset.page === 'easy'; S.ptSel = null; S.esSel = null; go(b.dataset.page, key); return;
       case 'es-pick': { const i = Number(b.dataset.cid); if (!S.blClosed && S.esSel === i) { closeDrawer(() => { S.blClosed = true; }); return; } S.esSel = i; S.blClosed = false; render(); return; }
       case 'pt-pick': { const k = b.dataset.cid; if (!S.blClosed && S.ptSel === k) { closeDrawer(() => { S.blClosed = true; }); return; } S.ptSel = k; S.blClosed = false; render(); return; }
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }

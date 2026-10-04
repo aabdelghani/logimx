@@ -4,6 +4,8 @@
   function render(st) {
     document.documentElement.setAttribute('data-theme', st.theme || 'light');
     const devs = (st.devices || []).map(d => {
+      // not connected: greyed, no battery or Easy-Switch to act on
+      if (d.online === false) return `<div class="dev off"><div class="top"><span class="name"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i>${esc(d.name)}</span><span class="bat" style="color:var(--dim)">not connected</span></div></div>`;
       const b = d.battery; const pct = b ? b.percent : null;
       const color = pct === null ? 'var(--dim)' : pct <= 10 ? 'var(--err)' : pct <= 20 ? 'var(--warn)' : 'var(--ok)';
       const label = pct === null ? 'battery n/a' : `${pct}%${b.charging ? ' · charging' : pct <= 20 ? ' · charge soon' : ''}`;
