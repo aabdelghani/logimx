@@ -243,6 +243,7 @@ async function refreshDevices() {
     const st = await rpc('status');
     general = st.general || {};
     paused = !!st.paused;
+    currentApp = st.app || currentApp;
     devices = await rpc('devices');
     devices.forEach(checkBattery);
   } catch (e) { devices = []; }
@@ -321,6 +322,7 @@ function handleEvent(event, data) {
   }
   else if (event === 'action') { if (data.kind === 'emoji') showEmoji(`${data.device || 'Keyboard'} · Emoji key`); else if (data.kind === 'ring') showRing(data.id, !!data.raw); else if (data.kind === 'ring_release') releaseRing(); else showOsd(data); }
   else if (event === 'ring_move') moveRing(data.dx, data.dy);
+  else if (event === 'app') currentApp = data.app || '';
   else if (event === 'paused') { paused = !!data.paused; updateTray(); }
   else if (event === 'battery') {
     const d = devices.find(x => x.id === data.id);
@@ -454,6 +456,36 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // The window is a transparent square centred on the pointer; the page draws the wedges and
 // reports the picked slot, and the action runs through the agent like any assignment would.
 let ringRawMode = false;
+let currentApp = '';       // window class of the focused application (the agent's 'app' event)
+// the ring for the application in front: one set up for it (its class contains the key, as
+// profiles match), else the ring profile in use
+function ringFor(rs) {
+  const app = (currentApp || '').toLowerCase();
+  for (const [k, v] of Object.entries(rs.apps || {})) {
+    if (!v || !Array.isArray(v.slots)) continue;
+    const match = Array.isArray(v.match) && v.match.length ? v.match : [k];   // the app profile's own match strings
+    if (app && match.some(m => m && app.includes(String(m).toLowerCase()))) return { slots: v.slots, app: k };
+  }
+  const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
+  return { slots: (prof && prof.slots) || rs.slots || [], name: prof && prof.name };
+}
+const RING_SCALE = { small: 0.85, medium: 1, large: 1.2 };
+// a slot by its place: [i] on the ring, [i, j] inside the folder at i
+function ringSlotAt(path) {
+  let list = ringSlots, slot = null;
+  for (let k = 0; k < path.length; k++) {
+    slot = list[path[k]];
+    if (!slot) return null;
+    if (k < path.length - 1) list = (slot.action && slot.action.slots) || [];
+  }
+  return slot;
+}
+// the device a ring action runs through: the one that opened it, else the first connected (so
+// Easy-Switch works from Try it too)
+const ringRunDevice = () => ringDevice || ((devices.find(d => d.online !== false) || devices[0] || {}).id) || null;
+// adjustable actions: the wheel over them steps one way or the other
+const RING_ADJUST = { brightness_up: ['brightness_up', 'brightness_down'], brightness_down: ['brightness_up', 'brightness_down'],
+  zoom_in: ['zoom_in', 'zoom_out'], zoom_out: ['zoom_in', 'zoom_out'], next_track: ['next_track', 'prev_track'], prev_track: ['next_track', 'prev_track'] };
 let ringWin = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
 const ringLog = [];          // how the last openings found the pointer, for the problem report
@@ -509,7 +541,7 @@ function releaseRing() {
 const RING_KEYS = ['Escape', '1', '2', '3', '4', '5', '6', '7', '8'];
 function ringKeysOn() {
   for (const k of RING_KEYS) {
-    try { globalShortcut.register(k, () => { if (!ringWin || ringWin.isDestroyed() || !ringWin.isVisible()) return; if (k === 'Escape') ringWin.hide(); else ringWin.webContents.send('ring-key', { key: k }); }); } catch (e) {}
+    try { globalShortcut.register(k, () => { if (!ringWin || ringWin.isDestroyed() || !ringWin.isVisible()) return; ringWin.webContents.send('ring-key', { key: k }); }); } catch (e) {}
   }
 }
 function ringKeysOff() { for (const k of RING_KEYS) { try { globalShortcut.unregister(k); } catch (e) {} } }
@@ -526,7 +558,8 @@ async function showRing(deviceId, raw) {
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
   const rs = (general || {}).ring || {};   // kept fresh by refreshGeneral, no round trip here
   const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
-  ringSlots = (prof && prof.slots) || rs.slots || [];
+  const pick = ringFor(rs);
+  ringSlots = pick.slots;
   ringRawMode = !!raw;
   ringTravel = rs.travel || 30;
   if (rs.free_pointer) raw = false;   // the pointer stays free: the ring follows it instead of taking the mouse
@@ -546,7 +579,7 @@ async function showRing(deviceId, raw) {
   const send = () => {
     place(); w.show(); offTaskbar(w); ringKeysOn();
     setTimeout(place, 60);   // once, in case the window manager moved it
-    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y } });
+    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y }, scale: RING_SCALE[rs.size] || 1 });
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }
@@ -561,17 +594,43 @@ ipcMain.on('ring-diag', (_e, info) => { ringLog.push(Object.assign({ when: new D
 // page, simply get none
 const ringCue = cue => { if (ringDevice) rpc('haptic_cue', { id: ringDevice, cue }).catch(() => {}); };
 ipcMain.on('ring-hover', () => ringCue('ring_hover'));
-ipcMain.on('ring-pick', async (_e, { index }) => {
-  if (ringWin && !ringWin.isDestroyed()) ringWin.hide();
-  const slot = ringSlots[index];
+ipcMain.on('ring-pick', async (_e, { index, path }) => {
+  const slot = ringSlotAt(path || [index]);
   if (!slot || !slot.action) return;
+  // Next ring profile: the ring stays open and shows the next profile's actions
+  if (slot.action.type === 'ring_profile') {
+    const rs = Object.assign({}, general.ring || {}), n = Array.isArray(rs.profiles) ? rs.profiles.length : 0;
+    if (n < 2) return;
+    rs.active = ((rs.active || 0) + 1) % n;
+    rs.slots = rs.profiles[rs.active].slots;
+    try { general = await rpc('set_general', { ring: rs }); } catch (e) { return; }
+    ringSlots = rs.profiles[rs.active].slots || [];
+    ringCue('ring_run');
+    if (ringWin && !ringWin.isDestroyed()) ringWin.webContents.send('ring-slots', { slots: ringSlots, name: rs.profiles[rs.active].name });
+    notify('agent-event', { event: 'general', data: general });
+    return;
+  }
+  if (slot.action.type === 'folder') return;   // the overlay opens folders itself
+  if (ringWin && !ringWin.isDestroyed()) ringWin.hide();
   ringCue('ring_run');
   const params = { action: slot.action };
-  if (ringDevice) params.id = ringDevice;
+  const runOn = ringRunDevice();
+  if (runOn) params.id = runOn;
   try { await rpc('run_action', params); }
   catch (e) { if (Notification.isSupported()) new Notification({ title: 'Action ring', body: `${slot.label || 'Action'} did not run: ${e.message}` }).show(); }
 });
 ipcMain.handle('ring-show', () => showRing(null, false));
+// the wheel over an adjustable slot: one step of it each notch, the ring staying open
+ipcMain.on('ring-adjust', (_e, { path, dir }) => {
+  const slot = ringSlotAt(path || []);
+  if (!slot) return;
+  const key = typeof slot.action === 'string' ? slot.action : slot.action && slot.action.preset;
+  const pair = RING_ADJUST[key];
+  if (!pair) return;
+  const params = { action: pair[dir > 0 ? 0 : 1] }, runOn = ringRunDevice();
+  if (runOn) params.id = runOn;
+  rpc('run_action', params).catch(() => {});
+});
 // the ring's Volume slot: read and set the default output's level (PipeWire's wpctl, else pactl;
 // on Windows and macOS the agent's Core Audio)
 ipcMain.handle('ring-vol-get', () => !plat.IS_LINUX ? rpc('audio_get').then(a => ({ level: a.volume, muted: !!a.muted })).catch(() => ({ level: 50, muted: false })) : new Promise(res => {

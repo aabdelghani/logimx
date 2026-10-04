@@ -15,7 +15,7 @@
     #ring { position: absolute; inset: 0; }
     @keyframes bub-in { from { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.4); } to { opacity: 1; transform: none; } }
     @keyframes hub-in { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: none; } }
-    .bub { position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--bub); color: var(--bub-fg); display: flex; align-items: center; justify-content: center; font-size: 21px; box-shadow: 0 6px 18px rgba(0,0,0,.28); transition: transform .09s ease-out, background .09s, color .09s; animation: bub-in .28s cubic-bezier(.2,.9,.3,1.25) both; animation-delay: calc(var(--i) * 22ms); }
+    .bub { position: absolute; width: calc(56px * var(--s, 1)); height: calc(56px * var(--s, 1)); margin: calc(-28px * var(--s, 1)) 0 0 calc(-28px * var(--s, 1)); border-radius: 50%; background: var(--bub); color: var(--bub-fg); display: flex; align-items: center; justify-content: center; font-size: calc(21px * var(--s, 1)); box-shadow: 0 6px 18px rgba(0,0,0,.28); transition: transform .09s ease-out, background .09s, color .09s; animation: bub-in .28s cubic-bezier(.2,.9,.3,1.25) both; animation-delay: calc(var(--i) * 22ms); }
     #hub { animation: hub-in .2s cubic-bezier(.2,.9,.3,1.3) both; }
     #slots.moved .bub { animation: none; }
     /* the Volume slot while it is being set: its level out of 100 beside the icon, with a bar */
@@ -27,21 +27,31 @@
     .bub.dialing { background: var(--acc); color: var(--acc-fg); transform: scale(1.14); }
     @media (prefers-reduced-motion: reduce) { .bub, #hub { animation: none; } }
     /* the nub that points from the chosen bubble at its label */
-    .bub::after { content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px 9px 4px 9px; background: inherit; transform: rotate(var(--a)) translateX(24px) rotate(45deg) scale(0); transition: transform .09s ease-out; z-index: -1; }
+    .bub::after { content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px 9px 4px 9px; background: inherit; transform: rotate(var(--a)) translateX(calc(24px * var(--s, 1))) rotate(45deg) scale(0); transition: transform .09s ease-out; z-index: -1; }
     .bub.on { background: var(--acc); color: var(--acc-fg); transform: scale(1.14); }
-    .bub.on::after { transform: rotate(var(--a)) translateX(24px) rotate(45deg) scale(1); }
+    .bub.on::after { transform: rotate(var(--a)) translateX(calc(24px * var(--s, 1))) rotate(45deg) scale(1); }
     .bub.empty { background: transparent; color: var(--card); border: 2px dashed rgba(255,255,255,.75); box-shadow: 0 0 0 1px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.25); box-sizing: border-box; font-size: 15px; opacity: .7; text-shadow: 0 0 3px rgba(0,0,0,.6); }
     .bub.empty.on { opacity: 1; transform: scale(1.06); background: transparent; }
     .bub.empty::after { display: none; }
     .lab { position: absolute; padding: 9px 15px; border-radius: 7px; background: var(--card); color: var(--card-fg); border: 1px solid var(--card-brd); box-shadow: 0 4px 14px rgba(0,0,0,.2); white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .1s; pointer-events: none; }
     /* only the chosen action says its name */
     .lab.on { opacity: 1; box-shadow: 0 0 0 2px var(--acc), 0 6px 18px rgba(0,0,0,.28); }
-    #hub { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; display: none; border-radius: 50%; background: var(--hub); color: var(--hub-fg); display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.2); transition: transform .09s; }
+    #hub { position: absolute; left: 50%; top: 50%; width: calc(40px * var(--s, 1)); height: calc(40px * var(--s, 1)); margin: calc(-20px * var(--s, 1)) 0 0 calc(-20px * var(--s, 1)); display: none; border-radius: 50%; background: var(--hub); color: var(--hub-fg); display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.2); transition: transform .09s; }
     #hub.on { transform: scale(1.12); }
+    /* a folder: a small folder mark on its bubble, a chevron after its name */
+    .bub.folder { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 3px var(--card), 0 0 0 5px var(--acc); }
+    .lab .lab-more { font-size: 11px; opacity: .6; margin-left: 4px; }
+    /* the label flashes when the wheel steps its action */
+    @keyframes pulse { 0% { opacity: 1; box-shadow: 0 0 0 4px var(--acc), 0 6px 18px rgba(0,0,0,.28); } 100% { opacity: 1; } }
+    .lab.pulse { animation: pulse .35s ease-out; }
+    /* the ring profile's name, shown for a moment after Next ring profile */
+    #note { position: absolute; transform: translate(-50%, -100%); padding: 6px 12px; border-radius: 7px; background: var(--acc); color: var(--acc-fg); font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; }
+    @keyframes note { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+    #note.show { animation: note 1.6s ease-out both; }
   </style>
 </head>
 <body>
-  <div id="ring"><div id="slots"></div><div id="hub"><i class="fa-solid fa-xmark"></i></div></div>
+  <div id="ring"><div id="slots"></div><div id="hub"><i class="fa-solid fa-xmark"></i></div><div id="note"></div></div>
   <script src="ring.js"></script>
 </body>
 </html>

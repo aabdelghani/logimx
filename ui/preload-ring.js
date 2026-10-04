@@ -4,7 +4,10 @@ contextBridge.exposeInMainWorld('ring', {
   onRelease: cb => ipcRenderer.on('ring-release', () => cb()),
   onMove: cb => ipcRenderer.on('ring-move', (_e, msg) => cb(msg)),
   onKey: cb => ipcRenderer.on('ring-key', (_e, msg) => cb(msg)),
-  pick: index => ipcRenderer.send('ring-pick', { index }),
+  onSlots: cb => ipcRenderer.on('ring-slots', (_e, msg) => cb(msg)),
+  // a slot by its place: a number on the ring, or [folder, slot] inside a folder
+  pick: at => ipcRenderer.send('ring-pick', Array.isArray(at) ? { path: at } : { index: at }),
+  adjust: (path, dir) => ipcRenderer.send('ring-adjust', { path, dir }),
   hover: index => ipcRenderer.send('ring-hover', { index }),
   close: () => ipcRenderer.send('ring-close'),
   diag: info => ipcRenderer.send('ring-diag', info),

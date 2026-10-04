@@ -3,20 +3,31 @@
 // or a click outside closes. Held on a button that steers it (raw mode), the pointer is hidden
 // and frozen and the mouse picks by direction: a nudge past DEAD chooses the button that way,
 // the highlight is the only indicator, and letting go runs it.
+// A folder slot opens its own ring in place (the middle, or Esc, goes back up). The wheel over
+// an adjustable slot (volume, brightness, zoom, tracks) steps it without closing the ring.
 (() => {
-  const N = 8, RW = 560, RH = 460;   // the ring's own extent; the window is the whole screen
+  const N = 8;
+  const BASE = { RW: 560, RH: 460, RR: 104, B: 28, NEAR: 38, FAR: 250 };
+  let RW = BASE.RW, RH = BASE.RH;      // the ring's own extent; the window is the whole screen
   let CX = RW / 2, CY = RH / 2;       // where the ring is centred, set per show
-  const RR = 104, B = 28;          // ring radius to the bubble centres, bubble radius
-  const NEAR = 38, FAR = 250;      // pointer mode: inside NEAR is the close button, beyond FAR is outside
+  let RR = BASE.RR, B = BASE.B;       // ring radius to the bubble centres, bubble radius (scaled by the ring size)
+  let NEAR = BASE.NEAR, FAR = BASE.FAR;   // pointer mode: inside NEAR is the middle button, beyond FAR is outside
   const GAIN = 1;
   let DEAD = 30, LIMIT = 60;       // travel before a button is chosen, and where the point saturates (set per show)
-  const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub');
-  let slots = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
+  const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub'), note = document.getElementById('note');
+  let slots = [], root = [], stack = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
   let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false;
+  const pad = list => Array.from({ length: N }, (_, i) => (list || [])[i] || null);
+  const keyOf = a => typeof a === 'string' ? a : a && a.preset;
+  const isFolder = i => i >= 0 && slots[i] && slots[i].action && slots[i].action.type === 'folder';
+  const where = i => stack.length ? stack.concat(i) : i;   // a slot's place, inside folders too
   // the Volume slot: pressed and held, dragging right or left sets the level (shown next to its icon,
-  // out of 100); letting go of the click keeps the level and closes the ring
+  // out of 100); letting go of the click keeps the level and closes the ring. The wheel over any
+  // volume slot sets it too, and the ring stays open.
   const PX_PER_STEP = 3;            // pointer travel for one percent
-  let dial = null;                  // { i, level, lastX, ready }
+  const VOLUME = new Set(['volume_dial', 'volume_up', 'volume_down']);
+  const ADJUST = new Set(['brightness_up', 'brightness_down', 'zoom_in', 'zoom_out', 'next_track', 'prev_track']);
+  let dial = null;                  // { i, level, lastX, ready, wheel }
   const isDial = i => i >= 0 && slots[i] && slots[i].action === 'volume_dial';
   function dialShow() {
     if (!dial) return;
@@ -24,9 +35,9 @@
     if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
     if (bub) { bub.classList.add('dialing'); const ic = bub.querySelector('i'); if (ic) ic.className = 'fa-solid ' + (dial.level === 0 ? 'fa-volume-xmark' : dial.level < 40 ? 'fa-volume-low' : 'fa-volume-high'); }
   }
-  async function dialStart(i, y) {
+  async function dialStart(i, x, wheel) {
     if (dial && dial.i === i) return;
-    dial = { i, level: 50, lastX: y, tick: 0, ready: false };
+    dial = { i, level: 50, lastX: x, tick: 0, ready: false, wheel: !!wheel };
     try { const v = await window.ring.volGet(); if (dial && dial.i === i) { dial.level = v.level; dial.ready = true; } } catch (e) { if (dial) dial.ready = true; }
     dialShow();
   }
@@ -42,6 +53,8 @@
     if (Math.floor(dial.level / 5) !== Math.floor(before / 5)) window.ring.hover(dial.i);   // a tick every 5% on mice that can
     dialShow();
   }
+  // a wheel-set volume ends when the pointer leaves that slot: the slot shows its name again
+  function dialEnd() { if (!dial) return; dial = null; build(true); }
   // Wayland: the compositor may still move or resize the full-screen window just after it appears,
   // which shifts a ring drawn in window coordinates away from the pointer. For a short while after
   // opening, the ring follows the pointer it sees; each correction goes into the problem report.
@@ -54,24 +67,27 @@
     CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
     waiting = false;
     hub.style.left = CX + 'px'; hub.style.top = CY + 'px'; hub.style.display = '';
+    note.style.left = CX + 'px'; note.style.top = (CY - NEAR - 14) + 'px';
     slotsEl.classList.toggle('moved', !!again);   // a correction moves the ring without springing it out again
     build();
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
-  function build() {
+  function build(still) {
+    slotsEl.classList.toggle('moved', !!still);
+    hub.querySelector('i').className = 'fa-solid ' + (stack.length ? 'fa-arrow-left' : 'fa-xmark');
     slotsEl.innerHTML = slots.map((s, i) => {
       if (!s) return '';   // an empty slot is not drawn at all
       const c = Math.cos(ang(i)), sn = Math.sin(ang(i));
       const bx = CX + RR * c, by = CY + RR * sn;
+      const folder = s.action && s.action.type === 'folder';
       // each button springs out from the middle, one after another around the ring
-      const bub = `<div class="bub ${s ? '' : 'empty'}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${i * 45 - 90}deg;--i:${i};--dx:${(-RR * c).toFixed(0)}px;--dy:${(-RR * sn).toFixed(0)}px"><i class="fa-solid ${esc(s ? s.icon || 'fa-circle-dot' : 'fa-plus')}"></i></div>`;
-      if (!s) return bub;
+      const bub = `<div class="bub ${folder ? 'folder' : ''}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${i * 45 - 90}deg;--i:${i};--dx:${(-RR * c).toFixed(0)}px;--dy:${(-RR * sn).toFixed(0)}px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
       // the label sits outside the bubble, growing away from the ring
       const lx = CX + (RR + B + 16) * c, ly = CY + (RR + B + 16) * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
-      return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(s.label)}</div>`;
+      return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(s.label)}${folder ? ' <i class="fa-solid fa-chevron-right lab-more"></i>' : ''}</div>`;
     }).join('');
     setHover(-1);
   }
@@ -80,8 +96,26 @@
     hover = i;
     slotsEl.querySelectorAll('.bub, .lab').forEach(w => w.classList.toggle('on', Number(w.dataset.i) === i));
   }
+  // into a folder: its own ring in the same place; back up: the ring it came from
+  function enter(i) {
+    stack.push(i); slots = pad(slots[i].action.slots); dial = null; vx = vy = 0;
+    build(); hub.classList.remove('on');
+  }
+  function up() {
+    stack.pop();
+    let list = root; for (const k of stack) list = pad(list[k].action.slots);
+    slots = list; dial = null; vx = vy = 0;
+    build(); hub.classList.remove('on');
+  }
+  // run what is chosen, or open it when it is a folder
+  function choose(i) {
+    if (i < 0 || !slots[i]) return;
+    if (isFolder(i)) { enter(i); return; }
+    window.ring.pick(where(i));
+  }
+  function flash(i) { const lab = slotsEl.querySelector(`.lab[data-i="${i}"]`); if (!lab) return; lab.classList.remove('pulse'); void lab.offsetWidth; lab.classList.add('pulse'); }
   const wedge = (dx, dy) => Math.floor(((Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360 + 22.5) % 360) / 45) % N;
-  // pointer mode: which button is meant by (x, y); -1 on the close button or outside
+  // pointer mode: which button is meant by (x, y); -1 on the middle button or outside
   function at(x, y) {
     const dx = x - CX, dy = y - CY, d = Math.hypot(dx, dy);
     if (d < NEAR || d > FAR) return -1;
@@ -90,8 +124,9 @@
   document.addEventListener('mousemove', e => {
     if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); settleUntil = performance.now() + SETTLE_MS; settled = 0; return; }   // first sight of the pointer: the ring goes there
     if (raw) return;
-    if (dial) { dialMove(e.clientX - dial.lastX); dial.lastX = e.clientX; return; }   // pressed on the Volume slot: right and left set the level
-    if (performance.now() < settleUntil && hover < 0) {
+    if (dial && !dial.wheel) { dialMove(e.clientX - dial.lastX); dial.lastX = e.clientX; return; }   // pressed on the Volume slot: right and left set the level
+    if (dial && dial.wheel && at(e.clientX, e.clientY) !== dial.i) dialEnd();
+    if (performance.now() < settleUntil && hover < 0 && !stack.length) {
       const dx = e.clientX - CX, dy = e.clientY - CY;
       if (Math.hypot(dx, dy) > 1 && Math.hypot(dx, dy) < 160) {
         centreAt(e.clientX, e.clientY, true);
@@ -103,29 +138,53 @@
     hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
     const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i);
   });
-  // the wheel over the ring turns the volume while the Volume slot is chosen
-  document.addEventListener('wheel', e => { if (dial) { e.preventDefault(); dialMove(e.deltaY > 0 ? -PX_PER_STEP * 2 : PX_PER_STEP * 2); } }, { passive: false });
+  // the wheel: sets a volume slot (shown out of 100), steps brightness, zoom or tracks
+  document.addEventListener('wheel', async e => {
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? 1 : -1;
+    if (dial) { dialMove(dir * PX_PER_STEP * 2); return; }
+    const i = hover; if (i < 0 || !slots[i]) return;
+    const k = keyOf(slots[i].action);
+    if (VOLUME.has(k)) { await dialStart(i, 0, true); dialMove(dir * PX_PER_STEP * 2); return; }
+    if (ADJUST.has(k)) { window.ring.adjust([].concat(where(i)), dir); flash(i); }
+  }, { passive: false });
   document.addEventListener('mouseleave', () => { if (!raw) { setHover(-1); hub.classList.remove('on'); } });
   document.addEventListener('mousedown', e => {
     const di = raw ? hover : at(e.clientX, e.clientY);
     if (isDial(di)) { setHover(di); dialStart(di, e.clientX); return; }
-    if (raw) { if (hover >= 0 && slots[hover]) window.ring.pick(hover); return; }   // a click while steering picks the highlighted button
+    if (raw) { if (hover >= 0 && slots[hover]) choose(hover); else if (stack.length) up(); return; }   // a click while steering picks the highlighted button
     const i = at(e.clientX, e.clientY);
-    if (i >= 0 && slots[i]) window.ring.pick(i); else window.ring.close();
+    if (i >= 0 && slots[i]) { choose(i); return; }
+    // the middle button goes back up out of a folder; elsewhere it (or outside) closes
+    if (stack.length && Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR) { up(); return; }
+    window.ring.close();
   });
-  document.addEventListener('mouseup', () => { if (dial) { dial = null; window.ring.close(); } });
-  // keys arrive from the main process (the window has no focus of its own); Esc is handled there
-  window.ring.onKey(({ key }) => { const n = Number(key); if (n >= 1 && n <= N && slots[n - 1]) window.ring.pick(n - 1); });
+  document.addEventListener('mouseup', () => { if (dial && !dial.wheel) { dial = null; window.ring.close(); } });
+  // keys arrive from the main process (the window has no focus of its own)
+  window.ring.onKey(({ key }) => {
+    if (key === 'Escape') { if (stack.length) up(); else window.ring.close(); return; }
+    const n = Number(key); if (n >= 1 && n <= N && slots[n - 1]) choose(n - 1);
+  });
+  // Next ring profile: the same ring, the next profile's actions, its name shown for a moment
+  window.ring.onSlots(({ slots: next, name }) => {
+    root = pad(next); stack = []; slots = root; dial = null; vx = vy = 0;
+    build();
+    if (name) { note.textContent = name; note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }
+  });
   window.ring.onShow(msg => {
     // dressed like the desktop it opens on: its light or dark, its accent colour, its font
-    const look = msg.look || {}, root = document.documentElement;
-    root.dataset.theme = look.dark ? 'dark' : 'light';
-    if (look.accent) { root.style.setProperty('--acc', look.accent); root.style.setProperty('--acc-fg', look.accentFg || '#fff'); }
+    const look = msg.look || {}, rootEl = document.documentElement;
+    rootEl.dataset.theme = look.dark ? 'dark' : 'light';
+    if (look.accent) { rootEl.style.setProperty('--acc', look.accent); rootEl.style.setProperty('--acc-fg', look.accentFg || '#fff'); }
     if (look.font) document.body.style.fontFamily = `"${look.font}", system-ui, sans-serif`;
-    slots = Array.from({ length: N }, (_, i) => (msg.slots || [])[i] || null);
+    // the ring's size: everything in it scales together
+    const s = Math.max(0.6, Math.min(1.6, Number(msg.scale) || 1));
+    rootEl.style.setProperty('--s', s);
+    RW = BASE.RW * s; RH = BASE.RH * s; RR = BASE.RR * s; B = BASE.B * s; NEAR = BASE.NEAR * s; FAR = BASE.FAR * s;
+    root = pad(msg.slots); stack = []; slots = root;
     shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
-    hub.classList.remove('on');
+    hub.classList.remove('on'); note.classList.remove('show');
     setRaw(!!msg.raw);
     size = msg.size || { w: RW, h: RH }; guess = msg.guess || null; openedAt = performance.now(); told = false;
     settleUntil = 0;
@@ -139,7 +198,8 @@
   });
   window.ring.onMove(({ dx, dy }) => {
     if (!raw) setRaw(true);
-    if (dial) { dialMove(dx); return; }
+    if (dial && !dial.wheel) { dialMove(dx); return; }
+    if (dial && dial.wheel) dialEnd();
     vx += dx * GAIN; vy += dy * GAIN;
     const d = Math.hypot(vx, vy);
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
@@ -152,7 +212,9 @@
   window.ring.onRelease(() => {
     if (dial) return;
     if (isDial(hover)) { if (raw) setRaw(false); return; }   // Volume is pressed, not picked by letting go: keep the ring open for it
-    if (hover >= 0 && slots[hover]) { window.ring.pick(hover); return; }
+    // a folder chosen by letting go opens, and stays open for the pointer to pick inside it
+    if (isFolder(hover)) { enter(hover); setRaw(false); return; }
+    if (hover >= 0 && slots[hover]) { choose(hover); return; }
     const tap = Date.now() - shownAt < 350;
     if (raw) {
       // nothing chosen: a quick tap hands the ring to the pointer for a click, a longer hold cancels

@@ -61,7 +61,7 @@
     if (a.type === 'nothing') return 'Disabled';
     return a.label || a.type;
   };
-  const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor' };
+  const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor', folder: 'fa-folder', ring_profile: 'fa-layer-group' };
   const PRESET_ICON = { action_ring: 'fa-circle-notch', volume_dial: 'fa-volume-high', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
     copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
     mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
@@ -175,7 +175,7 @@
   const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy', 'flow'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
-  function go(page, devId) { if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
+  function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
 
   // ============================================================ render
   // Animations run when something new appears, not on every refresh: the page when it is
@@ -975,21 +975,41 @@
   const RING_DIRS = ['Top', 'Top right', 'Right', 'Bottom right', 'Bottom', 'Bottom left', 'Left', 'Top left'];
   // The ring keeps several sets of eight actions (profiles); one is in use. Older settings had a
   // single list of slots, which becomes the first profile.
+  const eight = a => Array.from({ length: 8 }, (_, i) => (a || [])[i] || null);
   function ringState() {
     const r = S.general.ring || {};
-    const eight = a => Array.from({ length: 8 }, (_, i) => (a || [])[i] || null);
     let profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map(p => ({ name: p.name || 'Profile', slots: eight(p.slots) })) : [{ name: 'Default', slots: eight(r.slots) }];
     const active = Math.max(0, Math.min(profiles.length - 1, Number(r.active) || 0));
-    return { profiles, active, travel: r.travel || 30, free_pointer: !!r.free_pointer };
+    const apps = r.apps && typeof r.apps === 'object' ? JSON.parse(JSON.stringify(r.apps)) : {};
+    return { profiles, active, apps, size: r.size || 'medium', travel: r.travel || 30, free_pointer: !!r.free_pointer };
   }
-  const ringSlots = () => { const r = ringState(); return r.profiles[r.active].slots.slice(); };
+  // with an application picked in the profile bar the ring edited is that application's own (the
+  // global one until something is changed); inside a folder, the folder's eight
+  const ringApp = () => S.editProfile && S.editProfile !== 'default' ? S.editProfile : null;
+  const ringTop = r => { const k = ringApp(); return eight(k && r.apps[k] ? r.apps[k].slots : r.profiles[r.active].slots); };
+  const isFolderSlot = sl => !!(sl && sl.action && sl.action.type === 'folder');
+  const ringFolder = top => { const i = (S.ringPath || [])[0], f = i != null ? top[i] : null; return isFolderSlot(f) ? f : null; };
+  const ringSlots = () => { const top = ringTop(ringState()), f = ringFolder(top); return eight(f ? f.action.slots : top); };
   async function saveRing(patch) {
     const r = Object.assign(ringState(), patch);
     r.active = Math.max(0, Math.min(r.profiles.length - 1, r.active));
     r.slots = r.profiles[r.active].slots;   // what the overlay of an older build reads
     await setGeneral({ ring: r });
   }
-  const saveRingSlots = slots => { const r = ringState(); r.profiles[r.active].slots = slots; return saveRing({ profiles: r.profiles }); };
+  function saveRingSlots(slots) {
+    const r = ringState(), k = ringApp();
+    let top = ringTop(r);
+    const f = ringFolder(top);
+    if (f) top[S.ringPath[0]] = Object.assign({}, f, { action: Object.assign({}, f.action, { slots }) }); else top = slots;
+    if (k) {
+      const prof = deviceProfiles(dev()).find(x => x.key === k);
+      r.apps[k] = { slots: top, match: prof && prof.match.length ? prof.match : [k] };
+      return saveRing({ apps: r.apps });
+    }
+    r.profiles[r.active].slots = top;
+    return saveRing({ profiles: r.profiles });
+  }
+  const ringAppName = () => { const k = ringApp(), prof = k && deviceProfiles(dev()).find(x => x.key === k); return prof ? prof.name : k; };
   // Gestures & action ring in a device's view, laid out like the keyboard: the ring in the middle with
   // each slot's action beside it; a slot opens its actions in the panel on the right
   function ringStage() {
@@ -998,14 +1018,20 @@
       const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
-      return `<button class="rs-chip ${sl ? '' : 'empty'} ${ringEditing(i) ? 'selected' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>` +
-        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(sl ? sl.label : 'Empty')}</div>`;
+      return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>` +
+        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(sl ? sl.label : 'Empty')}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>`;
     }).join('');
-    return `<div class="ring-stage"><div class="rs-disc">${parts}<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div></div></div>`;
+    // inside a folder the middle goes back up, and the folder's name sits above the ring
+    const top = ringTop(ringState()), f = ringFolder(top);
+    const hub = f ? `<button class="rs-hub back" data-act="ring-up" title="Back to the ring"><i class="fa-solid fa-arrow-left"></i></button>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
+    const where = f ? `<div class="rs-where"><i class="fa-solid fa-folder-open"></i>${esc(f.label || 'Folder')}</div>` : ringApp() ? `<div class="rs-where"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())}${ringState().apps[ringApp()] ? '' : ' · uses the global ring'}</div>` : '';
+    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''}">${parts}${hub}</div></div>`;
   }
   // the ring's profiles, from the panel head: switch, add one, or remove the one in use
   function ringProfileMenu() {
     const rs = ringState(), cur = rs.profiles[rs.active];
+    const k = ringApp();
+    if (k) return rs.apps[k] ? `<button class="hbtn prof-btn" data-act="ring-app-drop" title="Drop this application's ring and use the global one"><i class="fa-solid fa-globe"></i><span>Use the global ring</span></button>` : '';
     const list = rs.profiles.map((pr, i) => `<button data-act="ring-profile" data-key="${i}"><i class="fa-solid fa-layer-group"></i>${esc(pr.name)}${i === rs.active ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('');
     const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">Ring profiles</div>${list}<div class="sep"></div><button data-act="ring-profile-add"><i class="fa-solid fa-plus"></i>New profile</button>${rs.profiles.length > 1 ? `<button data-act="ring-profile-delete" class="danger"><i class="fa-solid fa-trash"></i>Remove "${esc(cur.name)}"</button>` : ''}</div>` : '';
     return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="Ring profile"><i class="fa-solid fa-layer-group"></i><span>${esc(cur.name)}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;
@@ -1015,7 +1041,9 @@
     const rs = ringState();
     const free = row('Keep the pointer visible and free', rs.free_pointer ? 'The pointer moves anywhere; the action under it is chosen' : 'The pointer hides and the mouse steers the ring', sw(rs.free_pointer, 'data-act="ring-free"'));
     const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">Travel before it picks</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
-    return `<div class="ring-behaviour">${sec('Ring behaviour', card(free + feel))}</div>`;
+    const sz = (key, l) => `<button class="${rs.size === key ? 'on' : ''}" data-act="ring-size" data-key="${key}">${l}</button>`;
+    const size = `<div class="row"><span class="grow lbl">Ring size</span><span class="seg">${sz('small', 'Small')}${sz('medium', 'Medium')}${sz('large', 'Large')}</span></div>`;
+    return `<div class="ring-behaviour">${sec('Ring behaviour', card(size + free + feel))}</div>`;
   }
   const ringEditing = i => drawerUp() && S.picker.section === 'ring' && S.picker.cid === i;
   function pageRing() {
@@ -1234,7 +1262,25 @@
   const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
   const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
   // the presets a control can take: keys never get the ring, gestures only on a button that can be held and moved
-  const RING_RECOMMEND = ['volume_dial', 'overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause'];
+  const RING_RECOMMEND = ['volume_dial', 'overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3'];
+  // turned with the wheel while the ring is open
+  const RING_WHEEL = new Set(['volume_dial', 'volume_up', 'volume_down', 'brightness_up', 'brightness_down', 'zoom_in', 'zoom_out', 'next_track', 'prev_track']);
+  // Easy-Switch named after the computer on that channel, when the mouse knows it
+  function easyLabel(k) {
+    const m = /^easy_switch_(\d)$/.exec(k || ''); if (!m) return null;
+    const d = S.devices.find(x => x.id === S.dev && (x.state || {}).hosts) || S.devices.find(x => (x.state || {}).hosts);
+    const n = d && ((d.state.hosts.names || [])[Number(m[1]) - 1] || {}).name;
+    return n ? `Switch to ${n}` : null;
+  }
+  // the ring's own actions: a folder of eight more, and the next ring profile
+  function ringOwnRows(p) {
+    const cur = p.current && typeof p.current === 'object' ? p.current.type : null;
+    const rows = [];
+    if (!(S.ringPath || []).length) rows.push(`<button class="act ${cur === 'folder' ? 'on' : ''}" data-act="pick-item" data-key="ring:folder"><i class="fa-solid fa-folder ic"></i><span class="t">${cur === 'folder' ? esc(presetLabel(p.current)) : 'New folder'}</span><span class="m">Opens eight more</span><i class="fa-solid fa-check chk"></i></button>`);
+    if (cur === 'folder') rows.push(`<button class="act ring-cfg" data-act="ring-open-folder"><i class="fa-solid fa-folder-open ic"></i><span class="t">Open folder</span><span class="m">Edit its eight actions</span><i class="fa-solid fa-arrow-right more"></i></button>`);
+    if (!ringApp()) rows.push(`<button class="act ${cur === 'ring_profile' ? 'on' : ''}" data-act="pick-item" data-key="ring:profile"><i class="fa-solid fa-layer-group ic"></i><span class="t">Next ring profile</span><span class="m">Stays open</span><i class="fa-solid fa-check chk"></i></button>`);
+    return rows.join('');
+  }
   const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
   const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
   const allowedFor = p => new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && (S.presets.all[k] || {}).type !== 'gesture')
@@ -1251,9 +1297,10 @@
       const ok = allowedFor(p), mouse = p.section === 'buttons' || p.section === 'thumbwheel';
       // a ring slot or a gesture has no function of its own: only suggestions
       if (p.section === 'ring' || p.section === 'gesture') {
-        const sugg = (p.section === 'ring' ? RING_RECOMMEND : GESTURE_RECOMMEND).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
+        const ring = p.section === 'ring';
+        const sugg = (ring ? RING_RECOMMEND : GESTURE_RECOMMEND).filter(k => ok.has(k) && S.presets.all[k]).map(k => { const i = presetItem(k), es = ring && easyLabel(k); if (es) i.label = es; if (ring && RING_WHEEL.has(k)) i.meta = 'Wheel adjusts'; return i; });
         const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
-        return `<div class="acts">${sugg.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+        return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
       }
       const r = mouse ? null : RECOMMEND[p.cid];
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
@@ -1617,7 +1664,7 @@
     const p = S.picker; const d = S.devices.find(x => x.id === p.dev);
     if (p.section === 'ring') {
       const slots = ringSlots();
-      slots[p.cid] = { action, label: presetLabel(action), icon: actionIcon(action) };
+      slots[p.cid] = { action, label: easyLabel(action) || presetLabel(action), icon: actionIcon(action) };
       await saveRingSlots(slots);
       if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; render(); toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); return; }
       S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
@@ -1698,7 +1745,7 @@
       case 'flow-peer-del': { const peers = ((S.flow || {}).peers || []).slice(); peers.splice(Number(b.dataset.i), 1); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
-      case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
+      case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.ringPath = []; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
       case 'pf-add': { if (S.addPanel) return; S.addPanel = true; S.addSel = []; S.dlg = null; S.picker = null; S.previewProfile = null; if (!S.apps) { try { S.apps = await window.agent.call('applications'); } catch (e) { S.apps = []; } } render(); return; }
       case 'add-pick': {
         // tick or untick; the bar shows the ticked ones at once, faded until Add
@@ -1777,14 +1824,29 @@
       case 'rec-open': { const p = S.picker; p.q = ''; p.fold = Object.assign({}, p.fold, { rec: true }); p.sel = null; p.selKey = null; if (p.cat === 'key') { stopRecorder(); p.recording = false; p.cat = 'all'; } else { p.cat = 'key'; p.recording = true; } render(); return; }
       case 'pick-key': { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; root.querySelectorAll('.drawer .act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-key' && x.dataset.key === key)); root.querySelectorAll('.drawer .kc').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return; }
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
-      case 'pick-item': if (S.picker.drawer) return assignPicked(key); S.picker.sel = key; root.querySelectorAll(S.picker.drawer ? '.drawer .act, .drawer .kc' : '.act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-item' && x.dataset.key === key)); return;
+      case 'pick-item':
+        if (key === 'ring:profile') return assignPicked({ type: 'ring_profile', label: 'Next ring profile' });
+        if (key === 'ring:folder') {
+          if (isFolderSlot({ action: S.picker.current })) return;
+          prompt('New folder', [{ key: 'name', label: 'Name', placeholder: 'Media, Windows, Apps…' }], async v => {
+            const name = (v.name || '').trim() || 'Folder';
+            await assignPicked({ type: 'folder', label: name, slots: [] });
+            const slots = ringSlots(); slots[S.picker.cid].label = name; slots[S.picker.cid].icon = 'fa-folder'; await saveRingSlots(slots); render();
+          }, 'Create');
+          return;
+        }
+        if (S.picker.drawer) return assignPicked(key); S.picker.sel = key; root.querySelectorAll(S.picker.drawer ? '.drawer .act, .drawer .kc' : '.act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-item' && x.dataset.key === key)); return;
       case 'rec-start': if (S.picker.drawer) S.picker.cat = 'key'; if (S.picker.recording) return; S.picker.recording = true; render(); return;
       case 'pick-launch': { if (S.picker.drawer) { S.picker.cat = 'app'; S.picker.launch = key; S.picker.cmd = S.picker.text = S.picker.open = ''; return onAction('pick-assign'); } S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
+      case 'ring-size': await saveRing({ size: key }); render(); return;
+      case 'ring-open-folder': S.ringPath = [S.picker.cid]; S.picker.cid = 0; S.picker.label = RING_DIRS[0]; S.picker.current = (ringSlots()[0] || {}).action || null; render(); return;
+      case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
+      case 'ring-app-drop': { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); render(); return; }
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
       case 'ring-free': await saveRing({ free_pointer: !b.classList.contains('on') }); render(); return;
-      case 'ring-profile': await saveRing({ active: Number(key) }); S.menu = null; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; render(); return;
+      case 'ring-profile': S.ringPath = []; await saveRing({ active: Number(key) }); S.menu = null; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; render(); return;
       case 'ring-profile-add': S.menu = null; prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); render(); }, 'Create'); return;
       case 'ring-profile-copy': { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast('Profile duplicated'); render(); return; }
       case 'ring-profile-rename': { const r = ringState(); prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return render(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); render(); }, 'Rename'); return; }
@@ -2003,6 +2065,7 @@
     }
     else if (event === 'battery') { const d = S.devices.find(x => x.id === data.id); if (d) { d.battery = data.battery; render(); } }
     else if (event === 'app') { S.status.app = data.app || ''; }
+    else if (event === 'general') { S.general = data || {}; render(); }
     else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) d.profile = data.profile; }
     else if (event === 'backlight') { const d = S.devices.find(x => x.id === data.id); if (d && d.state && d.state.backlight) { d.state.backlight.current_level = data.level; if (S.page === 'backlight') render(); } }
     else if (event === 'record') {

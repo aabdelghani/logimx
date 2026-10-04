@@ -965,3 +965,14 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .gs-cell.on i, .gs-cell.on .gs-k, .gs-cell.on .gs-d { color: #fff; }
 .gs-opts { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 12px; }
 .gs-opts .chips { justify-content: center; }
+/* action ring: a folder slot, the folder or application being edited, the middle as a way back */
+.ring-stage { position: relative; }
+.rs-where { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accbg) 12%, transparent); color: var(--fg); font-weight: 600; font-size: 14px; white-space: nowrap; z-index: 1; }
+.rs-where i { color: var(--accbg); }
+.rs-chip.folder { box-shadow: 0 6px 16px rgba(0,0,0,.22), 0 0 0 3px var(--win), 0 0 0 5px var(--accbg); }
+.rs-lab .rs-more { font-size: 11px; opacity: .6; margin-left: 3px; }
+button.rs-hub { border: 0; cursor: pointer; font: inherit; }
+.rs-hub.back { background: var(--accbg); color: #fff; transition: transform .14s; }
+.rs-hub.back:hover { transform: scale(1.08); }
+.rs-hub.back i { font-size: 20px !important; }
+.rs-disc.in-folder::before { border-color: color-mix(in srgb, var(--accbg) 50%, transparent); }
