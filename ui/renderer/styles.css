@@ -920,8 +920,10 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .pf-x:hover { background: var(--err); color: #fff; }
 .pf-wrap:hover .pf-x { display: flex; }
 /* the name, shown at once on hover (the native tooltip waits a second) */
-.pf[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; translate: -50% 0; white-space: nowrap; padding: 5px 9px; border-radius: 7px; background: var(--fg); color: var(--win); font: 600 12px var(--font); pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 30; }
-.pf[data-tip]:hover::after { opacity: 1; }
+.pf[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; translate: -50% 0; white-space: nowrap; padding: 5px 9px; border-radius: 7px; background: var(--fg); color: var(--win); font: 600 12px var(--font); pointer-events: none; z-index: 30; display: none; }
+/* shown only on hover: a hidden one would still widen the page near the window's right edge */
+.pf[data-tip]:hover::after { display: block; }
+.pbar > :last-child .pf[data-tip]::after, .pbar > .pf:last-child[data-tip]::after { left: auto; right: 0; translate: none; }
 /* on the photo: what the shown app profile changes */
 .ms-lab.pv .d { color: var(--accbg); }
 .ms-lab.pv .k::after { content: " · app"; color: var(--accbg); }
@@ -946,3 +948,6 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .add-panel .dlg-body > .acts { flex: none; min-height: 0; overflow: visible; }
 /* ticked in the add panel, not added yet */
 .pf.pending { opacity: .55; border: 2px dashed var(--accbg); background: transparent; cursor: default; }
+/* battery pill: the window colour on the status colour, readable in light and dark themes alike
+   (the dark themes use light status colours) */
+.dnav-bat, .dnav-bat i { color: var(--win); }

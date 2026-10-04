@@ -881,7 +881,12 @@ ipcMain.handle('app-icon', async (_e, spec) => {
       for (const r of roots) for (const s of sizes) for (const ext of ['png', 'svg']) tries.push(path.join(r, 'hicolor', s, 'apps', `${name}.${ext}`));
       for (const ext of ['png', 'svg', 'xpm']) tries.push(path.join('/usr/share/pixmaps', `${name}.${ext}`));
       const hit = tries.find(f => { try { return fs.statSync(f).isFile(); } catch (e) { return false; } });
-      if (hit && !hit.endsWith('.xpm')) url = `data:${hit.endsWith('.svg') ? 'image/svg+xml' : 'image/png'};base64,${fs.readFileSync(hit).toString('base64')}`;
+      if (hit && !hit.endsWith('.xpm')) {
+        // only real images: some packages ship a placeholder (a Git LFS pointer) under an icon's name
+        const buf = fs.readFileSync(hit), svg = hit.endsWith('.svg');
+        const real = svg ? /<svg[\s>]/i.test(buf.slice(0, 4096).toString('utf8')) : buf.length > 8 && buf.readUInt32BE(0) === 0x89504e47;
+        if (real) url = `data:${svg ? 'image/svg+xml' : 'image/png'};base64,${buf.toString('base64')}`;
+      }
     }
   } catch (e) {}
   appIcons.set(key, url);
