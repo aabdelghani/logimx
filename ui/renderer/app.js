@@ -213,7 +213,7 @@
     if (mid) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
     // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
     const blMid = root.querySelector('.devview2.panel-open .dev-config');
-    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin')) closeDrawer(() => { S.blClosed = true; }); });
+    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { S.blClosed = true; }); });
   }
   // The keyboard moves and resizes when the panel opens or closes: draw it where it was and let it
   // glide to its new place, instead of snapping.
@@ -436,8 +436,8 @@
   // 'thumb' for the thumb wheel) and where it is on the photo; its number is the row it has on the
   // Buttons page, so the two always agree. A mouse without an entry shows the rows only.
   const MOUSE_PHOTOS = (() => {
-    const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
-    const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
+    const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, pt: [['wheel', 690, 300], ['thumb', 520, 770], ['pointer', 640, 1250]], spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
+    const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303], ['thumb', 577, 899], ['pointer', 700, 1220]], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
     return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4 };
   })();
   const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
@@ -587,33 +587,62 @@
   }
   // Point & scroll, laid out like the keyboard's Backlight: the mouse with a tag saying how it is set,
   // its settings in the panel on the right (the tag opens the panel again once it is closed)
-  function pointerTag(d) {
-    const st = d.state || {}, s = d.config.settings || {}, ss = s.smartshift || {};
-    const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000), speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
-    const ssOn = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
-    const bits = [`${dpi} DPI`, `speed ${speed}`, ssOn ? 'SmartShift on' : 'Free spin'];
-    return `<div class="kb-pin bl-pin" data-act="bl-open" title="Point & scroll settings"><span class="k">Point &amp; scroll</span><span class="d">${esc(bits.join(' · '))}</span></div>`;
+  // Point & scroll on the mouse photo, laid out like Buttons: a ring on the scroll wheel, the thumb
+  // wheel and the body (pointer speed), each named beside it; a ring opens its settings on the right
+  const PT_NAMES = { wheel: 'Scroll wheel', thumb: 'Thumb wheel', pointer: 'Pointer speed' };
+  function ptSummary(d, k) {
+    const st = d.state || {}, s = d.config.settings || {};
+    if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${dpi} DPI · speed ${Math.round(((s.pointer_speed ?? 0) + 1) * 50)}`; }
+    if (k === 'wheel') { const ss = s.smartshift || {}; return (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet' ? 'SmartShift on' : 'Free spin'; }
+    return presetLabel(assignment(d, 'thumbwheel'));
+  }
+  function pointPhoto(d) {
+    const P = MOUSE_PHOTOS[d.id];
+    const shown = P.pt.filter(([k]) => k !== 'thumb' || d.controls.length);
+    const on = k => backlightPanel(d) && S.ptSel === k;
+    const spots = shown.map(([k, x, y]) => `<g class="hotspot ms pt ${on(k) ? 'selected' : ''}" data-cid="${k}" data-name="${esc(PT_NAMES[k])}"><circle class="ring" cx="${x}" cy="${y}" r="40"/></g>`).join('');
+    const GAP = 150, place = {};
+    for (const side of ['l', 'r']) {
+      let prev = -Infinity;
+      shown.filter(([, x]) => (x < P.w / 2) === (side === 'l')).sort((p, q) => p[2] - q[2]).forEach(([k, , y]) => { const ly = Math.max(y, prev + GAP); place[k] = ly; prev = ly; });
+    }
+    const lines = shown.map(([k, x, y]) => { const left = x < P.w / 2, ly = place[k]; return `<polyline class="ms-line ${on(k) ? 'on' : ''}" points="${left ? x - 40 : x + 40},${y} ${left ? -20 : P.w + 20},${ly}"/>`; }).join('');
+    const labels = shown.map(([k, x]) => `<div class="ms-lab ${x < P.w / 2 ? 'l' : 'r'} ${on(k) ? 'on' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(PT_NAMES[k])}</span><span class="d">${esc(ptSummary(d, k))}</span></div>`).join('');
+    return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
   function pagePointer(d) {
-    if (MOUSE_PHOTOS[d.id]) return `<div class="photo-card ms-photo"><div class="ms-open" data-act="bl-toggle" title="Point & scroll settings">${mousePhoto(d, true)}</div>${pointerTag(d)}</div>`;
-    return pointerSettings(d);
+    if (MOUSE_PHOTOS[d.id]) return `<div class="photo-card ms-photo">${pointPhoto(d)}</div>`;
+    return pointerSettings(d) + thumbSettings(d);
   }
-  function pointerSettings(d) {
+  function pointerSettings(d, only) {
     const st = d.state || {}, s = d.config.settings || {};
     const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000);
     const [min, max, step] = st.dpi && st.dpi.stepped ? st.dpi.levels : [200, 8000, 50];
     const speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
     const ss = s.smartshift || {}, hr = s.hires || {};
     const ssOn = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
-    return sec('Pointer', card(
+    const pointer = sec('Pointer', card(
       `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">DPI</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
-      `<div class="row"><span class="grow lbl">Desktop pointer speed</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`)) +
-      sec('Scroll wheel', card(
+      `<div class="row"><span class="grow lbl">Desktop pointer speed</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
+    const wheel = sec('Scroll wheel', card(
         row('SmartShift', 'Switch from ratchet to free-spin when the wheel is flicked', sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
         `<div class="row"><span class="grow lbl">SmartShift sensitivity</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` +
         ((st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">Ratchet force</div><div class="sub">How firm each step of the wheel feels</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '') +
         row('Smooth scrolling', 'High-resolution wheel events', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"')) +
         row('Natural scroll direction', '', sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"'))));
+    return only === 'pointer' ? pointer : only === 'wheel' ? wheel : pointer + wheel;
+  }
+  // the thumb wheel's action, direction and speed
+  function thumbSettings(d) {
+    if (!d.controls.length) return '';
+    const tw = assignment(d, 'thumbwheel');
+    const twInvert = !!((d.config.settings || {}).thumbwheel || {}).invert;
+    const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
+    const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
+    return sec('Thumb wheel', card(
+      `<div class="row"><span class="grow lbl">Action</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` +
+      row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
+      `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`));
   }
 
   const WHEEL_ACTIONS = [['hscroll', 'Horizontal scroll'], ['vscroll', 'Vertical scroll'], ['zoom_wheel', 'Zoom'], ['volume_wheel', 'Volume'], ['tabs_wheel', 'Switch tabs'], ['workspaces_wheel', 'Workspaces'], ['brightness_wheel', 'Brightness']];
@@ -1153,8 +1182,8 @@
   const BL_STEPS = 6;
   function renderPointerPanel(d) {
     return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
-      <div class="dlg-head"><span class="dh-key">Modify settings</span><span class="dh-sub">Point &amp; scroll</span></div>
-      <div class="dlg-body">${pointerSettings(d)}</div>
+      <div class="dlg-head"><span class="dh-key">Modify settings</span><span class="dh-sub">${esc(PT_NAMES[S.ptSel] || 'Point & scroll')}</span></div>
+      <div class="dlg-body">${S.ptSel === 'thumb' ? thumbSettings(d) : pointerSettings(d, S.ptSel)}</div>
     </div></div>`;
   }
   function renderBacklightPanel(d) {
@@ -1288,7 +1317,8 @@
     root.querySelectorAll('.nav-item').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.dev || S.dev));
     // a button's name beside the mouse opens it just like its ring
     root.querySelectorAll('.ms-lab[data-ring]').forEach(l => l.onclick = () => { const h = root.querySelector(`.hotspot.ms[data-cid="${l.dataset.ring}"]`); if (h && h.onclick) h.onclick(); });
-    root.querySelectorAll('.hotspot').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
+    root.querySelectorAll('.hotspot.pt').forEach(h => h.onclick = () => onAction('pt-pick', h));
+    root.querySelectorAll('.hotspot:not(.pt)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
     root.querySelectorAll('[data-act]').forEach(b => {
       const act = b.dataset.act;
       if (b.tagName === 'INPUT' && b.type === 'range') {
@@ -1434,8 +1464,8 @@
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
       // Point & scroll opens on the mouse alone, like Buttons; its tag or the mouse opens the panel
-      case 'home-page': S.blClosed = b.dataset.page === 'pointer'; go(b.dataset.page, key); return;
-      case 'bl-toggle': if (S.blClosed) { S.blClosed = false; render(); } else closeDrawer(() => { S.blClosed = true; }); return;
+      case 'home-page': S.blClosed = b.dataset.page === 'pointer'; S.ptSel = null; go(b.dataset.page, key); return;
+      case 'pt-pick': { const k = b.dataset.cid; if (!S.blClosed && S.ptSel === k) { closeDrawer(() => { S.blClosed = true; }); return; } S.ptSel = k; S.blClosed = false; render(); return; }
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
