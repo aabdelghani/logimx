@@ -1464,7 +1464,14 @@
       case 'page': go(b.dataset.page); return;
       case 'go-home':
         // opened from a button's Configure: back to the mouse's Buttons, panel and all
-        if (S.cfgFrom && S.page === 'gestures') { const to = S.cfgFrom; const back = () => { S.cfgFrom = null; S.page = to; S.picker = null; }; if (drawerUp()) closeDrawer(back); else { back(); render(); } return; }
+        // with that button's actions open again on the right (the panel changes in place)
+        if (S.cfgFrom && S.page === 'gestures') {
+          const back = S.cfgBack, dd = dev();
+          S.page = S.cfgFrom; S.cfgFrom = null; S.cfgBack = null;
+          if (back && dd) openPicker({ drawer: true, dev: dd, section: 'buttons', cid: back.cid, label: back.label, profile: back.profile });
+          else { S.dlg = null; S.picker = null; render(); }
+          return;
+        }
         // with a panel open on the right, the back arrow folds the panel away first
         if (drawerUp()) { closeDrawer(); return; }
         if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { S.blClosed = true; }); return; }
@@ -1531,7 +1538,7 @@
         stopRecorder();
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
         go('gestures', dd.id);
-        S.cfgFrom = 'buttons';
+        S.cfgFrom = 'buttons'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
         render();
         return;
       }
@@ -1546,7 +1553,7 @@
         // the panel stays where it is and changes to the ring's: no closing and reopening on the way
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
         S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
-        S.cfgFrom = 'buttons';
+        S.cfgFrom = 'buttons'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
         const slots = ringSlots(), first = Math.max(0, slots.findIndex(s => !s));
         openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
         return;
