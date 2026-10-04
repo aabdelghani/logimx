@@ -993,8 +993,9 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 .wish-line .btn.primary i { color: #fff; }
 .wish-hero { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 10px; background: color-mix(in srgb, var(--accbg) 12%, transparent); margin-bottom: 12px; line-height: 1.45; }
 .wish-hero > i { font-size: 24px !important; color: var(--accbg); }
-.wish-promise { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; background: color-mix(in srgb, #f5a623 18%, transparent); color: #f5a623; font-size: 14px; font-weight: 700; }
+.wish-promise { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; background: color-mix(in srgb, #f5a623 18%, transparent); color: #9a5b00; font-size: 14px; font-weight: 700; }
 .wish-promise i { font-size: 14px !important; animation: wish-tick 2s ease-in-out infinite; }
 @keyframes wish-tick { 0%, 100% { transform: rotate(0); } 10% { transform: rotate(-14deg); } 20% { transform: rotate(10deg); } 30% { transform: rotate(0); } }
 @media (prefers-reduced-motion: reduce) { .wish-promise i { animation: none; } }
 .wish-pledge { margin-top: 8px; font-weight: 700; color: var(--accbg); }
+[data-theme="dark"] .wish-promise, [data-theme="ubuntu-dark"] .wish-promise { color: #f5a623; }

@@ -111,7 +111,19 @@ Empty slots are left out.
 On its page, click a slot to choose its action, or drag an action from the panel onto a slot.
 Several ring profiles can be kept and switched from the panel.
 
+- **Per-app rings**: pick an application in the profile bar and give it a ring of its own; the ring
+  follows the application in front.
+- **Size**: Small, Medium or Large.
+- **Folders**: a slot that opens eight more actions in place; the middle goes back.
+- **Volume and Brightness**: hold and drag to set the level, only the level bar stays on screen and
+  the ring comes back on release; or scroll over the slot with the ring open. Brightness follows
+  the screen under the pointer (laptop backlight, or external monitors over DDC/CI with ddcutil;
+  the app offers a one-click setup when something is missing).
+- **Next ring profile** and **Easy-Switch** to another computer, from the ring itself.
+
 ![Button actions with the action ring](screenshots/mouse-button-panel.png)
+
+![Volume bar while dragging](screenshots/ring-volume-bar.png)
 
 ### MX Master 4
 
@@ -331,6 +343,12 @@ Settings are kept in `~/.config/logimx/config.json`. Devices are identified by p
 [Supported devices](#supported-devices)) and controls by their HID++ control id.
 
 ## Reporting a problem
+
+Have a wish or found a problem? The home screen and the menu have **Make a wish** and **Report an
+issue**. A wish opens a feature request on GitHub with only the version, the system and the device
+names beside it. Wishes are granted within 24 hours.
+
+![Make a wish](screenshots/make-a-wish.png)
 
 About, Report a problem collects what is needed to reproduce an issue: versions, desktop, the
 devices and what they report, and the last lines of the agent's log. It opens a new GitHub issue in
