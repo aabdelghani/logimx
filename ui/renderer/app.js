@@ -553,11 +553,23 @@
     if (kept && kept.type === 'gesture') return JSON.parse(JSON.stringify(kept));
     const o = JSON.parse(JSON.stringify(S.presets.all.gesture_navigation)); o.label = 'Custom gestures'; return o;
   }
+  function gestureStage(d, cid, g, sens) {
+    const on = k => drawerUp() && S.picker.section === 'gesture' && S.dir === k;
+    const cell = (k, icon) => { const sub = g[SLOTS[k][1]]; return `<button class="gs-cell ${k === 'tap' ? 'tap' : ''} ${on(k) ? 'on' : ''} ${isNative(sub) || !sub || (sub.type === 'nothing') ? 'empty' : ''}" data-act="dir-pick" data-key="${k}"><i class="fa-solid ${icon}"></i><span class="gs-k">${SLOTS[k][0]}</span><span class="gs-d">${esc(sub ? presetLabel(sub.preset || sub) : 'Do nothing')}</span></button>`; };
+    const pad = `<div class="gs-pad"><div></div>${cell('up', 'fa-arrow-up')}<div></div>${cell('left', 'fa-arrow-left')}${cell('tap', 'fa-hand-pointer')}${cell('right', 'fa-arrow-right')}<div></div>${cell('down', 'fa-arrow-down')}<div></div></div>`;
+    const presets = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(S.presets.all[k].label.replace('Gestures: ', ''))}</button>`).join('');
+    const opts = card(`<div class="row"><span class="grow lbl">Mode</span><span class="seg"><button class="${g.continuous ? '' : 'on'}" data-act="gest-mode" data-key="once">One-shot</button><button class="${g.continuous ? 'on' : ''}" data-act="gest-mode" data-key="continuous">Continuous</button></span></div>` +
+      `<div class="row"><span class="grow lbl">Sensitivity</span>${range('data-act="gest-sens"', sens, 1, 10, 1)}<span class="val" style="width:24px;text-align:right">${sens}</span></div>`);
+    return `<div class="ring-page gest-page">${pad}<div class="gs-opts">${opts}<div class="chips">${presets}</div></div></div>`;
+  }
   function pageGestures(d) {
     const cid = gestureControl(d), g = gestureObject(d, cid), slot = SLOTS[S.dir][1];
     const a = assignment(d, 'buttons', cid); const active = (typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {})).type === 'gesture';
     const mode = isRingAction(a) ? 'ring' : active ? 'gestures' : 'off';
     const sens = Math.max(1, Math.min(10, Math.round((165 - (g.threshold ?? 60)) / 15)));
+    // opened from a button's Configure gestures: laid out like the action ring, the directions as a pad
+    // in the middle naming what each runs, the picked one's actions in the panel on the right
+    if (active && S.cfgFrom) return gestureStage(d, cid, g, sens);
     const seg = (k, l) => `<button class="${mode === k ? 'on' : ''}" data-act="hold-mode" data-key="${k}">${l}</button>`;
     // gestures and the action ring share the held button: choosing one turns the other off
     const holdRows = `<div class="row"><div class="grow"><div class="lbl">When held</div><div class="sub">${mode === 'ring' ? 'Opens the action ring; gestures are off' : mode === 'gestures' ? 'Swipes run gestures; the action ring is off' : 'The button does what the mouse does by itself'}</div></div><span class="seg">${seg('gestures', 'Gestures')}${seg('ring', 'Action ring')}${seg('off', 'Off')}</span></div>` +
@@ -1736,10 +1748,13 @@
       case 'gest-config': {
         const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d;
         stopRecorder();
+        // like the action ring: the panel stays and turns into the Tap gesture's actions, the
+        // directions in the middle pick which one it shows; back returns to the mouse's Buttons
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
-        go('gestures', dd.id);
+        S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
         S.cfgFrom = 'buttons'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
-        render();
+        S.dir = 'tap';
+        openPicker({ drawer: true, dev: dd, section: 'gesture', cid: p.cid, label: SLOTS.tap[0], slot: SLOTS.tap[1] });
         return;
       }
       case 'ring-config': {

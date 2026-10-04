@@ -951,3 +951,17 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 /* battery pill: the window colour on the status colour, readable in light and dark themes alike
    (the dark themes use light status colours) */
 .dnav-bat, .dnav-bat i { color: var(--win); }
+/* Configure gestures: the directions as a pad, each naming what it runs, the picked one filled */
+.gest-page { align-items: center; gap: 22px; }
+.gs-pad { display: grid; grid-template-columns: repeat(3, 132px); grid-template-rows: repeat(3, 96px); gap: 10px; }
+.gs-cell { border: 1px solid var(--brd); border-radius: 14px; background: var(--card); color: var(--fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px; cursor: pointer; transition: background .14s, border-color .14s; }
+.gs-cell:hover { border-color: var(--accbg); }
+.gs-cell i { font-size: 18px; color: var(--accbg); }
+.gs-cell .gs-k { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
+.gs-cell .gs-d { font-size: 14px; font-weight: 600; text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-cell.empty .gs-d { color: var(--dim); font-weight: 500; }
+.gs-cell.tap { border-radius: 50%; width: 96px; height: 96px; justify-self: center; }
+.gs-cell.on { background: var(--accbg); border-color: var(--accbg); }
+.gs-cell.on i, .gs-cell.on .gs-k, .gs-cell.on .gs-d { color: #fff; }
+.gs-opts { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 12px; }
+.gs-opts .chips { justify-content: center; }
