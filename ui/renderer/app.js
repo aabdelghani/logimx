@@ -593,9 +593,9 @@
   const PT_NAMES = { wheel: 'Scroll wheel', thumb: 'Thumb wheel', pointer: 'Pointer speed' };
   function ptSummary(d, k) {
     const st = d.state || {}, s = d.config.settings || {};
-    if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${dpi} DPI · speed ${Math.round(((s.pointer_speed ?? 0) + 1) * 50)}`; }
+    if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${dpi} DPI · Speed ${Math.round(((s.pointer_speed ?? 0) + 1) * 50)}`; }
     if (k === 'wheel') {
-      // all three of the wheel's settings: direction, smooth scrolling, SmartShift
+      // all three of the wheel's settings: direction, smooth scrolling, SmartShift (one per line on the photo)
       const ss = s.smartshift || {}, hr = s.hires || {};
       const natural = hr.invert ?? (st.hires || {}).invert ?? false, smooth = hr.enabled ?? (st.hires || {}).hires ?? true;
       const shift = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
@@ -620,7 +620,7 @@
       shown.filter(s => s[3] === side).sort((p, q) => p[2] - q[2]).forEach(([k, , y]) => { const ly = Math.max(y, prev + GAP); place[k] = ly; prev = ly; });
     }
     const lines = shown.map(([k, x, y, side]) => `<polyline class="ms-line ${on(k) ? 'on' : ''}" points="${side === 'l' ? x - 40 : x + 40},${y} ${side === 'l' ? -20 : P.w + 20},${place[k]}"/>`).join('');
-    const labels = shown.map(([k, , , side]) => `<div class="ms-lab ${side} ${on(k) ? 'on' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(PT_NAMES[k])}</span><span class="d">${esc(ptSummary(d, k))}</span></div>`).join('');
+    const labels = shown.map(([k, , , side]) => `<div class="ms-lab ${side} ${on(k) ? 'on' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(PT_NAMES[k])}</span>${ptSummary(d, k).split(' · ').map(t => `<span class="d">${esc(t)}</span>`).join('')}</div>`).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
   function pagePointer(d) {
