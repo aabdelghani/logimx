@@ -27,38 +27,45 @@
   const PX_PER_STEP = 3;            // pointer travel for one percent
   const VOLUME = new Set(['volume_dial', 'volume_up', 'volume_down']);
   const ADJUST = new Set(['brightness_up', 'brightness_down', 'zoom_in', 'zoom_out', 'next_track', 'prev_track']);
-  let dial = null;                  // { i, level, lastX, ready, wheel }
-  const isDial = i => i >= 0 && slots[i] && slots[i].action === 'volume_dial';
+  let dial = null;                  // { i, kind, level, lastX, ready, wheel, name }
+  // the slots that set a level by dragging: Volume and screen Brightness
+  const dialKind = sl => !sl ? null : sl.action === 'volume_dial' ? 'volume' : sl.action && sl.action.type === 'brightness_dial' ? 'brightness' : null;
+  const isDial = i => i >= 0 && !!dialKind(slots[i]);
+  const DIAL_IO = { volume: { get: () => window.ring.volGet(), set: v => window.ring.volSet(v) }, brightness: { get: () => window.ring.briGet(), set: v => window.ring.briSet(v) } };
   // pressed and dragged: the rest of the ring steps aside and a volume bar alone follows the level
   const volEl = document.getElementById('vol');
-  const volIcon = l => 'fa-solid ' + (l === 0 ? 'fa-volume-xmark' : l < 40 ? 'fa-volume-low' : 'fa-volume-high');
+  const volIcon = (l, kind) => 'fa-solid ' + (kind === 'brightness' ? (l < 30 ? 'fa-moon' : 'fa-sun') : l === 0 ? 'fa-volume-xmark' : l < 40 ? 'fa-volume-low' : 'fa-volume-high');
+  // a screen whose brightness cannot be read or set says so instead of a level
+  const dialOff = () => dial && dial.ready && dial.level === null;
   function dialShow() {
     if (!dial) return;
     if (!dial.wheel) {
       volEl.style.left = CX + 'px'; volEl.style.top = CY + 'px';
-      volEl.innerHTML = `<i class="${volIcon(dial.level)}"></i><span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`;
+      volEl.innerHTML = dialOff() ? `<i class="${volIcon(50, dial.kind)}"></i><span class="vol-na">${esc(dial.name || 'This screen')} cannot be changed from here</span>`
+        : `<i class="${volIcon(dial.level, dial.kind)}"></i><span class="vol-n">${dial.level}</span><span class="vol-of">/100</span>${dial.name ? `<span class="vol-name">${esc(dial.name)}</span>` : ''}<span class="vol-bar"><span style="width:${dial.level}%"></span></span>`;
       return;
     }
     const lab = slotsEl.querySelector(`.lab[data-i="${dial.i}"]`), bub = slotsEl.querySelector(`.bub[data-i="${dial.i}"]`);
-    if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
-    if (bub) { bub.classList.add('dialing'); const ic = bub.querySelector('i'); if (ic) ic.className = 'fa-solid ' + (dial.level === 0 ? 'fa-volume-xmark' : dial.level < 40 ? 'fa-volume-low' : 'fa-volume-high'); }
+    if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = dialOff() ? `<span class="vol-of">Not available on ${esc(dial.name || 'this screen')}</span>` : `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
+    if (bub) { bub.classList.add('dialing'); const ic = bub.querySelector('i'); if (ic) ic.className = volIcon(dialOff() ? 50 : dial.level, dial.kind); }
   }
   async function dialStart(i, x, wheel) {
     if (dial && dial.i === i) return;
-    dial = { i, level: 50, lastX: x, tick: 0, ready: false, wheel: !!wheel };
+    const kind = dialKind(slots[i]) || 'volume';   // Volume up and down turn with the wheel like the Volume dial
+    dial = { i, kind, level: 50, lastX: x, tick: 0, ready: false, wheel: !!wheel };
     if (!wheel) { document.body.classList.add('vol-focus'); dialShow(); }
-    try { const v = await window.ring.volGet(); if (dial && dial.i === i) { dial.level = v.level; dial.ready = true; } } catch (e) { if (dial) dial.ready = true; }
+    try { const v = await DIAL_IO[kind].get(); if (dial && dial.i === i) { dial.level = v.level; dial.name = v.name; dial.ready = true; } } catch (e) { if (dial) { dial.level = kind === 'volume' ? 50 : null; dial.ready = true; } }
     dialShow();
   }
   function dialMove(dx) {
-    if (!dial || !dial.ready) return;
+    if (!dial || !dial.ready || dial.level === null) return;
     dial.acc = (dial.acc || 0) + dx / PX_PER_STEP;            // right raises the volume, left lowers it
     const step = Math.trunc(dial.acc); if (!step) return;
     dial.acc -= step;
     const before = dial.level;
     dial.level = Math.max(0, Math.min(100, dial.level + step));
     if (dial.level === before) return;
-    window.ring.volSet(dial.level);
+    DIAL_IO[dial.kind].set(dial.level);
     if (Math.floor(dial.level / 5) !== Math.floor(before / 5)) window.ring.hover(dial.i);   // a tick every 5% on mice that can
     dialShow();
   }
@@ -154,7 +161,7 @@
     if (dial) { dialMove(dir * PX_PER_STEP * 2); return; }
     const i = hover; if (i < 0 || !slots[i]) return;
     const k = keyOf(slots[i].action);
-    if (VOLUME.has(k)) { await dialStart(i, 0, true); dialMove(dir * PX_PER_STEP * 2); return; }
+    if (VOLUME.has(k) || isDial(i)) { await dialStart(i, 0, true); dialMove(dir * PX_PER_STEP * 2); return; }
     if (ADJUST.has(k)) { window.ring.adjust([].concat(where(i)), dir); flash(i); }
   }, { passive: false });
   document.addEventListener('mouseleave', () => { if (!raw) { setHover(-1); hub.classList.remove('on'); } });

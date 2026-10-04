@@ -13,4 +13,6 @@ contextBridge.exposeInMainWorld('ring', {
   diag: info => ipcRenderer.send('ring-diag', info),
   volGet: () => ipcRenderer.invoke('ring-vol-get'),
   volSet: v => ipcRenderer.send('ring-vol-set', v),
+  briGet: () => ipcRenderer.invoke('ring-bri-get'),
+  briSet: v => ipcRenderer.send('ring-bri-set', v),
 });

@@ -61,7 +61,7 @@
     if (a.type === 'nothing') return 'Disabled';
     return a.label || a.type;
   };
-  const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor', folder: 'fa-folder', ring_profile: 'fa-layer-group' };
+  const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor', folder: 'fa-folder', ring_profile: 'fa-layer-group', brightness_dial: 'fa-sun' };
   const PRESET_ICON = { action_ring: 'fa-circle-notch', volume_dial: 'fa-volume-high', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
     copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
     mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
@@ -256,7 +256,7 @@
       if (el.dataset.key === 'ring:folder') return;   // a folder needs a name: clicked, not dragged
       el.draggable = true;
       el.ondragstart = e => {
-        const a = el.dataset.act === 'pick-key' ? { type: 'keystroke', keys: [el.dataset.key] } : el.dataset.key === 'ring:profile' ? RING_NEXT_PROFILE : el.dataset.key;
+        const a = el.dataset.act === 'pick-key' ? { type: 'keystroke', keys: [el.dataset.key] } : el.dataset.key === 'ring:profile' ? RING_NEXT_PROFILE : el.dataset.key === 'ring:brightness' ? RING_BRIGHTNESS : el.dataset.key;
         e.dataTransfer.setData('application/x-logimx-action', JSON.stringify(a));
         e.dataTransfer.effectAllowed = 'copy';
         document.body.classList.add('dragging-act');
@@ -979,6 +979,8 @@
   // The ring keeps several sets of eight actions (profiles); one is in use. Older settings had a
   // single list of slots, which becomes the first profile.
   const RING_NEXT_PROFILE = { type: 'ring_profile', label: 'Next ring profile' };
+  // the screen under the pointer, set by dragging like Volume (Linux: backlight or DDC/CI)
+  const RING_BRIGHTNESS = { type: 'brightness_dial', label: 'Brightness (drag to set)' };
   // a slot saved by an earlier build with the ring's own key instead of its action
   const fixSlot = sl => sl && sl.action === 'ring:profile' ? { action: RING_NEXT_PROFILE, label: 'Next ring profile', icon: 'fa-layer-group' } : sl;
   const eight = a => Array.from({ length: 8 }, (_, i) => fixSlot((a || [])[i]) || null);
@@ -1260,7 +1262,7 @@
   const groupsFor = p => p.section === 'thumbwheel' ? [['wheel', 'Wheel']] : p.section === 'buttons' ? [['mouse', 'Mouse']].concat(ACTION_GROUPS) : ACTION_GROUPS;
   const sectionsFor = p => p.section === 'thumbwheel' ? DRAWER_SECTIONS.filter(([k]) => k !== 'smart') : DRAWER_SECTIONS;
   const KEY_GROUP_NAMES = [['fkeys', 'F keys'], ['letters', 'Letters'], ['numbers', 'Numbers'], ['symbols', 'Symbols'], ['numpad', 'Num pad'], ['modifiers', 'Modifier keys'], ['arrows', 'Arrow and navigation'], ['others', 'Others']];
-  const curOf = p => typeof p.current === 'string' ? p.current : (p.current && p.current.preset);
+  const curOf = p => typeof p.current === 'string' ? p.current : (p.current && (p.current.preset || (p.current.type === 'brightness_dial' ? 'ring:brightness' : undefined)));
   // a single key: its keystroke, so the panel can say which one is in use
   const keyCur = p => p.current && typeof p.current === 'object' && p.current.type === 'keystroke' && (p.current.keys || []).length === 1 ? p.current.keys[0] : null;
   const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}${i.key === 'action_ring' ? '<span class="new-tag">New</span>' : ''}${p.section === 'ring' ? adjBadge(i.key) : ''}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
@@ -1271,7 +1273,7 @@
   const RING_RECOMMEND = ['volume_dial', 'overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3'];
   // a ring action that changes a level in place: hold and drag it, or scroll over it, with the
   // ring open. Marked in the lists with a small sliders badge.
-  const RING_DRAG = new Set(['volume_dial']);
+  const RING_DRAG = new Set(['volume_dial', 'ring:brightness']);
   const adjBadge = k => RING_DRAG.has(k) ? '<span class="adj-tag" title="Hold and drag, or scroll over it, to change"><i class="fa-solid fa-sliders"></i></span>'
     : RING_WHEEL.has(k) ? '<span class="adj-tag" title="Scroll over it to change"><i class="fa-solid fa-sliders"></i></span>' : '';
   // turned with the wheel while the ring is open
@@ -1310,6 +1312,9 @@
       if (p.section === 'ring' || p.section === 'gesture') {
         const ring = p.section === 'ring';
         const sugg = (ring ? RING_RECOMMEND : GESTURE_RECOMMEND).filter(k => ok.has(k) && S.presets.all[k]).map(k => { const i = presetItem(k), es = ring && easyLabel(k); if (es) i.label = es; return i; });
+        // screen brightness sits next to Volume and works the same way
+        const vi = sugg.findIndex(i => i.key === 'volume_dial');
+        if (ring && IS_LINUX()) sugg.splice(vi + 1, 0, { key: 'ring:brightness', icon: 'fa-sun', label: RING_BRIGHTNESS.label });
         const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
         return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
       }
@@ -1837,6 +1842,7 @@
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
       case 'pick-item':
         if (key === 'ring:profile') return assignPicked(RING_NEXT_PROFILE);
+        if (key === 'ring:brightness') return assignPicked(RING_BRIGHTNESS);
         if (key === 'ring:folder') {
           if (isFolderSlot({ action: S.picker.current })) return;
           prompt('New folder', [{ key: 'name', label: 'Name', placeholder: 'Media, Windows, Apps…' }], async v => {

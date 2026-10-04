@@ -612,7 +612,7 @@ ipcMain.on('ring-pick', async (_e, { index, path }) => {
     notify('agent-event', { event: 'general', data: general });
     return;
   }
-  if (slot.action.type === 'folder') return;   // the overlay opens folders itself
+  if (slot.action.type === 'folder' || slot.action.type === 'brightness_dial') return;   // the overlay opens folders and runs the brightness dial itself
   if (ringWin && !ringWin.isDestroyed()) ringWin.hide();
   ringCue('ring_run');
   const params = { action: slot.action };
@@ -653,6 +653,63 @@ function volApply() {
   });
 }
 ipcMain.on('ring-vol-set', (_e, v) => { volPending = Number(v); volApply(); });
+// the ring's Brightness slot: the screen under the pointer. A laptop panel through its backlight
+// (logind, no root needed); an external monitor over DDC/CI with ddcutil, found by the name it
+// reports matching the one Electron gives the display. Linux only for now.
+let ddcList = null;   // [{ bus, model }], read once and again when displays change
+const ddcMonitors = () => ddcList || (ddcList = new Promise(res => execFile('ddcutil', ['detect', '--terse'], { timeout: 15000 }, (err, out) => {
+  if (err) { ddcList = null; return res([]); }
+  const found = [];
+  for (const block of String(out).split(/\n\s*\n/)) {
+    const bus = /\/dev\/i2c-(\d+)/.exec(block), mon = /Monitor:\s*([^\n]*)/.exec(block);
+    if (bus && !/Invalid display/i.test(block)) found.push({ bus: bus[1], model: mon ? (mon[1].split(':')[1] || '').trim() : '' });
+  }
+  res(found);
+})));
+app.whenReady().then(() => { const drop = () => { ddcList = null; }; screen.on('display-added', drop); screen.on('display-removed', drop); });
+function backlightDev() {
+  try { const n = fs.readdirSync('/sys/class/backlight')[0]; return n ? '/sys/class/backlight/' + n : null; } catch (e) { return null; }
+}
+let briTarget = null;   // what the open dial changes: { kind: 'backlight', dir, max } or { kind: 'ddc', bus }
+ipcMain.handle('ring-bri-get', async () => {
+  briTarget = null;
+  if (!plat.IS_LINUX) return { level: null };
+  const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const name = d.label || 'Screen';
+  const bl = backlightDev();
+  if (bl && (d.internal || screen.getAllDisplays().length === 1)) {
+    try {
+      const max = Number(fs.readFileSync(bl + '/max_brightness', 'utf8')), cur = Number(fs.readFileSync(bl + '/actual_brightness', 'utf8'));
+      briTarget = { kind: 'backlight', dir: bl, max };
+      return { level: Math.round(cur * 100 / max), name };
+    } catch (e) {}
+  }
+  const mons = await ddcMonitors();
+  const label = (d.label || '').toLowerCase();
+  const m = mons.find(x => x.model && label && (x.model.toLowerCase() === label || label.includes(x.model.toLowerCase()))) || (mons.length === 1 ? mons[0] : null);
+  if (!m) return { level: null, name };
+  return new Promise(res => execFile('ddcutil', ['--bus', m.bus, 'getvcp', '10', '--brief'], { timeout: 4000 }, (err, out) => {
+    const v = /VCP 10 C (\d+) (\d+)/.exec(out || '');
+    if (err || !v) return res({ level: null, name });
+    briTarget = { kind: 'ddc', bus: m.bus, max: Number(v[2]) || 100 };
+    res({ level: Math.round(Number(v[1]) * 100 / briTarget.max), name });
+  }));
+});
+let briPending = null, briBusy = false;
+function briApply() {
+  if (briBusy || briPending === null || !briTarget) return;
+  const v = Math.max(0, Math.min(100, Math.round(briPending))); briPending = null; briBusy = true;
+  const next = () => { briBusy = false; briApply(); };
+  const t = briTarget;
+  if (t.kind === 'backlight') {
+    // logind lets the session's user set the backlight; a panel never goes fully dark
+    const raw = Math.max(1, Math.round(v * t.max / 100));
+    execFile('busctl', ['call', 'org.freedesktop.login1', '/org/freedesktop/login1/session/auto', 'org.freedesktop.login1.Session', 'SetBrightness', 'ssu', 'backlight', path.basename(t.dir), String(raw)], { timeout: 2000 }, next);
+    return;
+  }
+  execFile('ddcutil', ['--bus', t.bus, 'setvcp', '10', String(Math.round(v * t.max / 100)), '--noverify', '--sleep-multiplier', '0.3'], { timeout: 4000 }, next);
+}
+ipcMain.on('ring-bri-set', (_e, v) => { briPending = Number(v); briApply(); });
 ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), displays: screen.getAllDisplays().map(d => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })), picker: emojiWin && !emojiWin.isDestroyed() ? { visible: emojiWin.isVisible(), bounds: emojiWin.getBounds() } : null }));
 ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 ipcMain.handle('general-changed', async () => { await refreshGeneral(); updateTray(); });
