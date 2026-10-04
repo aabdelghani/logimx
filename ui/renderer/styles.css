@@ -892,3 +892,5 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 /* device view: a wider left margin, so the back arrow, the name and the menu sit further in */
 .dnav { padding-left: 30px; }
 .devview2 { grid-template-columns: 246px 1fr; }
+/* device view: the mouse sits higher on the page */
+.dev-config .ms-photo { translate: 0 -56px; }
