@@ -1245,7 +1245,9 @@
       }
       const r = mouse ? null : RECOMMEND[p.cid];
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
-      const rows = [Object.assign(presetItem('native'), { label: own, meta: 'Default' })];
+      // a button's own function comes first; the gesture button has none worth choosing (left to the
+      // mouse it does nothing here), so its list starts with what it can do instead
+      const rows = p.section === 'buttons' && p.cid === 195 ? [] : [Object.assign(presetItem('native'), { label: own, meta: 'Default' })];
       for (const c of (r || []).slice(1)) if (OPTS_CARD[c] && ok.has(OPTS_CARD[c])) rows.push(presetItem(OPTS_CARD[c]));
       // a button that can be held and moved offers the action ring and gestures right after its own
       // function; the fixed gesture presets give way to the button's own gestures
