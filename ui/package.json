@@ -12,7 +12,7 @@
     "dist:appimage": "electron-builder --linux AppImage --publish never",
     "dist:dir": "electron-builder --linux dir --publish never",
     "dist:win": "node build/prep.js && electron-builder --win nsis --x64 --publish never",
-    "dist:mac": "node build/prep.js && electron-builder --mac --arm64 --x64 --publish never"
+    "dist:mac": "node build/prep.js && electron-builder --mac --arm64 --publish never && electron-builder --mac --x64 --publish never"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2"
