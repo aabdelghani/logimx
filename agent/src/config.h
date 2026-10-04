@@ -1,4 +1,4 @@
-// ~/.config/logimx/config.json
+// config.json in platform::configDir() (~/.config/logimx on Linux)
 #pragma once
 #include <mutex>
 #include <string>

@@ -3,11 +3,17 @@
 #include <cstdlib>
 
 #include "../tables.gen.h"
+#include "../platform/platform.h"
+#include "presets_os.h"
 
 namespace actions {
 
 const json& presets() {
-    static const json p = json::parse(kPresetsJson);
+    static const json p = [] {
+        json j = json::parse(kPresetsJson);
+        applyOsPresets(j);
+        return j;
+    }();
     return p;
 }
 
@@ -45,28 +51,15 @@ void Engine::play(const json& action, double delta) {
         else inj_.scroll(amt, 0);
         if (!mods.empty()) inj_.release(mods);
     } else if (t == "command") {
-        std::string cmd = action.value("cmd", "");
-        if (!cmd.empty()) {
-            std::string full = "(" + cmd + ") >/dev/null 2>&1 &";
-            if (std::system(full.c_str()) != 0) { /* ignore */ }
-        }
+        platform::runCommand(action.value("cmd", ""));
     } else if (t == "ui") {
         if (ops_.uiEvent) ops_.uiEvent(action.value("event", "emoji"));
     } else if (t == "type_text") {
         inj_.typeText(action.value("text", ""));
     } else if (t == "open") {
-        std::string target = action.value("target", "");
-        if (!target.empty()) {
-            if (target == "~" || target.rfind("~/", 0) == 0) { const char* h = getenv("HOME"); target = std::string(h ? h : "") + target.substr(1); }
-            std::string full = "xdg-open '" + target + "' >/dev/null 2>&1 &";
-            if (std::system(full.c_str()) != 0) { /* ignore */ }
-        }
+        platform::openTarget(action.value("target", ""));
     } else if (t == "launch") {
-        std::string id = action.value("app", "");
-        if (!id.empty()) {
-            std::string full = "(gtk-launch '" + id + "' || gio launch /usr/share/applications/'" + id + "'.desktop) >/dev/null 2>&1 &";
-            if (std::system(full.c_str()) != 0) { /* ignore */ }
-        }
+        platform::launchApp(action.value("app", ""));
     } else if (t == "smartshift_toggle") {
         if (ops_.toggleSmartshift) ops_.toggleSmartshift();
     } else if (t == "change_host") {

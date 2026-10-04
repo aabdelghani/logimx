@@ -3,15 +3,15 @@
 [![Release build](https://github.com/aabdelghani/logimx/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/logimx/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/aabdelghani/logimx?color=2dd4bf&label=release)](https://github.com/aabdelghani/logimx/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
-[![Platform: Linux](https://img.shields.io/badge/platform-Linux-2dd4bf.svg)](#requirements)
+[![Platforms: Linux, Windows, macOS](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20beta%20%C2%B7%20macOS%20beta-2dd4bf.svg)](#requirements)
 [![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
 [![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
 
-LogiMX configures MX mice and keyboards on Linux, with full support for the **MX Master 4** and an
+LogiMX configures MX mice and keyboards on Linux, Windows (beta) and macOS (beta), with full support for the **MX Master 4** and an
 **action ring**: eight actions of your choice around the pointer, opened by a button and chosen
 with a flick of the mouse. It also covers button and key assignments, gestures, the thumb wheel,
-SmartShift, DPI, the keyboard backlight and more, on GNOME, KDE and other desktops, on X11 and
-Wayland.
+SmartShift, DPI, the keyboard backlight and more. On Linux it runs on GNOME, KDE and other
+desktops, on X11 and Wayland.
 
 LogiMX is an independent project. It is not affiliated with, endorsed by, or supported by the
 manufacturer of these devices. The device pictures in the app belong to this repository and are
@@ -68,6 +68,24 @@ wizard installs the udev rule through pkexec.
 chmod +x LogiMX-0.6.23-x86_64.AppImage
 ./LogiMX-0.6.23-x86_64.AppImage
 ```
+
+**Windows 10 and 11 (LogiMX-Setup-0.6.23.exe), beta**: a setup wizard. It shows the license, asks
+whether to install for you alone or for everyone on the computer, lets you choose the folder, and
+offers to start LogiMX at sign-in and to put a shortcut on the desktop. Nothing else is needed: no
+driver, no runtime. The setup is not signed yet, so SmartScreen asks once: choose **More info**,
+then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `%APPDATA%\LogiMX`.
+
+**macOS 11 or newer (LogiMX-0.6.23-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
+disk image, agree to the license and drag LogiMX to Applications. The app is not notarized yet, so
+the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
+Security > Open Anyway**). LogiMX then asks for the **Accessibility** permission, which it needs to
+press keys and buttons for you.
+
+Quit Logi Options+ while LogiMX runs on Windows or macOS: both drive the same devices.
+
+The Windows and macOS versions are in beta: they are built from the same code as the Linux
+version, but have not been through the same testing on real devices yet. If something does not
+work, the **Report a problem** button in the app opens a pre-filled issue.
 
 ## Supported devices
 
@@ -219,8 +237,9 @@ the chosen action through a virtual input device. Because this happens below the
 works the same on X11 and Wayland.
 
 ```
-agent/          C++20 agent: HID++ 1.0 and 2.0 over hidraw, uinput for actions, focus tracking,
-                JSON RPC over a UNIX socket. Needs only libc, libstdc++ and libX11 at run time.
+agent/          C++20 agent: HID++ 1.0 and 2.0, actions, focus tracking, JSON RPC. One codebase:
+                Linux uses hidraw, uinput and a UNIX socket; Windows uses hidapi, SendInput and a
+                named pipe; macOS uses hidapi, Quartz events and a UNIX socket (src/platform/).
 ui/             Electron app in plain HTML, CSS and JavaScript.
 logimx/         Python version of the agent with the same RPC and settings format, kept as a
                 reference and for scripting.
@@ -231,7 +250,11 @@ packaging/      .deb build.
 
 ## Requirements
 
-- Linux with the kernel's HID++ receiver drivers (included in mainstream distributions)
+On Windows and macOS: Windows 10 or 11 (x64), or macOS 11 or newer. Nothing else.
+
+On Linux:
+
+- The kernel's HID++ receiver drivers (included in mainstream distributions)
 - Read and write access to `/dev/hidraw*` and `/dev/uinput`, given by `udev/60-logimx.rules`
   (installed by the .deb and by the first-run wizard)
 - On GNOME, the tray icon needs the AppIndicator extension (`gnome-shell-extension-appindicator`),
@@ -256,6 +279,25 @@ sudo cp udev/60-logimx.rules /etc/udev/rules.d/ && sudo udevadm control --reload
 ```
 
 Packages: `packaging/deb/build.sh` for the .deb, `cd ui && npm run dist:appimage` for the AppImage.
+
+Windows (from Windows, or cross-compiled from Linux with [llvm-mingw](https://github.com/mstorsjo/llvm-mingw)):
+
+```
+cmake -S agent -B agent/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE=agent/cmake/mingw-w64-x86_64.cmake -DLLVM_MINGW=/path/to/llvm-mingw   # from Linux only
+cmake --build agent/build
+cd ui && npm run dist:win          # ui/dist/LogiMX-Setup-<version>.exe
+```
+
+macOS (Xcode command line tools, cmake, Node.js):
+
+```
+cmake -S agent -B agent/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+cmake --build agent/build
+cd ui && npm run dist:mac          # ui/dist/LogiMX-<version>-arm64.dmg and -x64.dmg
+```
+
+CI builds all three on every tag (`.github/workflows/release.yml`).
 
 ## Pairing to a Bolt receiver
 

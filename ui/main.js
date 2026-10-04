@@ -1,7 +1,10 @@
-// LogiMX UI: Electron main process. Talks to the C++ agent over a UNIX socket,
-// keeps a tray indicator with battery levels and raises low battery notifications.
+// LogiMX UI: Electron main process. Talks to the C++ agent over a Unix socket (a named pipe on
+// Windows), keeps a tray indicator with battery levels and raises low battery notifications.
 const { app, BrowserWindow, ipcMain, nativeTheme, Tray, Menu, Notification, nativeImage, dialog, shell, clipboard, globalShortcut, screen } = require('electron');
 app.setName('LogiMX');
+const plat = require('./platform');
+// Windows ties notifications to the Start-menu shortcut through this id (the installer sets it)
+if (plat.IS_WIN) app.setAppUserModelId('io.github.aabdelghani.logimx');
 const PACKAGED = app.isPackaged;
 const APPIMAGE = process.env.APPIMAGE || '';
 const WM_CLASS = PACKAGED ? 'logimx' : 'LogiMX';
@@ -26,8 +29,9 @@ function saveUi(u) { try { fs.mkdirSync(path.dirname(UI_SETTINGS_PATH), { recurs
 let uiSettings = null;
 const net = require('net');
 const os = require('os');
+const flow = require('./flow');
 
-const SOCKET = path.join(process.env.XDG_RUNTIME_DIR || `/run/user/${os.userInfo().uid}`, 'logimx.sock');
+const SOCKET = plat.agentEndpoint();
 const LOW = 20, CRITICAL = 10;
 
 let win = null;
@@ -337,7 +341,7 @@ function ensureOsd() {
   if (osdWin && !osdWin.isDestroyed()) return osdWin;
   osdWin = new BrowserWindow({
     width: 460, height: 90, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, focusable: false, resizable: false,
-    hasShadow: false, show: false, type: 'notification',
+    hasShadow: false, show: false, type: plat.OVERLAY_TYPE,
     webPreferences: { preload: path.join(__dirname, 'preload-osd.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   osdWin.setIgnoreMouseEvents(true);
@@ -354,6 +358,7 @@ function positionOsd() {
   osdWin.setPosition(x, y);
 }
 async function micMuted() {
+  if (!plat.IS_LINUX) return rpc('audio_get').then(a => !!a.mic_muted).catch(() => null);
   return new Promise(resolve => execFile('pactl', ['get-source-mute', '@DEFAULT_SOURCE@'], { timeout: 1500 }, (err, out) => resolve(err ? null : /yes/i.test(String(out)))));
 }
 async function showOsd(data) {
@@ -374,6 +379,7 @@ ipcMain.on('osd-hidden', () => { if (osdWin && !osdWin.isDestroyed()) osdWin.hid
 // The option given at creation is lost for a window created hidden, so it is set again on every
 // show, and once more after the window manager has mapped it.
 function offTaskbar(w) {
+  if (!plat.IS_LINUX) return;   // skipTaskbar holds on Windows and macOS
   const set = () => {
     if (!w || w.isDestroyed()) return;
     // the agent asks the window manager on X11, which is what the dock and the taskbar listen to
@@ -400,6 +406,7 @@ function ensureEmoji() {
 function cursorPoint() {
   return new Promise(resolve => {
     const fallback = () => resolve(screen.getCursorScreenPoint());
+    if (!plat.IS_LINUX) return fallback();
     if ((process.env.XDG_SESSION_TYPE || '').toLowerCase() !== 'x11' && !process.env.DISPLAY) return fallback();
     execFile('xdotool', ['getmouselocation', '--shell'], { timeout: 500 }, (err, out) => {
       if (err) return fallback();
@@ -435,7 +442,7 @@ ipcMain.on('emoji-pick', async (_e, { ch }) => {
   const previous = clipboard.readText();
   clipboard.writeText(ch);
   await new Promise(r => setTimeout(r, 120));   // let focus return to the previous window
-  try { await rpc('play_action', { action: { type: 'keystroke', keys: ['KEY_LEFTCTRL', 'KEY_V'] } }); }
+  try { await rpc('play_action', { action: { type: 'keystroke', keys: plat.PASTE_KEYS } }); }
   catch (e) { if (Notification.isSupported()) new Notification({ title: 'Emoji copied', body: `${ch} is on the clipboard (agent not reachable to paste)`, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); }
   setTimeout(() => { try { if (clipboard.readText() === ch && previous) clipboard.writeText(previous); } catch (e) {} }, 800);
 });
@@ -457,7 +464,7 @@ function ensureRing() {
   // ring through global shortcuts held only while it is open.
   ringWin = new BrowserWindow({
     width: RING_W, height: RING_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false,
-    focusable: false, type: 'notification',
+    focusable: false, type: plat.OVERLAY_TYPE,
     webPreferences: { preload: path.join(__dirname, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   ringWin.setAlwaysOnTop(true, 'pop-up-menu');
@@ -479,6 +486,7 @@ function gsetting(key) {
 }
 let lookCache = null, lookAt = 0;
 async function systemLook() {
+  if (!plat.IS_LINUX) return plat.systemLook();
   if (lookCache && Date.now() - lookAt < 4000) return lookCache;
   const [scheme, gtk, accentName, font] = await Promise.all(['color-scheme', 'gtk-theme', 'accent-color', 'font-name'].map(gsetting));
   const known = scheme || gtk;
@@ -530,7 +538,7 @@ async function showRing(deviceId, raw) {
   const all = screen.getAllDisplays();
   const X = Math.min(...all.map(d => d.bounds.x)), Y = Math.min(...all.map(d => d.bounds.y));
   const R = Math.max(...all.map(d => d.bounds.x + d.bounds.width)), Bm = Math.max(...all.map(d => d.bounds.y + d.bounds.height));
-  const known = (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'x11';
+  const known = !plat.IS_LINUX || (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'x11';
   const at = known ? { x: pt.x - X, y: pt.y - Y } : null;
   const guess = { x: pt.x - X, y: pt.y - Y };
   const place = () => { if (w.isDestroyed()) return; const b = w.getBounds(); if (b.x !== X || b.y !== Y || b.width !== R - X || b.height !== Bm - Y) w.setBounds({ x: X, y: Y, width: R - X, height: Bm - Y }); };
@@ -563,6 +571,26 @@ ipcMain.on('ring-pick', async (_e, { index }) => {
   catch (e) { if (Notification.isSupported()) new Notification({ title: 'Action ring', body: `${slot.label || 'Action'} did not run: ${e.message}` }).show(); }
 });
 ipcMain.handle('ring-show', () => showRing(null, false));
+// the ring's Volume slot: read and set the default output's level (PipeWire's wpctl, else pactl;
+// on Windows and macOS the agent's Core Audio)
+ipcMain.handle('ring-vol-get', () => !plat.IS_LINUX ? rpc('audio_get').then(a => ({ level: a.volume, muted: !!a.muted })).catch(() => ({ level: 50, muted: false })) : new Promise(res => {
+  execFile('wpctl', ['get-volume', '@DEFAULT_AUDIO_SINK@'], { timeout: 2000 }, (err, out) => {
+    if (!err) { const m = /Volume:\s*([\d.]+)/.exec(out || ''); return res({ level: m ? Math.round(parseFloat(m[1]) * 100) : 50, muted: /MUTED/.test(out || '') }); }
+    execFile('pactl', ['get-sink-volume', '@DEFAULT_SINK@'], { timeout: 2000 }, (e2, o2) => { const m = /(\d+)%/.exec(o2 || ''); res({ level: m ? Number(m[1]) : 50, muted: false }); });
+  });
+}));
+let volPending = null, volBusy = false;
+function volApply() {
+  if (volBusy || volPending === null) return;
+  const v = Math.max(0, Math.min(100, Math.round(volPending))); volPending = null; volBusy = true;
+  const next = () => { volBusy = false; volApply(); };
+  if (!plat.IS_LINUX) { rpc('audio_set', { volume: v }).catch(() => {}).finally(next); return; }
+  execFile('wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', `${v}%`], { timeout: 2000 }, err => {
+    if (!err) { execFile('wpctl', ['set-mute', '@DEFAULT_AUDIO_SINK@', '0'], { timeout: 2000 }, next); return; }
+    execFile('pactl', ['set-sink-volume', '@DEFAULT_SINK@', `${v}%`], { timeout: 2000 }, next);
+  });
+}
+ipcMain.on('ring-vol-set', (_e, v) => { volPending = Number(v); volApply(); });
 ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), displays: screen.getAllDisplays().map(d => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })), picker: emojiWin && !emojiWin.isDestroyed() ? { visible: emojiWin.isVisible(), bounds: emojiWin.getBounds() } : null }));
 ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 ipcMain.handle('general-changed', async () => { await refreshGeneral(); updateTray(); });
@@ -587,7 +615,7 @@ function createWindow() {
     icon: path.join(__dirname, 'assets', 'icon.png'),
     autoHideMenuBar: true,
     frame: false,
-    show: !process.argv.includes('--hidden') && !(uiSettings && uiSettings.start_hidden),
+    show: !plat.startedAtLogin() && !(uiSettings && uiSettings.start_hidden),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -600,7 +628,103 @@ function createWindow() {
     const keep = !uiSettings || uiSettings.minimize !== false;
     if (!app.isQuitting && tray && keep) { e.preventDefault(); win.hide(); }
   });
-  win.on('closed', () => { win = null; });
+  win.on('show', () => btWatch(true));
+  win.on('hide', () => btWatch(false));
+  win.on('closed', () => { win = null; btWatch(false); });
+  flow.setWindow(win);
+}
+
+// ---------------------------------------------------------------- pairing-mode watch
+// While the window is open, a short Bluetooth scan now and then looks for an MX device that is
+// advertising in pairing mode (its name shows up and BlueZ has not paired it). Found one: a
+// notification names it, and clicking it pairs, trusts and connects it through bluetoothctl.
+// The scan is brief and spaced out because discovery shares the radio with audio and the Bolt band.
+const BT_SCAN_MS = 12000, BT_EVERY_MS = 90000, BT_RENOTIFY_MS = 10 * 60000;
+const btNotified = new Map();     // address -> when we last told the user
+let btScan = null, btTimer = null, btPairing = false;
+const stripAnsi = t => t.replace(/\x1b\[[0-9;]*m/g, '');
+const isMxName = n => /^(MX |MX-|Logi |Logitech MX|M7\d\d|Signature|Lift|Ergo)/i.test(n || '');
+function btInfo(addr) {
+  return new Promise(res => execFile('bluetoothctl', ['info', addr], { timeout: 4000 }, (err, out) => {
+    if (err) return res(null);
+    const get = k => { const m = new RegExp(`^\\s*${k}: (.*)$`, 'm').exec(out || ''); return m ? m[1].trim() : ''; };
+    res({ name: get('Name') || get('Alias'), paired: get('Paired') === 'yes', connected: get('Connected') === 'yes', icon: get('Icon') });
+  }));
+}
+async function btCandidate(addr, nameHint) {
+  if (btPairing) return;
+  const seen = btNotified.get(addr);
+  if (seen && Date.now() - seen < BT_RENOTIFY_MS) return;
+  const info = await btInfo(addr);
+  const name = (info && info.name) || nameHint;
+  if (!info || info.paired || info.connected || !isMxName(name)) return;
+  btNotified.set(addr, Date.now());
+  if (!Notification.isSupported()) return;
+  const kbd = /keyboard/i.test(info.icon) || /keys/i.test(name);
+  const n = new Notification({
+    title: `${name} is ready to connect`,
+    body: `It is in pairing mode. Click here to connect ${name} to this computer.`,
+    icon: path.join(__dirname, 'assets', kbd ? 'full-keyboard.png' : 'full-mouse.png'),
+    urgency: 'normal',
+  });
+  n.on('click', () => btPair(addr, name));
+  n.show();
+}
+function btScanOnce() {
+  if (btScan || btPairing) return;
+  let p;
+  try { p = spawn('bluetoothctl', ['--timeout', String(Math.round(BT_SCAN_MS / 1000)), 'scan', 'on']); } catch (e) { return; }
+  btScan = p;
+  let buf = '';
+  p.stdout.on('data', d => {
+    buf += stripAnsi(d.toString());
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const l of lines) {
+      // [NEW] Device AA:BB:.. MX Master 3S   /   [CHG] Device AA:BB:.. Name: MX Master 3S
+      const m = /\[(NEW|CHG)\] Device ([0-9A-F:]{17}) (?:Name: |Alias: )?(.*)$/i.exec(l);
+      if (m && isMxName(m[3])) btCandidate(m[2].toUpperCase(), m[3].trim());
+    }
+  });
+  p.on('error', () => { btScan = null; });
+  p.on('exit', () => { btScan = null; });
+}
+function btWatch(on) {
+  clearInterval(btTimer); btTimer = null;
+  if (!on || !plat.IS_LINUX) return;   // bluetoothctl is BlueZ's; Windows and macOS announce pairing themselves
+  setTimeout(btScanOnce, 1500);
+  btTimer = setInterval(() => { if (win && !win.isDestroyed() && win.isVisible()) btScanOnce(); }, BT_EVERY_MS);
+}
+// pair, trust and connect in one bluetoothctl session; a keyboard's passkey is shown to type
+function btPair(addr, name) {
+  if (btPairing) return;
+  btPairing = true;
+  if (btScan) { try { btScan.kill(); } catch (e) {} btScan = null; }
+  const say = (title, body) => { if (Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); };
+  say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
+  let p;
+  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = false; return say(`Could not connect ${name}`, 'bluetoothctl is not available.'); }
+  let out = '', done = false, step = 'pair';
+  const send = c => { try { p.stdin.write(c + '\n'); } catch (e) {} };
+  const finish = (ok, why) => {
+    if (done) return; done = true; btPairing = false;
+    send('scan off'); send('quit'); setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
+    if (ok) { btNotified.set(addr, Date.now() + 24 * 3600e3); say(`${name} is connected`, 'LogiMX will pick it up in a moment.'); }
+    else say(`Could not connect ${name}`, why || 'Put it back in pairing mode and try again from the notification.');
+  };
+  p.stdout.on('data', d => {
+    out += stripAnsi(d.toString());
+    const pk = /Passkey:? (\d{6})/i.exec(out) || /Confirm passkey (\d{6})/i.exec(out);
+    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
+    if (/Confirm passkey|Request confirmation/i.test(out) && !out.includes('[confirmed]')) { out += '[confirmed]'; send('yes'); }
+    if (step === 'pair' && /Pairing successful|AlreadyExists/i.test(out)) { step = 'connect'; send(`trust ${addr}`); send(`connect ${addr}`); }
+    if (step === 'connect' && /Connection successful/i.test(out)) finish(true);
+    if (/Failed to pair|AuthenticationFailed|AuthenticationCanceled|not available/i.test(out)) finish(false);
+    if (step === 'connect' && /Failed to connect/i.test(out)) finish(false, `${name} paired, but did not connect. Turn it off and on again.`);
+  });
+  p.on('exit', () => finish(false));
+  send('agent KeyboardDisplay'); send('default-agent'); send('scan on');
+  setTimeout(() => send(`pair ${addr}`), 3000);
+  setTimeout(() => finish(false, 'It took too long. Put it back in pairing mode and try again.'), 45000);
 }
 
 function showWindow() {
@@ -620,7 +744,7 @@ ipcMain.handle('save-json', async (_e, name, data) => {
 ipcMain.handle('open-external', (_e, url) => shell.openExternal(url));
 ipcMain.handle('open-path', (_e, p) => { const full = p.replace(/^~/, os.homedir()); if (fs.existsSync(full) && fs.statSync(full).isFile()) shell.showItemInFolder(full); else shell.openPath(full); });
 ipcMain.handle('copy-text', (_e, t) => clipboard.writeText(String(t || '')));
-ipcMain.handle('app-info', () => ({ version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron }));
+ipcMain.handle('app-info', () => ({ version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron, platform: process.platform }));
 ipcMain.handle('window-action', (_e, a) => {
   if (a === 'close') { if (win) win.close(); }
   else if (a === 'quit') { app.isQuitting = true; app.quit(); }
@@ -639,11 +763,13 @@ ipcMain.handle('ui-settings', (_e, patch) => {
 });
 function run(cmd, args) { return new Promise(resolve => execFile(cmd, args, { timeout: 60000 }, (err, stdout, stderr) => resolve({ ok: !err, out: String(stdout || ''), error: err ? String(stderr || err.message).trim() : '' }))); }
 ipcMain.handle('stop-tool', async (_e, name) => {
+  if (!plat.IS_LINUX) return plat.stopTool(name);
   if (name === 'solaar') return run('pkill', ['-x', 'solaar']).then(r => ({ ok: true }));
   if (name === 'logid') { const r = await run('pkexec', ['systemctl', 'stop', 'logid']); return r.ok ? { ok: true } : { ok: false, error: r.error || 'cancelled' }; }
   return { ok: false, error: 'unknown tool' };
 });
 ipcMain.handle('install-udev', async () => {
+  if (!plat.IS_LINUX) return { ok: false, error: 'not needed on this system' };
   const rule = resPath('udev', '60-logimx.rules');
   if (!fs.existsSync(rule)) return { ok: false, error: 'rule file missing' };
   const script = `cp '${rule}' /etc/udev/rules.d/60-logimx.rules && udevadm control --reload && udevadm trigger`;
@@ -670,6 +796,7 @@ function cleanupLegacyAutostart() {
 // Re-apply the login setting every time the app starts, so a rename, a moved checkout or a
 // hand-edited unit cannot leave 'start at login' switched on but broken.
 function ensureAutostart() {
+  if (!plat.IS_LINUX) { try { if (loadUi().autostart) plat.setLoginItem(true); } catch (e) {} return; }
   cleanupLegacyAutostart();
   // a unit written by an AppImage points into a mount that no longer exists: rewrite or drop it
   try {
@@ -712,6 +839,7 @@ function removeAgentUnit(unitPath) {
 }
 
 function setAutostart(on) {
+  if (!plat.IS_LINUX) return plat.setLoginItem(on);
   cleanupLegacyAutostart();
   const unitDir = path.join(os.homedir(), '.config', 'systemd', 'user');
   const unitPath = path.join(unitDir, 'logimx.service');
@@ -733,7 +861,10 @@ function setAutostart(on) {
   if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=LogiMX\nIcon=logimx\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
   else { try { fs.unlinkSync(desktop); } catch (e) {} }
 }
-ipcMain.handle('open-bluetooth', () => { execFile('gnome-control-center', ['bluetooth'], () => execFile('systemsettings', ['kcm_bluetooth'], () => {})); });
+// macOS: posting key and button actions needs the Accessibility permission for LogiMX
+ipcMain.handle('accessibility', (_e, prompt) => ({ trusted: plat.accessibilityTrusted(prompt), needed: plat.IS_MAC }));
+ipcMain.handle('open-accessibility', () => plat.openAccessibilitySettings());
+ipcMain.handle('open-bluetooth', () => { if (!plat.IS_LINUX) return plat.openBluetooth(); execFile('gnome-control-center', ['bluetooth'], () => execFile('systemsettings', ['kcm_bluetooth'], () => {})); });
 ipcMain.handle('check-updates', () => new Promise(resolve => {
   const https = require('https');
   const req = https.get({ host: 'api.github.com', path: '/repos/aabdelghani/logimx/releases/latest', headers: { 'User-Agent': 'LogiMX' }, timeout: 8000 }, res => {
@@ -746,8 +877,8 @@ ipcMain.handle('check-updates', () => new Promise(resolve => {
 // custom actions are reduced to their kind (a command or a typed text never leaves the machine).
 ipcMain.handle('diag-report', async () => {
   const os = require('os');
-  let distro = ''; try { distro = (/^PRETTY_NAME="?([^"\n]*)/m.exec(fs.readFileSync('/etc/os-release', 'utf8')) || [])[1] || ''; } catch (e) {}
-  const install = process.env.APPIMAGE ? 'AppImage' : app.isPackaged ? (app.getAppPath().startsWith('/opt/') ? '.deb' : 'packaged') : 'from source';
+  let distro = plat.IS_LINUX ? '' : plat.systemName(); try { if (plat.IS_LINUX) distro = (/^PRETTY_NAME="?([^"\n]*)/m.exec(fs.readFileSync('/etc/os-release', 'utf8')) || [])[1] || ''; } catch (e) {}
+  const install = process.env.APPIMAGE ? 'AppImage' : app.isPackaged ? (plat.IS_WIN ? 'installer' : plat.IS_MAC ? '.dmg' : app.getAppPath().startsWith('/opt/') ? '.deb' : 'packaged') : 'from source';
   let st = {}, devs = [], logs = [];
   try { st = await rpc('status', {}); } catch (e) {}
   try { for (const d of await rpc('devices', {})) devs.push(await rpc('device', { id: d.id })); } catch (e) {}
@@ -762,8 +893,8 @@ ipcMain.handle('diag-report', async () => {
   const lines = [];
   lines.push('| | |', '|---|---|');
   lines.push(`| LogiMX | ${app.getVersion()} (agent ${st.version || 'not running'}), ${install} |`);
-  lines.push(`| System | ${distro || os.type()}, kernel ${os.release()} |`);
-  lines.push(`| Desktop | ${process.env.ORIGINAL_XDG_CURRENT_DESKTOP || process.env.XDG_CURRENT_DESKTOP || 'unknown'}, ${process.env.XDG_SESSION_TYPE || 'unknown session'} |`);
+  lines.push(plat.IS_LINUX ? `| System | ${distro || os.type()}, kernel ${os.release()} |` : `| System | ${distro}, ${os.arch()} |`);
+  if (plat.IS_LINUX) lines.push(`| Desktop | ${process.env.ORIGINAL_XDG_CURRENT_DESKTOP || process.env.XDG_CURRENT_DESKTOP || 'unknown'}, ${process.env.XDG_SESSION_TYPE || 'unknown session'} |`);
   lines.push(`| Electron | ${process.versions.electron} |`);
   lines.push(`| Agent | ${connected ? 'connected' : 'not connected'}, focus tracking ${st.tracker || 'n/a'}, receivers ${st.receivers || 'none'}, other tools running: ${((st.conflicts || []).map(c => c.name).join(', ')) || 'none'}${st.paused ? ', paused' : ''} |`);
   for (const d of devs) {
@@ -788,7 +919,8 @@ ipcMain.handle('diag-report', async () => {
   lines.push('', `Action ring: ${Array.isArray(ring.profiles) ? ring.profiles.length + ' profile(s)' : 'not set up'}, ${ring.free_pointer ? 'pointer free' : 'steered'}`);
   // how the ring found the pointer on its last openings: the thing that goes wrong on Wayland
   const disp = screen.getAllDisplays().map(d => `${d.bounds.width}x${d.bounds.height}@${d.bounds.x},${d.bounds.y}${d.scaleFactor !== 1 ? ' x' + d.scaleFactor : ''}`).join(', ');
-  lines.push(`Displays: ${disp}; session ${process.env.XDG_SESSION_TYPE || '?'}, DISPLAY ${process.env.DISPLAY ? 'set' : 'unset'}, WAYLAND_DISPLAY ${process.env.WAYLAND_DISPLAY ? 'set' : 'unset'}, ozone ${process.env.ELECTRON_OZONE_PLATFORM_HINT || 'default'}`);
+  if (!plat.IS_LINUX) lines.push(`Displays: ${disp}`);
+  else lines.push(`Displays: ${disp}; session ${process.env.XDG_SESSION_TYPE || '?'}, DISPLAY ${process.env.DISPLAY ? 'set' : 'unset'}, WAYLAND_DISPLAY ${process.env.WAYLAND_DISPLAY ? 'set' : 'unset'}, ozone ${process.env.ELECTRON_OZONE_PLATFORM_HINT || 'default'}`);
   if (ringLog.length) lines.push('Ring openings (last first): ' + ringLog.slice().reverse().map(r => r.how === 'window' ? `${r.when} window ${r.size} at (${r.x}, ${r.y})` : `${r.when} ${r.raw ? 'steered' : 'pointer'}: ${r.how} at ${r.ms} ms, drawn at (${r.x}, ${r.y})${r.dx !== undefined ? `, moved by (${r.dx}, ${r.dy})` : ''}${r.guess ? `, last known (${Math.round(r.guess.x)}, ${Math.round(r.guess.y)})` : ''}`).join('; '));
   else lines.push('Ring openings: none since the app started');
   const summary = redact(lines.join('\n'));
@@ -806,12 +938,14 @@ if (!single) {
   app.quit();
 } else {
   app.on('second-instance', showWindow);
+  app.on('activate', showWindow);   // macOS: the Dock icon was clicked
   function createTray() {
     tray = new Tray(trayIcon(false));
     tray.on('click', showWindow);
     updateTray();
   }
   function ensureDesktopEntry() {
+    if (!plat.IS_LINUX) return;          // the installer made the shortcuts
     if (PACKAGED && !APPIMAGE) return;   // the .deb installs its own entry
     try {
       const iconDir = path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor', '256x256', 'apps');
@@ -834,15 +968,19 @@ if (!single) {
   ];
   function agentCandidates() {
     const c = [];
-    if (PACKAGED) c.push(resPath('agent', 'logimx-agent'));
+    if (PACKAGED) c.push(resPath('agent', plat.AGENT_EXE));
+    if (!plat.IS_LINUX) {
+      // a checkout: single-config builds put the exe in build/, Visual Studio's in build/Release/
+      c.push(path.join(__dirname, '..', 'agent', 'build', plat.AGENT_EXE), path.join(__dirname, '..', 'agent', 'build', 'Release', plat.AGENT_EXE));
+      return c.filter(p => fs.existsSync(p));
+    }
     c.push('/usr/bin/logimx-agent',
            '/usr/local/bin/logimx-agent',
            path.join(os.homedir(), '.local', 'bin', 'logimx-agent'),
            path.join(__dirname, '..', 'agent', 'build', 'logimx-agent'));   // running from a checkout
     return c.filter(p => { try { fs.accessSync(p, fs.constants.X_OK); return true; } catch (e) { return false; } });
   }
-  const agentRunning = () => new Promise(r =>
-    execFile('pgrep', ['-x', 'logimx-agent'], (err, out) => r(!err && !!String(out).trim())));
+  const agentRunning = plat.agentRunning;
 
   let starting = null;
   function startAgent() {
@@ -851,7 +989,7 @@ if (!single) {
     starting = (async () => {
       if (await agentRunning()) return { ok: true, already: true };
       notify('agent-status', { connected: false, starting: true });
-      if (AGENT_UNITS.some(u => { try { return fs.existsSync(u); } catch (e) { return false; } })) {
+      if (plat.IS_LINUX && AGENT_UNITS.some(u => { try { return fs.existsSync(u); } catch (e) { return false; } })) {
         const viaUnit = await new Promise(res =>
           execFile('systemctl', ['--user', 'start', 'logimx'], { timeout: 8000 }, e => res(!e)));
         if (viaUnit) return { ok: true, unit: true };
@@ -861,8 +999,7 @@ if (!single) {
       try {
         // detached on purpose: the agent is a daemon and keeps the devices configured
         // after this window is closed
-        const child = spawn(bin, [], { stdio: 'ignore', detached: true });
-        child.unref();
+        plat.spawnAgent(bin);
       } catch (e) {
         return { ok: false, error: e.message };
       }
@@ -879,7 +1016,7 @@ if (!single) {
   // someone to open a terminal.
   const sourceRoot = () => path.join(__dirname, '..');
   function canBuildAgent() {
-    if (PACKAGED) return false;
+    if (PACKAGED || !plat.IS_LINUX) return false;
     try { fs.accessSync(path.join(sourceRoot(), 'agent', 'CMakeLists.txt'), fs.constants.R_OK); return true; }
     catch (e) { return false; }
   }
@@ -931,9 +1068,10 @@ if (!single) {
     if (uiSettings.tray !== false) createTray();
     connect();
     createWindow();
+    flow.init({ win, getUi: () => (uiSettings = uiSettings || loadUi()), setUi: p => { uiSettings = uiSettings || loadUi(); Object.assign(uiSettings, p); saveUi(uiSettings); } });
     try { registerShortcuts(); } catch (e) {}
   });
-  app.on('will-quit', () => globalShortcut.unregisterAll());
+  app.on('will-quit', () => { globalShortcut.unregisterAll(); flow.shutdown(); });
   app.on('window-all-closed', () => { /* stay in the tray */ });
-  app.on('before-quit', () => { app.isQuitting = true; });
+  app.on('before-quit', () => { app.isQuitting = true; flow.shutdown(); });
 }

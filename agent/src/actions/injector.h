@@ -1,4 +1,7 @@
-// uinput virtual keyboard + mouse used to play actions into the desktop
+// Virtual keyboard + mouse used to play actions into the desktop.
+// Keys are named with the Linux input names (KEY_A, KEY_LEFTMETA, BTN_SIDE) on every OS; each
+// backend maps them to what its system understands: uinput (injector_linux.cpp), SendInput
+// (injector_win.cpp), Quartz events (injector_mac.mm).
 #pragma once
 #include <cstdint>
 #include <mutex>
@@ -22,9 +25,14 @@ class Injector {
     void typeText(const std::string& text);
 
   private:
+#ifdef __linux__
     void emit(uint16_t type, uint16_t code, int32_t value);
     void syn();
     int fd_ = -1;
+#endif
+#ifdef __APPLE__
+    uint64_t flags_ = 0;   // modifier flags of the keys held, stamped on every event posted
+#endif
     std::mutex m_;
     std::set<int> held_;
 };

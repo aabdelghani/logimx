@@ -1,81 +1,46 @@
 #include "ipc.h"
 
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/un.h>
-#include <unistd.h>
-
-#include <cstring>
 #include <stdexcept>
+
+#include "platform/platform.h"
 
 namespace ipc {
 
-std::string defaultSocketPath() {
-    const char* rt = getenv("XDG_RUNTIME_DIR");
-    std::string base = rt && *rt ? rt : "/run/user/" + std::to_string(getuid());
-    return base + "/logimx.sock";
-}
-
-static bool writeAll(int fd, const std::string& s) {
-    size_t off = 0;
-    while (off < s.size()) {
-        ssize_t w = ::send(fd, s.data() + off, s.size() - off, MSG_NOSIGNAL);
-        if (w <= 0) return false;
-        off += static_cast<size_t>(w);
-    }
-    return true;
-}
+std::string defaultSocketPath() { return platform::ipcEndpoint(); }
 
 Server::Server(Handler h, std::string path) : handler_(std::move(h)), path_(std::move(path)) {
-    ::unlink(path_.c_str());
-    fd_ = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (fd_ < 0) throw std::runtime_error("socket");
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path_.c_str(), sizeof(addr.sun_path) - 1);
-    if (::bind(fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) throw std::runtime_error("bind " + path_ + ": " + strerror(errno));
-    chmod(path_.c_str(), 0600);
-    ::listen(fd_, 64);
+    listener_ = Listener::create(path_);
     thread_ = std::thread([this] { acceptLoop(); });
 }
 
 Server::~Server() {
     stop_ = true;
-    ::shutdown(fd_, SHUT_RDWR);
-    ::close(fd_);
     if (thread_.joinable()) thread_.join();
-    {
-        std::lock_guard<std::mutex> lk(clientsMutex_);
-        for (int c : clients_) ::shutdown(c, SHUT_RDWR);
-    }
-    ::unlink(path_.c_str());
+    listener_.reset();
+    // the serve threads are detached: close their streams and wait for them to let go of this
+    std::unique_lock<std::mutex> lk(clientsMutex_);
+    for (auto& c : clients_) c->close();
+    served_.wait_for(lk, std::chrono::seconds(2), [this] { return serving_ == 0; });
 }
 
 void Server::acceptLoop() {
     while (!stop_) {
-        pollfd p{fd_, POLLIN, 0};
-        if (::poll(&p, 1, 300) <= 0) continue;
-        for (;;) {  // drain everything pending
-            int c = ::accept4(fd_, nullptr, nullptr, SOCK_CLOEXEC | SOCK_NONBLOCK);
-            if (c < 0) break;
-            int fl = fcntl(c, F_GETFL);
-            if (fl >= 0) fcntl(c, F_SETFL, fl & ~O_NONBLOCK);
-            {
-                std::lock_guard<std::mutex> lk(clientsMutex_);
-                clients_.insert(c);
-            }
-            std::thread([this, c] { serve(c); }).detach();
+        auto c = listener_->accept(300);
+        if (!c) continue;
+        {
+            std::lock_guard<std::mutex> lk(clientsMutex_);
+            clients_.insert(c);
+            ++serving_;
         }
+        std::thread([this, c] { serve(c); }).detach();
     }
 }
 
-void Server::serve(int fd) {
+void Server::serve(std::shared_ptr<Conn> c) {
     std::string buf;
     char tmp[4096];
     while (!stop_) {
-        ssize_t n = ::recv(fd, tmp, sizeof(tmp), 0);
+        int n = c->recv(tmp, sizeof(tmp));
         if (n <= 0) break;
         buf.append(tmp, static_cast<size_t>(n));
         if (buf.size() > 8 * 1024 * 1024 && buf.find('\n') == std::string::npos) break;  // oversized request, drop client
@@ -93,41 +58,26 @@ void Server::serve(int fd) {
             } catch (const std::exception& e) {
                 resp = {{"id", reqId}, {"error", e.what()}};
             }
-            if (!writeAll(fd, resp.dump() + "\n")) break;
+            if (!c->send(resp.dump() + "\n")) break;
         }
     }
-    {
-        std::lock_guard<std::mutex> lk(clientsMutex_);
-        clients_.erase(fd);
-    }
-    ::close(fd);
+    std::lock_guard<std::mutex> lk(clientsMutex_);
+    clients_.erase(c);
+    --serving_;
+    served_.notify_all();
 }
 
 void Server::broadcast(const std::string& event, const json& data) {
     std::string msg = json{{"event", event}, {"data", data}}.dump() + "\n";
     std::lock_guard<std::mutex> lk(clientsMutex_);
-    for (int c : clients_) writeAll(c, msg);
+    for (auto& c : clients_) c->send(msg);
 }
 
-Client::Client(std::string path) {
-    fd_ = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
-    if (::connect(fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-        ::close(fd_);
-        fd_ = -1;
-        throw std::runtime_error("agent not running (" + path + ")");
-    }
-}
-
-Client::~Client() {
-    if (fd_ >= 0) ::close(fd_);
-}
+Client::Client(std::string path) : conn_(connect(path)) {}
 
 json Client::call(const std::string& method, const json& params) {
     json req = {{"id", ++id_}, {"method", method}, {"params", params}};
-    if (!writeAll(fd_, req.dump() + "\n")) throw std::runtime_error("send failed");
+    if (!conn_->send(req.dump() + "\n")) throw std::runtime_error("send failed");
     char tmp[4096];
     for (;;) {
         size_t nl = buf_.find('\n');
@@ -139,7 +89,7 @@ json Client::call(const std::string& method, const json& params) {
             if (resp.contains("error")) throw std::runtime_error(resp["error"].get<std::string>());
             return resp["result"];
         }
-        ssize_t n = ::recv(fd_, tmp, sizeof(tmp), 0);
+        int n = conn_->recv(tmp, sizeof(tmp));
         if (n <= 0) throw std::runtime_error("agent closed the connection");
         buf_.append(tmp, static_cast<size_t>(n));
     }

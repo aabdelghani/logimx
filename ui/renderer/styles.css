@@ -796,9 +796,10 @@ button.chk.on { background: var(--accbg); border-color: var(--accbg); color: #ff
 .ring-chip.selected { background: var(--accbg) !important; color: #fff !important; border-color: var(--accbg) !important; transform: scale(1.15); box-shadow: 0 6px 16px color-mix(in srgb, var(--accbg) 45%, transparent); }
 .row.editing { background: color-mix(in srgb, var(--accbg) 12%, transparent); border-radius: 10px; }
 .row.editing .num { background: var(--accbg); color: #fff; }
-/* button rings on the mouse photo: a darker fill so each one reads clearly against the mouse */
-.hotspot.ms circle.ring { fill: rgba(0, 0, 0, .55); }
-.hotspot.ms:hover circle.ring { fill: color-mix(in srgb, var(--accbg) 55%, rgba(0, 0, 0, .6)); }
+/* button rings on the mouse photo: always at their large, tinted size so each one reads clearly
+   against the mouse; hover fills the ring almost solid, the one being edited is fully solid */
+.hotspot.ms circle.ring { r: 48; fill: color-mix(in srgb, var(--accbg) 55%, rgba(0, 0, 0, .6)); }
+.hotspot.ms:hover circle.ring { r: 48; fill: color-mix(in srgb, var(--accbg) 88%, transparent); stroke-width: 6; }
 .hotspot.ms.selected circle.ring { fill: var(--accbg); }
 /* the action ring on its page: a large ring, each slot's action written beside it */
 .ring-page { display: flex; flex-direction: column; gap: 18px; max-width: 760px; margin: 0 auto; }
@@ -863,3 +864,28 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .rs-chip { box-sizing: border-box; }
 .rs-chip.empty.selected, .rs-chip.empty.drop { border: 2px solid var(--accbg); }
 .rs-chip.empty.selected { background: var(--accbg); color: #fff; border: 2px solid var(--accbg); transform: scale(1.15); box-shadow: 0 8px 22px color-mix(in srgb, var(--accbg) 45%, transparent); }
+
+/* Flow page: the arrangement preview, nodes and status dot */
+.flow-arrange { display: flex; justify-content: center; padding: 10px 0; }
+.flow-grid { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto auto; gap: 10px; align-items: center; justify-items: center; min-width: 360px; }
+.flow-grid .fg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.flow-grid .up { grid-column: 2; grid-row: 1; } .flow-grid .down { grid-column: 2; grid-row: 3; }
+.flow-grid .left { grid-column: 1; grid-row: 2; justify-content: flex-end; } .flow-grid .right { grid-column: 3; grid-row: 2; justify-content: flex-start; }
+.flow-grid .flow-node.me { grid-column: 2; grid-row: 2; }
+.flow-node { padding: 14px 18px; border-radius: 12px; border: 1px solid var(--brd); background: var(--card); font-weight: 600; font-size: 13px; white-space: nowrap; text-align: center; }
+.flow-node.me { background: var(--accbg); color: #fff; border-color: var(--accbg); box-shadow: 0 6px 16px color-mix(in srgb, var(--accbg) 30%, transparent); }
+.flow-node.peer { border-style: dashed; color: var(--dim); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 7px; vertical-align: 1px; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
+.flow-ip { font-family: ui-monospace, monospace; letter-spacing: .02em; }
+
+/* Flow, inside a device: the invitation shown until Flow is set up */
+.flow-intro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; min-height: 60vh; padding: 24px; animation: kb-fade .35s ease both; }
+.flow-intro .flow-art { display: flex; align-items: center; gap: 26px; color: var(--dim); margin-bottom: 6px; }
+.flow-intro .flow-art > i { font-size: 60px; width: auto; }
+.flow-intro .flow-arrow { position: relative; width: 70px; height: 2px; background: linear-gradient(90deg, transparent, var(--accbg), transparent); }
+.flow-intro .flow-arrow i { position: absolute; top: -10px; left: 0; font-size: 20px; width: auto; color: var(--accbg); animation: flow-move 2.2s ease-in-out infinite; }
+@keyframes flow-move { 0% { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } 100% { left: 58px; opacity: 0; } }
+.flow-intro .t { font-size: 26px; font-weight: 700; }
+.flow-intro .s { font-size: 14px; color: var(--dim); max-width: 460px; line-height: 1.5; }
+.btn.lg { padding: 10px 22px; font-size: 15px; border-radius: 10px; }

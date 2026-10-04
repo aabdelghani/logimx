@@ -1,15 +1,18 @@
-// hidraw transport for HID++ 1.0 / 2.0 (receiver or directly connected device)
+// HID++ 1.0 / 2.0 transport over one HID node (receiver or directly connected device)
 #pragma once
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include "hid.h"
 
 namespace hidpp {
 
@@ -18,14 +21,6 @@ using Bytes = std::vector<uint8_t>;
 constexpr uint8_t kShort = 0x10, kLong = 0x11, kVeryLong = 0x12;
 constexpr size_t kShortLen = 7, kLongLen = 20;
 constexpr uint8_t kSwId = 0x0D;
-
-struct RawInfo {
-    uint32_t bustype = 0;
-    uint16_t vendor = 0, product = 0;
-    std::string name;
-};
-RawInfo rawInfo(const std::string& path);
-bool supportsHidpp(const std::string& path);
 
 struct HidppError : std::runtime_error {
     uint8_t code, featureIndex, function;
@@ -72,7 +67,7 @@ class Transport {
 
     std::string path_;
     RawInfo info_;
-    int fd_ = -1;
+    std::unique_ptr<HidDevice> hid_;
     double timeout_;
     Callback cb_;
     std::mutex cbMutex_;

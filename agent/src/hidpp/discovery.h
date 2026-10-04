@@ -19,7 +19,7 @@ struct Node {
     std::string receiverKind() const { auto it = kReceivers.find(product); return it == kReceivers.end() ? "" : it->second; }
 };
 
-// MX-family hidraw nodes (vendor 0x046D) that speak HID++ and that we can open.
+// Logitech HID nodes (vendor 0x046D) that speak HID++ and that we can open.
 std::vector<Node> scan();
 // Receivers and Bluetooth devices only (USB children of the dj driver are covered by the receiver).
 std::vector<Node> usable(const std::vector<Node>& nodes);

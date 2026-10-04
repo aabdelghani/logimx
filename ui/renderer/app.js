@@ -9,6 +9,7 @@
     theme: 'light', mode: 'app', page: 'home', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
     pair: { step: 1, found: [] }, ob: { step: 1, preset: 'gnome' }, appDetail: null, conflictDismissed: false,
     thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
+    flow: null, flowStatus: 'stopped', flowDetail: '',
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
   const VERSION = '0.6.23';
@@ -54,7 +55,7 @@
     return a.label || a.type;
   };
   const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor' };
-  const PRESET_ICON = { action_ring: 'fa-circle-notch', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
+  const PRESET_ICON = { action_ring: 'fa-circle-notch', volume_dial: 'fa-volume-high', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
     copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
     mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
     calculator: 'fa-calculator', emoji: 'fa-face-smile', emoji_picker: 'fa-face-smile', context_menu: 'fa-bars', dictation: 'fa-microphone', terminal: 'fa-terminal', close_window: 'fa-xmark', maximize: 'fa-window-maximize', minimize: 'fa-window-minimize', tile_left: 'fa-table-columns', tile_right: 'fa-table-columns',
@@ -62,7 +63,15 @@
     easy_switch_1: 'fa-right-left', easy_switch_2: 'fa-right-left', easy_switch_3: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', smartshift_toggle: 'fa-gear', open_home: 'fa-folder-open', middle_click: 'fa-computer-mouse', back: 'fa-arrow-left', forward: 'fa-arrow-right', native: 'fa-circle-dot', nothing: 'fa-ban',
     gesture_navigation: 'fa-hand-pointer', gesture_windows: 'fa-hand-pointer', gesture_volume: 'fa-hand-pointer', gesture_pan: 'fa-hand-pointer' };
   const actionIcon = a => typeof a === 'string' ? (PRESET_ICON[a] || ICON[(S.presets && S.presets.all[a] || {}).type] || 'fa-circle-dot') : ICON[(a || {}).type] || 'fa-circle-dot';
-  const keyName = k => k.replace(/^KEY_/, '').replace(/^LEFT(CTRL|SHIFT|ALT|META)$/, '$1').replace(/^RIGHT(CTRL|SHIFT|ALT|META)$/, '$1').replace('META', 'Super').replace('CTRL', 'Ctrl').replace('SHIFT', 'Shift').replace('ALT', 'Alt').replace(/^([A-Z])$/, '$1').replace(/^([A-Z][A-Z]+)$/, m => m.charAt(0) + m.slice(1).toLowerCase());
+  // which OS the app runs on: names of keys and settings follow it
+  const OS = () => (S.appInfo && S.appInfo.platform) || 'linux';
+  const IS_WIN = () => OS() === 'win32', IS_MAC = () => OS() === 'darwin', IS_LINUX = () => !IS_WIN() && !IS_MAC();
+  const META = () => IS_WIN() ? 'Win' : IS_MAC() ? 'Cmd' : 'Super';
+  const ALT = () => IS_MAC() ? 'Option' : 'Alt';
+  const keyName = k => k.replace(/^KEY_/, '').replace(/^LEFT(CTRL|SHIFT|ALT|META)$/, '$1').replace(/^RIGHT(CTRL|SHIFT|ALT|META)$/, '$1').replace('META', META()).replace(/^ALT$/, ALT()).replace('CTRL', 'Ctrl').replace('SHIFT', 'Shift').replace('ALT', 'Alt').replace(/^([A-Z])$/, '$1').replace(/^([A-Z][A-Z]+)$/, m => m.charAt(0) + m.slice(1).toLowerCase());
+  // what the agent calls another tool, as people know it
+  const toolName = n => ({ solaar: 'Solaar', logid: 'logid', logioptionsplus_agent: 'Logi Options+', 'Logi Options+': 'Logi Options+', LogiOptions: 'Logitech Options', LogiOptionsMgr: 'Logitech Options',
+    LogiMgrDaemon: 'Logitech Options', SetPoint: 'SetPoint', 'LGHUB Agent': 'G HUB', lghub_agent: 'G HUB' })[n] || n;
   const agentNeedsBuild = () => !S.connected && !!S.agentInfo && !S.agentInfo.binary && !!S.agentInfo.canBuild;
   const batIcon = b => !b ? 'fa-battery-empty' : b.percent > 80 ? 'fa-battery-full' : b.percent > 55 ? 'fa-battery-three-quarters' : b.percent > 30 ? 'fa-battery-half' : b.percent > 10 ? 'fa-battery-quarter' : 'fa-battery-empty';
   const batClass = b => !b ? '' : b.charging ? 'ok' : b.percent <= 10 ? 'err' : b.percent <= 20 ? 'warn' : 'ok';
@@ -151,9 +160,9 @@
   const PAGES = {
     buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
     haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-lightbulb'],
-    home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'],
+    home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'], flow: ['Flow', 'fa-diagram-project'],
   };
-  const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'info']) : ['keys', 'backlight', 'easy', 'info'];
+  const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'flow', 'info'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
@@ -355,7 +364,7 @@
           ${controls}
         </header>`}
         ${agentDown}
-        ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(cname === 'logid' ? 'logid' : 'Solaar')} is running.</strong> Both programs divert the same buttons; only one will win.</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">Stop ${esc(cname === 'logid' ? 'logid' : 'Solaar')}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
+        ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(toolName(cname))} is running.</strong> Both programs divert the same buttons; only one will win.</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">Stop ${esc(toolName(cname))}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
         ${body}
       </main></div>`;
   }
@@ -411,6 +420,7 @@
       case 'apps': return pageApps();
       case 'ring': return pageRing();
       case 'notif': return pageNotif();
+      case 'flow': return d ? pageFlow() : '';
       case 'backup': return pageBackup();
       case 'settings': return pageSettings();
       case 'about': return pageAbout();
@@ -619,7 +629,7 @@
     }).join('');
     return sec(`Hosts · ${esc(d.name)}`, `<div class="hosts">${cards}</div>`) +
       `<div class="easy-opts">` + card(row('Linked switching', `Move all devices to the same host together`, sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
-        row('Keyboard shortcut', 'Switch host from the tray or with a shortcut', `<span class="val">Super + Alt + 1…3</span>`)) + `</div>`;
+        row('Keyboard shortcut', 'Switch host from the tray or with a shortcut', `<span class="val">${META()} + ${ALT()} + 1…3</span>`)) + `</div>`;
   }
 
   function pageInfo(d) {
@@ -787,7 +797,7 @@
     return sec('On-screen overlays', card(row('Show overlays', 'Toast when a diverted key changes device state', sw(g.osd_enabled ?? true, 'data-act="general" data-key="osd_enabled"')) +
         `<div class="row"><span class="grow lbl">Position</span><span class="seg">${['top', 'center', 'bottom'].map(p => `<button class="${pos === p ? 'on' : ''}" data-act="general-val" data-key="osd_position" data-val="${p}">${p === 'center' ? 'Centre' : p.charAt(0).toUpperCase() + p.slice(1)}</button>`).join('')}</span></div>` +
         `<div class="row"><span class="grow lbl">Duration</span>${range('data-act="general-range" data-key="osd_duration" data-out="dur"', dur, 500, 4000, 250)}<span class="val" data-out="dur" style="width:40px;text-align:right">${(dur / 1000).toFixed(1)} s</span></div>` +
-        row('Toggle overlays shortcut', '', '<span class="val">Super + Alt + O</span>') +
+        row('Toggle overlays shortcut', '', `<span class="val">${META()} + ${ALT()} + O</span>`) +
         `<div class="row"><span class="grow lbl">Preview</span>${['mic', 'smartshift', 'backlight', 'host', 'dpi', 'emoji'].map(k => `<button class="btn sm" data-act="osd-test" data-key="${k}">${k}</button>`).join('')}</div>`)) +
       sec('Show overlay for', card([['mic', 'fa-microphone-slash', 'Microphone mute'], ['smartshift', 'fa-gear', 'SmartShift mode'], ['backlight', 'fa-sun', 'Backlight level'], ['host', 'fa-right-left', 'Easy-Switch host'], ['dpi', 'fa-arrow-pointer', 'DPI change']].map(([k, icon, label]) => `<div class="row"><i class="fa-solid ${icon}" style="width:20px;text-align:center;color:var(--dim)"></i><span class="grow lbl">${label}</span>${sw(ev[k] !== false, `data-act="osd-event" data-key="${k}"`)}</div>`).join(''))) +
       sec('System notifications', card(row('Low battery', '', sw(g.notify_low ?? true, 'data-act="general" data-key="notify_low"')) + row('Device connected / disconnected', '', sw(g.notify_connect ?? false, 'data-act="general" data-key="notify_connect"'))));
@@ -876,8 +886,8 @@
   }
   function pageSettings(generalTitle = 'General') {
     const u = S.ui || {};
-    return sec('Startup', card(row('Start agent at login', 'systemd user service', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
-        row('Show tray indicator', 'Battery and Easy-Switch in the top bar', sw(u.tray !== false, 'data-act="ui" data-key="tray"')) +
+    return sec('Startup', card(row(IS_LINUX() ? 'Start agent at login' : 'Start LogiMX at sign-in', IS_LINUX() ? 'systemd user service' : IS_WIN() ? 'Starts hidden in the notification area' : 'Login item, starts hidden in the menu bar', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
+        row(IS_MAC() ? 'Show menu bar icon' : 'Show tray indicator', IS_WIN() ? 'Battery and Easy-Switch in the notification area' : IS_MAC() ? 'Battery and Easy-Switch in the menu bar' : 'Battery and Easy-Switch in the top bar', sw(u.tray !== false, 'data-act="ui" data-key="tray"')) +
         row('Keep running when window closes', 'Closing hides to the tray', sw(u.minimize !== false, 'data-act="ui" data-key="minimize"')) +
         row('Start hidden', 'Open in the tray only', sw(!!u.start_hidden, 'data-act="ui" data-key="start_hidden"')))) +
       sec(generalTitle, card(`<div class="row"><span class="grow lbl">Appearance</span><select class="sel" data-act="theme-select">${THEMES.map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
@@ -886,10 +896,73 @@
       sec('Privacy', card(row('Telemetry', 'Off. LogiMX never sends data anywhere.', '<span class="val">Not available</span>')));
   }
 
+  // Flow: share the mouse, keyboard and clipboard with other computers on the LAN. LogiMX
+  // drives Deskflow (the open-source software KVM) under the hood; this computer is the
+  // server and the others join as clients. S.flow holds the last flow-info from main.
+  const FLOW_POS = [['left', 'Left', 'fa-arrow-left'], ['right', 'Right', 'fa-arrow-right'], ['up', 'Above', 'fa-arrow-up'], ['down', 'Below', 'fa-arrow-down']];
+  function flowRefresh() { window.agent.flowInfo().then(f => { S.flow = f; if (f) { S.flowStatus = f.status || (f.running ? 'running' : 'stopped'); } if (S.page === 'flow') render(); }); }
+  // While Flow is off, the device's Flow page is a single invitation; Start using Flow opens
+  // the setup (installing the sharing engine first if it is missing).
+  function flowIntro(f) {
+    const inst = S.flowStatus === 'installing';
+    return `<div class="flow-intro">
+      <div class="flow-art"><i class="fa-solid fa-laptop"></i><span class="flow-arrow"><i class="fa-solid fa-arrow-pointer"></i></span><i class="fa-solid fa-display"></i></div>
+      <div class="t">Flow</div>
+      <div class="s">Use this mouse and keyboard on more than one computer. Move the pointer off the edge of the screen to reach the next computer, and copy on one to paste on another.</div>
+      ${inst ? `<div class="s"><i class="fa-solid fa-spinner fa-spin"></i> Installing Flow support…${S.flowDetail ? `<br><span class="hint">${esc(S.flowDetail)}</span>` : ''}</div>`
+        : `<button class="btn primary lg" data-act="flow-begin"><i class="fa-solid fa-play"></i>Start using Flow</button>`}
+      <div class="hint">Works on your local network. Nothing is sent anywhere online.</div>
+    </div>`;
+  }
+  function pageFlow() {
+    const f = S.flow;
+    if (!f) { flowRefresh(); return sec('Flow', card(row('Loading…', '', ''))); }
+    if (!S.flowSetup && !f.running) return flowIntro(f);
+    if (!f.installed) {
+      const inst = S.flowStatus === 'installing';
+      return sec('Flow', card(
+        row('Flow needs its sharing engine', 'LogiMX shares the mouse, keyboard and clipboard between computers using Deskflow, an open-source tool. Install it once to turn Flow on.',
+          inst ? `<span class="val">Installing…</span>` : `<button class="btn primary" data-act="flow-install"><i class="fa-solid fa-download"></i>Install Flow support</button>`) +
+        (inst && S.flowDetail ? `<div class="row sub" style="color:var(--dim)">${esc(S.flowDetail)}</div>` : ''))) +
+        sec('', `<div class="hint">Deskflow is the open-source Barrier / Synergy fork. LogiMX only sets it up and runs it; nothing is sent anywhere online. <a href="#" data-act="open" data-url="https://deskflow.org">deskflow.org</a></div>`);
+    }
+    const peers = f.peers || [];
+    const st = S.flowStatus, on = f.running;
+    const statusText = on
+      ? (f.peer || st === 'peer' ? 'Connected — a computer is sharing this mouse and keyboard' : `Running — waiting for a computer to connect at ${f.ip || 'this computer'}`)
+      : st === 'error' ? (S.flowDetail || 'Flow stopped unexpectedly') : 'Off';
+    const statusCls = on ? (f.peer || st === 'peer' ? 'ok' : 'warn') : st === 'error' ? 'err' : '';
+    // this computer in the middle, each peer as a tile on its side
+    const tile = (label, cls) => `<div class="flow-node ${cls}">${esc(label)}</div>`;
+    const bySide = s => peers.filter(p => p.pos === s).map(p => tile(p.name, 'peer')).join('');
+    const gridPreview = `<div class="flow-grid">
+      <div class="fg up">${bySide('up')}</div>
+      <div class="fg left">${bySide('left')}</div>
+      ${tile(f.name + ' (this)', 'me')}
+      <div class="fg right">${bySide('right')}</div>
+      <div class="fg down">${bySide('down')}</div></div>`;
+    const peerRows = peers.length ? peers.map((p, i) => `<div class="row">
+        <span class="grow lbl">${esc(p.name)}</span>
+        <select class="sel" data-act="flow-peer-pos" data-i="${i}">${FLOW_POS.map(([v, l]) => `<option value="${v}" ${p.pos === v ? 'selected' : ''}>${l} of me</option>`).join('')}</select>
+        <button class="btn sm flat danger" data-act="flow-peer-del" data-i="${i}" title="Remove"><i class="fa-solid fa-trash"></i></button>
+      </div>`).join('') : `<div class="row sub" style="color:var(--dim)">No computers yet. Add the Mac or PC you want to reach.</div>`;
+    return sec('This computer', card(
+        row('Name', 'How other computers see this one', `<input class="text" data-act="flow-name" value="${esc(f.name)}" style="width:180px" ${on ? 'disabled' : ''}>`) +
+        row('Address', 'Where the others connect', `<span class="val flow-ip">${esc(f.ip || 'no network')}</span>`))) +
+      sec('Computers', card(peerRows + `<div class="row"><button class="btn sm" data-act="flow-peer-add" ${on ? 'disabled' : ''}><i class="fa-solid fa-plus"></i>Add computer</button></div>`), 'drag your pointer off this edge to reach them') +
+      (peers.length ? sec('Arrangement', card(`<div class="flow-arrange">${gridPreview}</div>`)) : '') +
+      sec('Sharing', card(
+        row('Share clipboard', 'Copy on one computer, paste on another', sw(f.clipboard !== false, 'data-act="flow-clip"')) +
+        `<div class="row sub" style="color:var(--dim)">The keyboard and mouse are always shared with the computer your pointer is on.</div>`)) +
+      sec('', card(`<div class="row"><div class="grow"><div class="lbl">Flow</div><div class="sub"><span class="dot ${statusCls}"></span>${esc(statusText)}</div></div>` +
+        (on ? `<button class="btn danger" data-act="flow-stop"><i class="fa-solid fa-stop"></i>Stop</button>` : `<button class="btn primary" data-act="flow-start"><i class="fa-solid fa-play"></i>Start Flow</button>`) + `</div>`)) +
+      sec('Connect another computer', `<div class="hint">On the other computer, install <a href="#" data-act="open" data-url="https://deskflow.org">Deskflow</a>, choose <b>Client</b>, and connect to <b>${esc(f.ip || 'this computer')}</b>. Give that computer the screen name you typed for it above, and accept the security fingerprint the first time.</div>`);
+  }
+
   function pageAbout() {
     const links = [['fa-book', 'Documentation', 'https://github.com/aabdelghani/logimx#readme'], ['fa-code-branch', 'Source code', 'https://github.com/aabdelghani/logimx'], ['fa-bug', 'Report an issue', 'https://github.com/aabdelghani/logimx/issues'], ['fa-heart', 'Contributors', 'https://github.com/aabdelghani/logimx/graphs/contributors']];
     const logs = S.logs.length ? S.logs : [{ t: `${new Date().toLocaleTimeString()} INFO  agent ${S.connected ? 'connected' : 'not running'} · ${S.devices.length} device(s) · tracker ${S.status.tracker || 'n/a'}`, c: 'dim' }];
-    return `<div class="card about-hero"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span><div class="name">LogiMX</div><div class="hint">Configuration for MX mice and keyboards on Linux</div><div class="tags"><span>v${S.status.version || VERSION}</span><span>MIT</span><span>${S.appInfo.packaged ? 'Packaged' : 'Source'}</span></div></div>` +
+    return `<div class="card about-hero"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span><div class="name">LogiMX</div><div class="hint">Configuration for MX mice and keyboards on ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'}</div><div class="tags"><span>v${S.status.version || VERSION}</span><span>MIT</span><span>${S.appInfo.packaged ? 'Packaged' : 'Source'}</span>${IS_LINUX() ? '' : '<span>Beta</span>'}</div></div>` +
       card(links.map(([i, l, u]) => `<div class="row click" data-act="open" data-url="${u}"><i class="fa-solid ${i}" style="width:20px;text-align:center;color:var(--dim)"></i><span class="grow lbl">${l}</span><i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--dim);font-size:11px"></i></div>`).join('')) +
       sec('Diagnostics', card(`<div class="logs">${logs.map(l => `<span class="${l.c || 'dim'}">${esc(l.t)}</span>`).join('')}</div>`) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" data-act="report"><i class="fa-solid fa-bug"></i>Report a problem</button><button class="btn" data-act="export-diag"><i class="fa-solid fa-file-zipper"></i>Export diagnostics</button><button class="btn" data-act="copy-diag"><i class="fa-solid fa-copy"></i>Copy</button></div>`, `<button class="btn sm flat" data-act="refresh-logs">Refresh</button>`);
   }
@@ -931,7 +1004,7 @@
       body = `<div class="recbox" data-act="rec-start"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? 'Press the keys to record' : 'Click here, then press the keys'}</div><div class="keys">${(p.chord || []).length ? p.chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">Release to finish. Esc cancels.</div>${p.recording ? '' : '<button class="btn primary" data-act="rec-start">Start recording</button>'}</div>
         <div class="hint">Or type it: <input class="text" data-field="typed" placeholder="ctrl+alt+shift+z" style="width:200px;margin-left:8px" value="${esc(p.typed || '')}"></div>`;
     } else if (p.cat === 'cmd') {
-      body = sec('Shell command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}"><div class="hint">Runs in the user session with your environment. Non-interactive.</div>`) +
+      body = sec('Shell command', `<input class="mono" data-field="cmd" placeholder="${IS_WIN() ? 'notepad.exe' : IS_MAC() ? 'open -a Calculator' : 'gnome-screenshot -i'}" value="${esc(p.cmd || '')}"><div class="hint">Runs in the user session with your environment. Non-interactive.</div>`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
         sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`);
     } else if (p.cat === 'app') {
@@ -972,7 +1045,7 @@
     numbers: keyRange('1 2 3 4 5 6 7 8 9 0'),
     symbols: [K('GRAVE', '`'), K('MINUS', '-'), K('EQUAL', '='), K('LEFTBRACE', '['), K('RIGHTBRACE', ']'), K('BACKSLASH', '\\'), K('SEMICOLON', ';'), K('APOSTROPHE', "'"), K('COMMA', ','), K('DOT', '.'), K('SLASH', '/'), K('102ND', '< >')],
     numpad: keyRange('KP0 KP1 KP2 KP3 KP4 KP5 KP6 KP7 KP8 KP9', c => 'Num ' + c.slice(2)).concat([K('KPENTER', 'Num Enter'), K('KPEQUAL', 'Num ='), K('NUMLOCK', 'Num Lock'), K('KPMINUS', 'Num -'), K('KPDOT', 'Num .'), K('KPPLUS', 'Num +'), K('KPSLASH', 'Num /'), K('KPASTERISK', 'Num *')]),
-    modifiers: [K('LEFTCTRL', 'Left Ctrl'), K('RIGHTCTRL', 'Right Ctrl'), K('LEFTSHIFT', 'Left Shift'), K('RIGHTSHIFT', 'Right Shift'), K('LEFTALT', 'Left Alt'), K('RIGHTALT', 'Right Alt'), K('LEFTMETA', 'Left Super'), K('RIGHTMETA', 'Right Super')],
+    modifiers: [K('LEFTCTRL', 'Left Ctrl'), K('RIGHTCTRL', 'Right Ctrl'), K('LEFTSHIFT', 'Left Shift'), K('RIGHTSHIFT', 'Right Shift'), K('LEFTALT', 'Left ' + ALT()), K('RIGHTALT', 'Right ' + ALT()), K('LEFTMETA', 'Left ' + META()), K('RIGHTMETA', 'Right ' + META())],
     arrows: [K('UP', 'Up arrow'), K('DOWN', 'Down arrow'), K('LEFT', 'Left arrow'), K('RIGHT', 'Right arrow'), K('HOME', 'Home'), K('END', 'End'), K('PAGEUP', 'Page up'), K('PAGEDOWN', 'Page down'), K('INSERT', 'Insert')],
     others: [K('CAPSLOCK', 'Caps Lock'), K('SCROLLLOCK', 'Scroll Lock'), K('BACKSPACE', 'Backspace'), K('DELETE', 'Delete'), K('ESC', 'Escape'), K('TAB', 'Tab'), K('SPACE', 'Space'), K('ENTER', 'Enter')],
   };
@@ -980,7 +1053,7 @@
   const OPTS_CATS = {
     nav: ['overview', 'show_desktop', 'app_switcher', 'workspace_prev', 'workspace_next', 'close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'tab_next', 'tab_prev', 'zoom_in', 'zoom_out', 'screenshot', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'emoji', 'dictation', 'context_menu', 'brightness_up', 'brightness_down', 'terminal'],
     edit: ['copy', 'paste', 'undo', 'redo', 'open_home'],
-    media: ['play_pause', 'prev_track', 'next_track', 'volume_up', 'volume_down', 'mute', 'mic_mute'],
+    media: ['volume_dial', 'play_pause', 'prev_track', 'next_track', 'volume_up', 'volume_down', 'mute', 'mic_mute'],
     other: ['easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'nothing'],
     mouse: MOUSE_GROUP, wheel: WHEEL_GROUP,
   };
@@ -1000,12 +1073,12 @@
   const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
   const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
   // the presets a control can take: keys never get the ring, gestures only on a button that can be held and moved
-  const RING_RECOMMEND = ['overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause'];
+  const RING_RECOMMEND = ['volume_dial', 'overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause'];
   const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
   const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
   const allowedFor = p => new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && (S.presets.all[k] || {}).type !== 'gesture')
     : p.section === 'gesture' ? Object.keys(S.presets.all).filter(k => GESTURE_TYPES.includes(S.presets.all[k].type))
-    : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'buttons' ? S.presets.buttons.filter(k => (S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy)) : S.presets.keys.filter(k => k !== 'action_ring'));
+    : p.section === 'thumbwheel' ? S.presets.wheel.filter(k => k !== 'volume_dial') : p.section === 'buttons' ? S.presets.buttons.filter(k => k !== 'volume_dial' && ((S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy))) : S.presets.keys.filter(k => k !== 'action_ring' && k !== 'volume_dial'));
   function drawerItems(sec, p) {
     const ok = allowedFor(p || S.picker);
     return (OPTS_CATS[sec] || []).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
@@ -1034,7 +1107,7 @@
       const ringCfg = p.section === 'buttons' && isRingAction(p.current) ? `<button class="act ring-cfg" data-act="ring-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure action ring</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
       return `<div class="acts">${rows.map(i => actRow(p, i) + (i.key === 'action_ring' ? ringCfg : '')).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
     }
-    if (k === 'smart') return sec('Run a command', `<input class="mono" data-field="cmd" placeholder="gnome-screenshot -i" value="${esc(p.cmd || '')}">`) +
+    if (k === 'smart') return sec('Run a command', `<input class="mono" data-field="cmd" placeholder="${IS_WIN() ? 'notepad.exe' : IS_MAC() ? 'open -a Calculator' : 'gnome-screenshot -i'}" value="${esc(p.cmd || '')}">`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
         sec('Open URL, file or folder', `<input class="mono" data-field="open" placeholder="https://… or ~/Documents" value="${esc(p.open || '')}">`) +
         sec('Open application', `<div class="applist smart-apps">${appTabHtml(Object.assign({}, p, { q: '' }))}</div>`);
@@ -1163,11 +1236,21 @@
           ? '<button class="btn primary" data-act="pair"><i class="fa-solid fa-plus"></i>Pair a device</button>'
           : S.agentBusy ? '' : `<button class="btn primary" data-act="start-agent"><i class="fa-solid ${needsBuild ? 'fa-hammer' : 'fa-play'}"></i>${needsBuild ? 'Build and start' : 'Start the agent'}</button>`}${booting ? '' : '<button class="btn" data-act="onboard"><i class="fa-solid fa-shield-halved"></i>Setup guide</button>'}</div></div></main></div>`;
   }
+  // Windows needs nothing granted; macOS needs Accessibility so LogiMX can press keys and buttons
+  function onboardPermissions() {
+    const agentOk = S.connected, conf = S.conflicts.length, ax = S.ax || { trusted: true };
+    const mark = (ok, n) => ok ? '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>' : `<span class="mark-n">${n}</span>`;
+    return `<div><h1>${IS_MAC() ? 'Permissions' : 'Getting ready'}</h1><div class="lead">${IS_MAC() ? 'LogiMX talks to your devices directly. To press keys and buttons for you, macOS asks you to allow it once.' : 'LogiMX talks to your devices directly. Nothing else needs to be installed.'}</div></div>
+      ${card(`<div class="row">${mark(agentOk, 1)}<div class="grow"><div class="lbl">Background agent</div><div class="sub">${agentOk ? 'Running' : S.agentBusy ? 'Starting…' : esc(S.agentErr || 'Not running yet')}</div></div>${agentOk || S.agentBusy ? '' : '<button class="btn sm" data-act="start-agent">Start</button>'}</div>
+        ${IS_MAC() ? `<div class="row">${mark(ax.trusted, 2)}<div class="grow"><div class="lbl">Accessibility</div><div class="sub">${ax.trusted ? 'Allowed' : 'System Settings > Privacy & Security > Accessibility: switch on LogiMX'}</div></div>${ax.trusted ? '' : '<button class="btn sm" data-act="ax-open">Open settings</button>'}</div>` : ''}
+        <div class="row">${mark(!conf, IS_MAC() ? 3 : 2)}<div class="grow"><div class="lbl">Quit Logi Options+ while LogiMX runs</div>${conf ? `<div class="sub">${esc(S.conflicts.map(c => toolName(c.name)).join(', '))} is running</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">Stop</button>` : ''}</div>`)}`;
+  }
   function renderOnboard() {
     const o = S.ob;
-    const steps = [[1, 'Permissions', 'udev rule and uinput'], [2, 'Devices', 'Choose what to manage'], [3, 'Preset', 'GNOME, macOS or Windows-like']].map(([n, t, s]) => `<button class="ob-step ${n === o.step ? 'cur' : n < o.step ? 'done' : ''}" data-act="ob-step" data-key="${n}"><span class="n">${n < o.step ? '✓' : n}</span><div><div class="t">${t}</div><div class="s">${s}</div></div></button>`).join('');
+    const steps = [[1, 'Permissions', IS_LINUX() ? 'udev rule and uinput' : IS_MAC() ? 'Accessibility' : 'Background agent'], [2, 'Devices', 'Choose what to manage'], [3, 'Preset', IS_LINUX() ? 'GNOME, macOS or Windows-like' : 'Gestures and the thumb wheel']].map(([n, t, s]) => `<button class="ob-step ${n === o.step ? 'cur' : n < o.step ? 'done' : ''}" data-act="ob-step" data-key="${n}"><span class="n">${n < o.step ? '✓' : n}</span><div><div class="t">${t}</div><div class="s">${s}</div></div></button>`).join('');
     let body = '';
-    if (o.step === 1) {
+    if (o.step === 1 && !IS_LINUX()) body = onboardPermissions();
+    else if (o.step === 1) {
       const agentOk = S.connected, devOk = S.devices.length > 0;
       const conf = S.conflicts.length;
       body = `<div><h1>Permissions</h1><div class="lead">LogiMX talks to devices over HID and emits keys through uinput. Both need a one-time udev rule.</div></div>
@@ -1180,7 +1263,8 @@
         ${card(S.devices.map(d => `<div class="row"><span class="mark-ok"><i class="fa-solid fa-check"></i></span><i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}" style="color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(d.name)}</div><div class="sub">${d.transport === 'bolt' ? 'Bolt' : 'Bluetooth'} · host ${((d.state || {}).hosts || {}).current + 1 || 1}</div></div><span class="val">${d.battery ? d.battery.percent + '%' : ''}</span></div>`).join('') || row('Waiting for devices…', '', ''))}
         <div><button class="btn" data-act="pair"><i class="fa-solid fa-plus"></i>Pair another device</button></div>`;
     } else {
-      const presets = [['gnome', 'fa-linux', 'GNOME defaults', 'Gestures drive Overview and workspaces. F-keys follow the shell.'], ['mac', 'fa-apple', 'macOS-like', 'Gesture button acts as Mission Control; thumb wheel switches desktops.'], ['win', 'fa-windows', 'Windows-like', 'Task View on gesture tap, Alt+Tab on swipe; media row unchanged.']];
+      const presets = [['gnome', 'fa-linux', 'GNOME defaults', 'Gestures drive Overview and workspaces. F-keys follow the shell.'], ['mac', 'fa-apple', 'macOS-like', 'Gesture button acts as Mission Control; thumb wheel switches desktops.'], ['win', 'fa-windows', 'Windows-like', 'Task View on gesture tap, Alt+Tab on swipe; media row unchanged.']].filter(([k]) => IS_LINUX() || k !== 'gnome')
+        .sort((a, b) => (b[0] === (IS_WIN() ? 'win' : IS_MAC() ? 'mac' : 'gnome')) - (a[0] === (IS_WIN() ? 'win' : IS_MAC() ? 'mac' : 'gnome')));
       body = `<div><h1>Pick a preset</h1><div class="lead">A starting point for buttons, gestures and F-keys. Everything can be changed later.</div></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${presets.map(([k, i, n, d]) => `<button class="choice ${o.preset === k ? 'on' : ''}" style="flex-direction:column;align-items:flex-start;gap:8px" data-act="ob-preset" data-key="${k}"><i class="fa-brands ${i}" style="font-size:22px;color:${o.preset === k ? 'var(--acc)' : 'var(--dim)'}"></i><span style="font-weight:600">${n}</span><span class="sub">${d}</span></button>`).join('')}</div>`;
     }
@@ -1366,6 +1450,15 @@
       case 'dismiss-conflict': S.conflictDismissed = true; render(); return;
       case 'stop-tool': { const r = await window.agent.stopTool(b.dataset.tool); toast(r && r.ok ? `${b.dataset.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; }
       case 'open': window.agent.openExternal(b.dataset.url); return;
+      case 'flow-install': window.agent.flowInstall(); S.flowStatus = 'installing'; render(); return;
+      case 'flow-begin': S.flowSetup = true; if (S.flow && !S.flow.installed) { window.agent.flowInstall(); S.flowStatus = 'installing'; } render(); return;
+      case 'flow-start': { const r = await window.agent.flowStart(); if (r && !r.ok) toast(r.error || 'Could not start Flow', true); flowRefresh(); return; }
+      case 'flow-stop': await window.agent.flowStop(); flowRefresh(); return;
+      case 'flow-name': { const v = (b.value || '').trim(); if (v) await window.agent.flowConfig({ name: v }); flowRefresh(); return; }
+      case 'flow-clip': { const cur = (S.flow || {}).clipboard !== false; await window.agent.flowConfig({ clipboard: !cur }); flowRefresh(); return; }
+      case 'flow-peer-add': prompt('Add computer', [{ key: 'name', label: 'Name', placeholder: 'macbook, work-pc…' }], async v => { const name = (v.name || '').trim(); if (!name) return; const peers = ((S.flow || {}).peers || []).slice(); if (peers.some(p => p.name === name)) return toast('That name is already added', true); peers.push({ name: name.replace(/[^A-Za-z0-9_-]/g, '-'), pos: 'right' }); await window.agent.flowConfig({ peers }); flowRefresh(); }, 'Add'); return;
+      case 'flow-peer-del': { const peers = ((S.flow || {}).peers || []).slice(); peers.splice(Number(b.dataset.i), 1); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
+      case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
       case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
@@ -1503,8 +1596,9 @@
       case 'export-diag': { const diag = { status: S.status, devices: S.devices, config: await call('export_config'), logs: S.logs, ui: S.ui, when: new Date().toISOString() }; const p = await window.agent.saveJson('logimx-diagnostics.json', diag); if (p) toast('Saved ' + p); return; }
       case 'copy-diag': window.agent.copy(S.logs.map(l => l.t).join('\n') || JSON.stringify(S.status)); toast('Copied'); return;
       case 'refresh-logs': await loadLogs(); render(); return;
+      case 'ax-open': window.agent.accessibility(true); window.agent.openAccessibility(); setTimeout(async () => { S.ax = await window.agent.accessibility(false); render(); }, 4000); return;
       case 'install-udev': { const r = await window.agent.installUdev(); toast(r && r.ok ? 'Rule installed, re-plug the receiver' : (r && r.error) || 'Failed', !(r && r.ok)); setTimeout(refresh, 2000); return; }
-      case 'onboard': S.mode = 'onboard'; S.ob = { step: 1, preset: 'gnome' }; render(); return;
+      case 'onboard': S.mode = 'onboard'; S.ob = { step: 1, preset: IS_WIN() ? 'win' : IS_MAC() ? 'mac' : 'gnome' }; render(); return;
       case 'ob-close': S.mode = 'app'; try { localStorage.setItem('onboarded', '1'); } catch (x) {} render(); return;
       case 'ob-step': S.ob.step = Number(key); render(); return;
       case 'ob-prev': S.ob.step = Math.max(1, S.ob.step - 1); render(); return;
@@ -1569,6 +1663,7 @@
     else { S.devices = []; S.loaded = false; if (st.starting) S.agentBusy = true; render(); }
   });
   window.agent.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
+  window.agent.onFlowEvent(m => { if (!m) return; S.flowStatus = m.status; S.flowDetail = m.detail || ''; if (S.flow) { S.flow.status = m.status; S.flow.peer = !!m.peer; S.flow.running = !(m.status === 'stopped' || m.status === 'error' || m.status === 'installing'); if (m.status === 'stopped' && m.detail && /installed/i.test(m.detail)) S.flow.installed = true; } if (S.page === 'flow') { flowRefresh(); } });
   window.agent.onEvent(msg => {
     const { event, data } = msg;
     if (event === 'device' || event === 'device_added') { merge(data); if (!S.dev) S.dev = data.id; render(); }
@@ -1597,6 +1692,8 @@
     let storedTheme = null; try { storedTheme = localStorage.getItem('theme'); } catch (e) {}
     if (!storedTheme && S.ui.theme) { S.theme = S.ui.theme; try { localStorage.setItem('theme', S.ui.theme); } catch (e) {} }
     S.appInfo = (await window.agent.appInfo()) || {};
+    if (IS_MAC()) S.ax = await window.agent.accessibility(false);
+    if (!IS_LINUX() && S.ob.preset === 'gnome') S.ob.preset = IS_WIN() ? 'win' : 'mac';   // the first-run guide starts on this OS's own preset
     try { S.agentInfo = await window.agent.agentInfo(); } catch (e) {}
     let onboarded = false; try { onboarded = localStorage.getItem('onboarded') === '1'; } catch (e) {}
     if (!onboarded) S.mode = 'onboard';

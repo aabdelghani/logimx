@@ -1,4 +1,6 @@
-// Focused application tracker (X11 via _NET_ACTIVE_WINDOW; GNOME Wayland via gdbus polling)
+// Focused application tracker. Linux: X11 _NET_ACTIVE_WINDOW, GNOME Wayland and sway by polling
+// (tracker_linux.cpp). Windows: the foreground window's process (tracker_win.cpp). macOS: the
+// frontmost application's bundle id (tracker_mac.mm).
 #pragma once
 #include <atomic>
 #include <functional>

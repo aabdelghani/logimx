@@ -1,3 +1,4 @@
+// uinput backend (Linux)
 #include "injector.h"
 
 #include <fcntl.h>
@@ -15,15 +16,6 @@
 #include "keycodes.gen.h"
 
 namespace actions {
-
-int Injector::code(const std::string& name) {
-    std::string n = name;
-    for (auto& c : n) c = static_cast<char>(toupper(c));
-    if (n.rfind("KEY_", 0) != 0 && n.rfind("BTN_", 0) != 0) n = "KEY_" + n;
-    for (auto& [k, v] : kKeyCodes)
-        if (k == n) return v;
-    return -1;
-}
 
 Injector::Injector() {
     fd_ = ::open("/dev/uinput", O_WRONLY | O_NONBLOCK);
@@ -82,12 +74,6 @@ void Injector::release(const std::vector<std::string>& keys) {
         held_.erase(c);
     }
     syn();
-}
-
-void Injector::tap(const std::vector<std::string>& keys) {
-    press(keys);
-    std::this_thread::sleep_for(std::chrono::milliseconds(8));
-    release(keys);
 }
 
 void Injector::releaseAll() {
