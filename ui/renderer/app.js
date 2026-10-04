@@ -369,7 +369,7 @@
       const drawer = drawerUp(), blp = !drawer && (S.addPanel || backlightPanel(d));
       body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
-      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
+      body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>Have a wish? Found a problem? I'm here to make it happen, I love to build!</span><button class="btn sm" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish</button><button class="btn sm" data-act="report"><i class="fa-solid fa-bug"></i>Report an issue</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
     return `<div class="window">
       <main class="main">
@@ -416,6 +416,9 @@
     <button data-act="page" data-page="backup"><i class="fa-solid fa-cloud-arrow-down"></i>Backup & sync</button>
     <button data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button>
     <button data-act="page" data-page="about"><i class="fa-solid fa-circle-info"></i>About LogiMX</button>
+    <div class="sep"></div>
+    <button data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish…</button>
+    <button data-act="report"><i class="fa-solid fa-bug"></i>Report an issue…</button>
     <div class="sep"></div>
     <button data-act="quit"><i class="fa-solid fa-power-off"></i>Quit</button></div>`;
 
@@ -1188,6 +1191,7 @@
     if (S.dlg === 'prompt') return renderPrompt();
     if (S.dlg === 'confirm') return renderConfirm();
     if (S.dlg === 'report') return renderReport();
+    if (S.dlg === 'wish') return renderWish();
     return '';
   }
   function renderPicker() {
@@ -1434,6 +1438,22 @@
     return `### What happened\n\n${(r.what || '').trim() || '<!-- What did you do, what did you expect, what happened instead? -->'}\n\n### Diagnostics\n\n${r.summary}\n` +
       (withLog && r.log ? `\n<details><summary>Agent log, last lines</summary>\n\n\`\`\`\n${r.log}\n\`\`\`\n\n</details>\n` : withLog ? '' : '\n_The agent log was too long for the link: it is on the clipboard, paste it here._\n');
   }
+  // A wish: a feature request in its own words, with only the version, system and devices beside it
+  function wishBody(w) {
+    const devs = S.devices.map(d => d.name).join(', ') || 'none connected';
+    return `### My wish\n\n${(w.what || '').trim()}\n\n### Setup\n\nLogiMX ${S.status.version || VERSION} on ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'} · devices: ${devs}\n`;
+  }
+  function renderWish() {
+    const w = S.wish || {};
+    return `<div class="scrim" data-act="close-dlg"><div class="dlg" style="width:560px" data-stop>
+      <div class="dlg-head">Make a wish<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="dlg-body">
+        <div class="wish-hero"><i class="fa-solid fa-wand-magic-sparkles"></i><div>Tell me what LogiMX should do for you. A button, a gesture, a device, anything: I read every wish.</div></div>
+        <label class="hint">Your wish<textarea class="text" data-field="wish" rows="5" style="display:block;width:100%;margin-top:4px;resize:vertical;font:inherit" placeholder="I wish LogiMX could…">${esc(w.what || '')}</textarea></label>
+        <div class="hint"><i class="fa-solid fa-circle-info"></i> Nothing is sent by LogiMX. Your browser opens a new issue on GitHub with your wish, the LogiMX version, the system and the device names; it becomes public when you press Submit there.</div>
+      </div>
+      <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="wish-open" ${(w.what || '').trim() ? '' : 'disabled'}><i class="fa-solid fa-arrow-up-right-from-square"></i>Send my wish on GitHub</button></div></div></div></div>`;
+  }
   function renderReport() {
     const r = S.report || {};
     return `<div class="scrim" data-act="close-dlg"><div class="dlg" style="width:640px" data-stop>
@@ -1588,7 +1608,7 @@
     });
     root.querySelectorAll('[data-field]').forEach(i => {
       i.onclick = e => e.stopPropagation();
-      i.oninput = () => { if (S.dlg === 'picker' && S.picker && S.picker.drawer) { const f = i.dataset.field; S.picker[f] = i.value; if (f === 'cmd' || f === 'text' || f === 'open') S.picker.cat = 'cmd'; else if (f === 'typed') S.picker.cat = 'key'; if (f === 'q') render(); return; } if (S.dlg === 'report') { S.report = Object.assign({}, S.report, { [i.dataset.field]: i.value }); return; } if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
+      i.oninput = () => { if (S.dlg === 'picker' && S.picker && S.picker.drawer) { const f = i.dataset.field; S.picker[f] = i.value; if (f === 'cmd' || f === 'text' || f === 'open') S.picker.cat = 'cmd'; else if (f === 'typed') S.picker.cat = 'key'; if (f === 'q') render(); return; } if (S.dlg === 'report') { S.report = Object.assign({}, S.report, { [i.dataset.field]: i.value }); return; } if (S.dlg === 'wish') { S.wish = { what: i.value }; const go = root.querySelector('[data-act=wish-open]'); if (go) go.disabled = !i.value.trim(); return; } if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
       i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } if (e.key === 'Enter' && S.dlg === 'picker' && S.picker && S.picker.drawer && ['cmd', 'text', 'open'].includes(i.dataset.field)) { e.preventDefault(); S.picker.cat = 'cmd'; onAction('pick-assign'); } };
     });
     if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording && !recorderActive()) armRecorder();
@@ -1979,6 +1999,13 @@
       case 'pair-cancel': call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
       case 'prompt-ok': { const p = S.prompt; const vals = {}; for (const f of p.fields) vals[f.key] = f.value || ''; S.dlg = p.back || null; await p.onOk(vals); return; }
       case 'report': { S.report = { what: '' }; S.dlg = 'report'; render(); const r = await window.agent.diagReport(); S.report = Object.assign({ what: (S.report || {}).what || '' }, r); if (S.dlg === 'report') render(); return; }
+      case 'wish': S.menu = null; S.wish = { what: '' }; S.dlg = 'wish'; render(); setTimeout(() => { const t = root.querySelector('textarea[data-field=wish]'); if (t) t.focus(); }, 50); return;
+      case 'wish-open': {
+        const w = S.wish, what = ((w && w.what) || '').trim(); if (!what) return;
+        const title = 'Wish: ' + (what.split('\n')[0].length > 70 ? what.split('\n')[0].slice(0, 67) + '…' : what.split('\n')[0]);
+        window.agent.openExternal(`${ISSUE_URL}?labels=enhancement&title=${encodeURIComponent(title)}&body=${encodeURIComponent(wishBody(w))}`);
+        S.dlg = null; toast('Thank you! Your wish is open in your browser'); render(); return;
+      }
       case 'report-copy': window.agent.copy(reportBody(S.report, true)); toast('Report copied'); return;
       case 'report-open': {
         const r = S.report; if (!r || !r.summary) return;
