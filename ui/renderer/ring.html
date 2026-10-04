@@ -48,10 +48,19 @@
     #note { position: absolute; transform: translate(-50%, -100%); padding: 6px 12px; border-radius: 7px; background: var(--acc); color: var(--acc-fg); font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; }
     @keyframes note { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
     #note.show { animation: note 1.6s ease-out both; }
+    /* Volume pressed and dragged: only the volume bar stays, the ring returns on letting go */
+    body.vol-focus .bub, body.vol-focus .lab, body.vol-focus #hub, body.vol-focus #note { opacity: 0 !important; pointer-events: none; transition: opacity .12s; }
+    #vol { position: absolute; display: flex; align-items: center; gap: calc(6px * var(--s, 1)); flex-wrap: wrap; width: calc(240px * var(--s, 1)); padding: calc(14px * var(--s, 1)) calc(18px * var(--s, 1)); box-sizing: border-box; border-radius: 12px; background: var(--card); color: var(--card-fg); border: 1px solid var(--card-brd); box-shadow: 0 0 0 2px var(--acc), 0 10px 28px rgba(0,0,0,.3); transform: translate(-50%, -50%) scale(.85); opacity: 0; pointer-events: none; transition: opacity .12s, transform .16s cubic-bezier(.2,.9,.3,1.3); }
+    body.vol-focus #vol { opacity: 1; transform: translate(-50%, -50%); }
+    #vol i { font-size: calc(22px * var(--s, 1)); color: var(--acc); width: calc(30px * var(--s, 1)); }
+    #vol .vol-n { font-size: calc(30px * var(--s, 1)); font-weight: 700; font-variant-numeric: tabular-nums; }
+    #vol .vol-of { font-size: calc(14px * var(--s, 1)); opacity: .6; }
+    #vol .vol-bar { flex-basis: 100%; height: calc(6px * var(--s, 1)); border-radius: 3px; background: var(--card-brd); margin-top: calc(8px * var(--s, 1)); overflow: hidden; }
+    #vol .vol-bar span { display: block; height: 100%; background: var(--acc); transition: width .06s linear; }
   </style>
 </head>
 <body>
-  <div id="ring"><div id="slots"></div><div id="hub"><i class="fa-solid fa-xmark"></i></div><div id="note"></div></div>
+  <div id="ring"><div id="slots"></div><div id="hub"><i class="fa-solid fa-xmark"></i></div><div id="note"></div><div id="vol"></div></div>
   <script src="ring.js"></script>
 </body>
 </html>

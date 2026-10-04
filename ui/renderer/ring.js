@@ -29,8 +29,16 @@
   const ADJUST = new Set(['brightness_up', 'brightness_down', 'zoom_in', 'zoom_out', 'next_track', 'prev_track']);
   let dial = null;                  // { i, level, lastX, ready, wheel }
   const isDial = i => i >= 0 && slots[i] && slots[i].action === 'volume_dial';
+  // pressed and dragged: the rest of the ring steps aside and a volume bar alone follows the level
+  const volEl = document.getElementById('vol');
+  const volIcon = l => 'fa-solid ' + (l === 0 ? 'fa-volume-xmark' : l < 40 ? 'fa-volume-low' : 'fa-volume-high');
   function dialShow() {
     if (!dial) return;
+    if (!dial.wheel) {
+      volEl.style.left = CX + 'px'; volEl.style.top = CY + 'px';
+      volEl.innerHTML = `<i class="${volIcon(dial.level)}"></i><span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`;
+      return;
+    }
     const lab = slotsEl.querySelector(`.lab[data-i="${dial.i}"]`), bub = slotsEl.querySelector(`.bub[data-i="${dial.i}"]`);
     if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
     if (bub) { bub.classList.add('dialing'); const ic = bub.querySelector('i'); if (ic) ic.className = 'fa-solid ' + (dial.level === 0 ? 'fa-volume-xmark' : dial.level < 40 ? 'fa-volume-low' : 'fa-volume-high'); }
@@ -38,6 +46,7 @@
   async function dialStart(i, x, wheel) {
     if (dial && dial.i === i) return;
     dial = { i, level: 50, lastX: x, tick: 0, ready: false, wheel: !!wheel };
+    if (!wheel) { document.body.classList.add('vol-focus'); dialShow(); }
     try { const v = await window.ring.volGet(); if (dial && dial.i === i) { dial.level = v.level; dial.ready = true; } } catch (e) { if (dial) dial.ready = true; }
     dialShow();
   }
@@ -54,7 +63,7 @@
     dialShow();
   }
   // a wheel-set volume ends when the pointer leaves that slot: the slot shows its name again
-  function dialEnd() { if (!dial) return; dial = null; build(true); }
+  function dialEnd() { if (!dial) return; dial = null; document.body.classList.remove('vol-focus'); build(true); }
   // Wayland: the compositor may still move or resize the full-screen window just after it appears,
   // which shifts a ring drawn in window coordinates away from the pointer. For a short while after
   // opening, the ring follows the pointer it sees; each correction goes into the problem report.
@@ -159,7 +168,12 @@
     if (stack.length && Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR) { up(); return; }
     window.ring.close();
   });
-  document.addEventListener('mouseup', () => { if (dial && !dial.wheel) { dial = null; window.ring.close(); } });
+  // letting go of the click keeps the level and brings the ring back
+  document.addEventListener('mouseup', e => {
+    if (!dial || dial.wheel) return;
+    const i = dial.i; dialEnd();
+    if (raw) setHover(i); else { const at0 = at(e.clientX, e.clientY); setHover(at0); last = [e.clientX, e.clientY]; }
+  });
   // keys arrive from the main process (the window has no focus of its own)
   window.ring.onKey(({ key }) => {
     if (key === 'Escape') { if (stack.length) up(); else window.ring.close(); return; }
@@ -184,7 +198,7 @@
     root = pad(msg.slots); stack = []; slots = root;
     shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
-    hub.classList.remove('on'); note.classList.remove('show');
+    hub.classList.remove('on'); note.classList.remove('show'); document.body.classList.remove('vol-focus');
     setRaw(!!msg.raw);
     size = msg.size || { w: RW, h: RH }; guess = msg.guess || null; openedAt = performance.now(); told = false;
     settleUntil = 0;
