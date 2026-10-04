@@ -889,3 +889,5 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .flow-intro .t { font-size: 26px; font-weight: 700; }
 .flow-intro .s { font-size: 14px; color: var(--dim); max-width: 460px; line-height: 1.5; }
 .btn.lg { padding: 10px 22px; font-size: 15px; border-radius: 10px; }
+/* Point & scroll: the mouse itself opens its settings panel */
+.ms-open { cursor: pointer; }

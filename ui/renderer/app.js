@@ -595,7 +595,7 @@
     return `<div class="kb-pin bl-pin" data-act="bl-open" title="Point & scroll settings"><span class="k">Point &amp; scroll</span><span class="d">${esc(bits.join(' · '))}</span></div>`;
   }
   function pagePointer(d) {
-    if (MOUSE_PHOTOS[d.id]) return `<div class="photo-card ms-photo">${mousePhoto(d, true)}${pointerTag(d)}</div>`;
+    if (MOUSE_PHOTOS[d.id]) return `<div class="photo-card ms-photo"><div class="ms-open" data-act="bl-toggle" title="Point & scroll settings">${mousePhoto(d, true)}</div>${pointerTag(d)}</div>`;
     return pointerSettings(d);
   }
   function pointerSettings(d) {
@@ -1433,7 +1433,9 @@
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
-      case 'home-page': S.blClosed = false; go(b.dataset.page, key); return;
+      // Point & scroll opens on the mouse alone, like Buttons; its tag or the mouse opens the panel
+      case 'home-page': S.blClosed = b.dataset.page === 'pointer'; go(b.dataset.page, key); return;
+      case 'bl-toggle': if (S.blClosed) { S.blClosed = false; render(); } else closeDrawer(() => { S.blClosed = true; }); return;
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
