@@ -163,6 +163,9 @@
     home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'], flow: ['Flow', 'fa-diagram-project'],
   };
   const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'flow', 'info'];
+  // what the device's left bar lists; the other device pages (Gestures, opened from a button set to
+  // gestures, and the MX Master 4's haptics, folded into Settings) are reached from these
+  const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy', 'flow'];
   const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
   const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
   function go(page, devId) { S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
@@ -350,7 +353,7 @@
       // the device's pages listed down the left (the first is open by default) with Settings at the
       // foot; the page itself on the right under the window buttons
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
-      const items = devicePages(d).filter(p => p !== 'info').map(p => p === 'easy' ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      const items = navPages(d).map(p => p === 'easy' ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       const drawer = drawerUp(), blp = !drawer && backlightPanel(d);
       body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
@@ -413,7 +416,7 @@
       case 'haptics': return d ? pageHaptics(d) : '';
       case 'thumb': return d ? pageButtons(d) : '';   // merged into Buttons
       case 'easy': return d ? pageEasy(d) : '';
-      case 'info': return d ? pageDeviceSettings(d) + pageInfo(d) : '';   // the device's Settings (the app's own are under the sliders icon)
+      case 'info': return d ? pageDeviceSettings(d) + (isMouse(d) && (d.state || {}).haptic ? pageHaptics(d) : '') + pageInfo(d) : '';   // the device's Settings (the app's own are under the sliders icon)
       case 'keys': return d ? pageKeys(d) : '';
       case 'backlight': return d ? pageBacklight(d) : '';
       case 'home': return pageHome();

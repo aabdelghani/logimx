@@ -490,7 +490,7 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dnav { background: var(--side); display: flex; flex-direction: column; padding: 0 10px 12px; -webkit-app-region: drag; }
 .dnav .cfg-back { height: 52px; margin: 0 0 6px; }
 .dnav nav { display: flex; flex-direction: column; gap: 2px; }
-.dnav-item { -webkit-app-region: no-drag; border: 0; background: transparent; color: var(--fg); font: 500 14px var(--font); text-align: left; padding: 9px 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: background .14s; }
+.dnav-item { -webkit-app-region: no-drag; white-space: nowrap; border: 0; background: transparent; color: var(--fg); font: 500 14px var(--font); text-align: left; padding: 9px 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: background .14s; }
 .dnav-item i { width: 16px; text-align: center; color: var(--dim); transition: color .14s; }
 .dnav-item:hover { background: var(--btnh); }
 .dnav-item.on { background: var(--btn); font-weight: 700; }
