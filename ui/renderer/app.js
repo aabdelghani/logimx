@@ -354,9 +354,9 @@
       // the device's pages listed down the left (the first is open by default) with Settings at the
       // foot; the page itself on the right under the window buttons
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
-      const items = navPages(d).map(p => p === 'easy' ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+      const items = navPages(d).map(p => p === 'easy' && !(isMouse(d) && MOUSE_BOTTOMS[d.id]) ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       const drawer = drawerUp(), blp = !drawer && backlightPanel(d);
-      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -440,6 +440,11 @@
     const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, pt: [['wheel', 690, 300, 'r'], ['thumb', 520, 770, 'l'], ['pointer', 840, 800, 'r']], spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
     const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303, 'r'], ['thumb', 577, 899, 'l'], ['pointer', 850, 840, 'r']], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
     return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4 };
+  })();
+  // the underside, for Easy-Switch: where the printed 1, 2 and 3 sit above the switch button
+  const MOUSE_BOTTOMS = (() => {
+    const s3 = { src: '../assets/devices/b034-bottom.png', w: 692, h: 1024, hosts: [[0, 225, 672, 'l'], [1, 266, 650, 'r'], [2, 307, 672, 'r']] };
+    return { b034: s3, b035: s3, b043: s3 };
   })();
   const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
   // The mouse photo: a ring on each button and its name beside it, on the side away from the mouse.
@@ -662,9 +667,51 @@
 
   const WHEEL_ACTIONS = [['hscroll', 'Horizontal scroll'], ['vscroll', 'Vertical scroll'], ['zoom_wheel', 'Zoom'], ['volume_wheel', 'Volume'], ['tabs_wheel', 'Switch tabs'], ['workspaces_wheel', 'Workspaces'], ['brightness_wheel', 'Brightness']];
 
+  // a computer slot: its name, whether it is the one in use, and how it is linked
+  function hostInfo(h, i) {
+    const n = h.names[i] || { index: i, paired: false, name: '', bus_type: 0 };
+    const cur = h.current === i, empty = !n.paired;
+    const bus = n.bus_type === 1 ? ['fa-usb', 'Bolt receiver'] : n.bus_type === 2 || n.bus_type === 3 ? ['fa-bluetooth-b', 'Bluetooth'] : empty ? ['fa-link-slash', 'Not paired'] : ['fa-usb', 'Receiver'];
+    return { n, cur, empty, bus, name: n.name || (empty ? 'Empty slot' : 'Unnamed computer'), state: cur ? 'Connected' : empty ? 'Empty' : 'Paired' };
+  }
+  // The mouse turned over, laid out like Buttons: a ring on each printed number of the Easy-Switch
+  // button, with the computer on that channel named beside it; a ring opens that computer's panel
+  function easyPhoto(d) {
+    const P = MOUSE_BOTTOMS[d.id], h = d.state.hosts;
+    const on = i => backlightPanel(d) && S.esSel === i;
+    const spots = P.hosts.map(([i, x, y]) => `<g class="hotspot ms es ${h.current === i ? 'cur' : ''} ${on(i) ? 'selected' : ''}" data-cid="${i}"><circle class="ring" cx="${x}" cy="${y}" r="16"/></g>`).join('');
+    const GAP = 150, place = {};
+    for (const side of ['l', 'r']) {
+      let prev = -Infinity;
+      P.hosts.filter(s => s[3] === side).sort((p, q) => p[2] - q[2]).forEach(([i, , y]) => { const ly = Math.max(y, prev + GAP); place[i] = ly; prev = ly; });
+    }
+    const lines = P.hosts.map(([i, x, y, side]) => `<polyline class="ms-line ${on(i) ? 'on' : ''}" points="${side === 'l' ? x - 16 : x + 16},${y} ${side === 'l' ? -20 : P.w + 20},${place[i]}"/>`).join('');
+    const labels = P.hosts.map(([i, , , side]) => {
+      const t = hostInfo(h, i);
+      return `<div class="ms-lab es-lab ${side} ${on(i) ? 'on' : ''} ${t.cur ? 'custom' : ''}" data-ring="${i}" style="top:${(place[i] / P.h * 100).toFixed(2)}%"><span class="k">${t.state}</span><span class="d"><b class="es-n">${i + 1}</b>${esc(t.name)}</span></div>`;
+    }).join('');
+    return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
+  }
+  // the computer picked on the photo: switch to it, pair, rename; and switching for every device at once
+  function renderEasyPanel(d) {
+    const h = d.state.hosts, i = S.esSel ?? h.current, t = hostInfo(h, i);
+    const acts = t.cur ? '' : t.empty ? '<button class="btn primary" data-act="pair"><i class="fa-solid fa-plus"></i>Pair a computer…</button>'
+      : `<button class="btn primary" data-act="host" data-key="${i}"><i class="fa-solid fa-right-left"></i>Switch to this computer</button>`;
+    const body = card(row('Name', '', `<span class="val">${esc(t.name)}</span>${t.empty ? '' : `<button class="btn sm" data-act="rename-host" data-key="${i}" title="Rename"><i class="fa-solid fa-pen"></i></button>`}`) +
+        row('Status', '', `<span class="val">${t.state}</span>`) +
+        row('Connection', '', `<span class="val"><i class="fa-${t.bus[0] === 'fa-bluetooth-b' || t.bus[0] === 'fa-usb' ? 'brands' : 'solid'} ${t.bus[0]}"></i> ${t.bus[1]}</span>`)) +
+      (acts ? `<div style="margin-top:12px">${acts}</div>` : '') +
+      sec('All devices', card(row('Linked switching', 'Move all devices to the same computer together', sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
+        row('Keyboard shortcut', '', `<span class="val">${META()} + ${ALT()} + 1…3</span>`)));
+    return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
+      <div class="dlg-head"><span class="dh-key">Computer ${i + 1}</span><span class="dh-sub">Easy-Switch</span></div>
+      <div class="dlg-body">${body}</div>
+    </div></div>`;
+  }
   function pageEasy(d) {
     const h = (d.state || {}).hosts;
     if (!h) return sec('Easy-Switch', card(row('Not supported by this device', '', '')));
+    if (isMouse(d) && MOUSE_BOTTOMS[d.id]) return `<div class="photo-card ms-photo es-photo">${easyPhoto(d)}</div>`;
     const cards = [0, 1, 2].map(i => {
       const n = h.names[i] || { index: i, paired: false, name: '', bus_type: 0 };
       const cur = h.current === i, empty = !n.paired;
@@ -715,7 +762,7 @@
   }
 
 
-  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id])));
+  const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && isMouse(d) && MOUSE_BOTTOMS[d.id] && (d.state || {}).hosts)));
   // the tag pinned above the keyboard on the Backlight page, saying how the backlight is set right now
   function backlightTag(d) {
     const st = d.state.backlight, s = (d.config.settings || {}).backlight || {}, n = st.num_levels || 8;
@@ -1333,7 +1380,8 @@
     // a button's name beside the mouse opens it just like its ring
     root.querySelectorAll('.ms-lab[data-ring]').forEach(l => l.onclick = () => { const h = root.querySelector(`.hotspot.ms[data-cid="${l.dataset.ring}"]`); if (h && h.onclick) h.onclick(); });
     root.querySelectorAll('.hotspot.pt').forEach(h => h.onclick = () => onAction('pt-pick', h));
-    root.querySelectorAll('.hotspot:not(.pt)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
+    root.querySelectorAll('.hotspot.es').forEach(h => h.onclick = () => onAction('es-pick', h));
+    root.querySelectorAll('.hotspot:not(.pt):not(.es)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
     root.querySelectorAll('[data-act]').forEach(b => {
       const act = b.dataset.act;
       if (b.tagName === 'INPUT' && b.type === 'range') {
@@ -1486,7 +1534,8 @@
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
       case 'bl-open': if (S.blClosed) { S.blClosed = false; render(); } return;
       // Point & scroll opens on the mouse alone, like Buttons; its tag or the mouse opens the panel
-      case 'home-page': S.blClosed = b.dataset.page === 'pointer'; S.ptSel = null; go(b.dataset.page, key); return;
+      case 'home-page': S.blClosed = b.dataset.page === 'pointer' || b.dataset.page === 'easy'; S.ptSel = null; S.esSel = null; go(b.dataset.page, key); return;
+      case 'es-pick': { const i = Number(b.dataset.cid); if (!S.blClosed && S.esSel === i) { closeDrawer(() => { S.blClosed = true; }); return; } S.esSel = i; S.blClosed = false; render(); return; }
       case 'pt-pick': { const k = b.dataset.cid; if (!S.blClosed && S.ptSel === k) { closeDrawer(() => { S.blClosed = true; }); return; } S.ptSel = k; S.blClosed = false; render(); return; }
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
       case 'goinfo': go('info', S.dev); return;

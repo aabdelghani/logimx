@@ -894,3 +894,12 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .devview2 { grid-template-columns: 246px 1fr; }
 /* device view: the mouse sits higher on the page */
 .dev-config .ms-photo { translate: 0 -56px; }
+/* Easy-Switch on the mouse's underside: small rings on the printed 1 2 3, the computer in use filled */
+.hotspot.ms.es circle.ring, .hotspot.ms.es:hover circle.ring { r: 17; stroke-width: 3; fill: color-mix(in srgb, var(--accbg) 30%, transparent); }
+.hotspot.ms.es.cur circle.ring { fill: var(--accbg); }
+.hotspot.ms.es.selected circle.ring { fill: var(--accbg); stroke: #fff; stroke-width: 4; }
+.es-lab .d { display: flex; align-items: center; gap: 8px; }
+.es-n { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; border-radius: 6px; background: var(--btn); color: var(--fg); font-size: 13px; font-weight: 800; }
+.es-lab.custom .es-n { background: var(--accbg); color: #fff; }
+.ms-lab.on .es-n { background: #fff; color: var(--accbg); }
+.ms-photo.es-photo { width: 330px; max-width: none; }
