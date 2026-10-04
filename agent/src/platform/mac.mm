@@ -157,7 +157,7 @@ void setPointerSpeed(double v, const std::string&, const std::string&) {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     NXEventHandle h = NXOpenEventStatus();
     if (h) {
-        IOHIDSetAccelerationWithKey(h, CFSTR(kIOHIDMouseAccelerationType), scale);
+        IOHIDSetAccelerationWithKey(h, CFSTR("HIDMouseAcceleration"), scale);   // kIOHIDMouseAccelerationType
         NXCloseEventStatus(h);
     }
 #pragma clang diagnostic pop
