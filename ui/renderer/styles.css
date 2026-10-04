@@ -892,6 +892,3 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 /* device view: a wider left margin, so the back arrow, the name and the menu sit further in */
 .dnav { padding-left: 30px; }
 .devview2 { grid-template-columns: 246px 1fr; }
-/* Point & scroll: a name set right beside its ring, over the photo, keeps a card behind it */
-.ms-lab.near { align-items: flex-end; text-align: right; }
-.ms-lab.near:not(.on) { background: var(--card); box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
