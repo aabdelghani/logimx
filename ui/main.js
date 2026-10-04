@@ -366,6 +366,7 @@ async function showOsd(data) {
   let msg = { kind: data.kind, duration: general.osd_duration || 1500, theme: (uiSettings && uiSettings.theme) || 'light' };
   if (data.kind === 'mic') { const m = await micMuted(); msg.title = m === null ? 'Microphone' : m ? 'Microphone muted' : 'Microphone on'; msg.sub = m === null ? 'Toggled' : m ? 'Press again to unmute' : 'Press again to mute'; }
   else if (data.kind === 'smartshift') { msg.title = data.mode === 'ratchet' ? 'Ratchet' : 'Free-spin'; msg.sub = `Scroll wheel · SmartShift ${data.mode === 'ratchet' ? 'on' : 'off'}`; }
+  else if (data.kind === 'backlight' && !(data.num_levels >= 2 && data.level >= 0 && data.level < data.num_levels)) return;   // not a level: nothing to show
   else if (data.kind === 'backlight') { msg.title = 'Backlight'; msg.sub = `Level ${data.level} of ${(data.num_levels || 8) - 1}`; msg.level = data.level; msg.num_levels = (data.num_levels || 8) - 1; }
   else if (data.kind === 'host') { const d = devices.find(x => x.id === data.id); const name = d && d.state && d.state.hosts && d.state.hosts.names[data.host] ? d.state.hosts.names[data.host].name : ''; msg.title = `Switched to ${name || 'host ' + (data.host + 1)}`; msg.sub = `${data.device || ''} · host ${data.host + 1}`; msg.host = data.host; }
   else if (data.kind === 'dpi') { msg.title = `${data.dpi} DPI`; msg.sub = data.device || ''; }

@@ -478,7 +478,14 @@ std::optional<Event> Device::classify(const Notification& n) const {
         case CONFIG_CHANGE:
             return Event{"config_change", json::object()};
         case BACKLIGHT2:
-            if (n.event == 0 && d.size() >= 3) return Event{"backlight", {{"num_levels", d[0]}, {"level", d[1]}, {"status", d[2]}}};
+            // Event 0 usually carries the level info ([levels, level, status], as function 2
+            // answers). Some firmware also sends the configuration there ([enabled, options, ...],
+            // as function 0), e.g. when a charger is plugged in; that reads as nonsense levels
+            // ("13 of 0"), so anything that is not a plausible level is a configuration change.
+            if (n.event == 0 && d.size() >= 3) {
+                if (d[0] >= 2 && d[0] <= 16 && d[1] < d[0]) return Event{"backlight", {{"num_levels", d[0]}, {"level", d[1]}, {"status", d[2]}}};
+                return Event{"backlight_config", json::object()};
+            }
             break;
         default:
             break;

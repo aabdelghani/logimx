@@ -388,9 +388,16 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
         INFO("%s: F-row now sends %s", dev_->name().c_str(), ev.data["on"].get<bool>() ? "special functions" : "F1-F12");
         daemon_.broadcast("device", summary());
     } else if (ev.kind == "backlight") {
+        // the overlay is for a level the person changed; a status notice (hands near, charger
+        // plugged in) repeats the level it already had and shows nothing
+        bool changed = !state_.contains("backlight") || state_["backlight"].value("current_level", -1) != ev.data["level"].get<int>();
         if (state_.contains("backlight")) state_["backlight"]["current_level"] = ev.data["level"];
         daemon_.broadcast("backlight", {{"id", id()}, {"level", ev.data["level"]}});
-        daemon_.broadcast("action", {{"id", id()}, {"kind", "backlight"}, {"level", ev.data["level"]}, {"num_levels", ev.data.value("num_levels", 8)}, {"device", dev_->name()}});
+        if (changed) daemon_.broadcast("action", {{"id", id()}, {"kind", "backlight"}, {"level", ev.data["level"]}, {"num_levels", ev.data.value("num_levels", 8)}, {"device", dev_->name()}});
+    } else if (ev.kind == "backlight_config") {
+        // read the new configuration back off this (reader) thread, which must stay free for the reply
+        auto self = shared_from_this();
+        std::thread([self] { try { self->readState(true); self->daemon_.broadcast("device", self->summary()); } catch (...) {} }).detach();
     }
 }
 
