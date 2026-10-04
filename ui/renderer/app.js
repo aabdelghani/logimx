@@ -221,7 +221,7 @@
     if (mid && !(S.page === 'gestures' && S.cfgFrom)) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
     // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
     const blMid = root.querySelector('.devview2.panel-open .dev-config');
-    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { if (S.addPanel) S.addPanel = false; else S.blClosed = true; }); });
+    if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }); });
   }
   // The keyboard moves and resizes when the panel opens or closes: draw it where it was and let it
   // glide to its new place, instead of snapping.
@@ -840,7 +840,9 @@
   function profileBar() {
     const cur = S.editProfile || 'default';
     const apps = deviceProfiles(dev()).map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
-    return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings"><i class="fa-solid fa-globe"></i></button>${apps}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
+    // ticked in the add panel and not added yet: shown faded until Add, gone if the panel is closed
+    const pending = (S.addPanel ? S.addSel || [] : []).map(id => (S.apps || []).find(a => a.id === id)).filter(Boolean).map(a => { const u = (S.appIconById || {})[a.id]; return `<div class="pf-wrap"><span class="pf pending" data-tip="${esc(a.name)} (not added yet)">${u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`}</span></div>`; }).join('');
+    return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings"><i class="fa-solid fa-globe"></i></button>${apps}${pending}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
   }
   function allProfiles() {
     const map = {};
@@ -1365,13 +1367,26 @@
   // + in the profile bar: the device's applications to choose from, like a key's actions. Global
   // settings is listed first (what everything starts from), then each installed application with its
   // icon; one picked with its check mark, Add puts it in the profile bar to configure from there.
+  const addLabel = () => (S.addSel || []).length > 1 ? `Add ${S.addSel.length}` : 'Add';
+  // the bar redrawn in place (the panel keeps its search and scroll position)
+  function refreshBar() {
+    const old = root.querySelector('.pbar'); if (!old) return;
+    old.outerHTML = profileBar();
+    const bar = root.querySelector('.pbar');
+    bar.querySelectorAll('[data-act]').forEach(b => { const act = b.dataset.act; b.onclick = e => { e.stopPropagation(); onAction(act, b, e); }; });
+    bindBarHover();
+  }
+  function bindBarHover() {
+    root.querySelectorAll('.pbar .pf-app').forEach(b => b.onmouseenter = () => { const k = b.dataset.key; if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; render(); } });
+    const pbar = root.querySelector('.pbar'); if (pbar) pbar.onmouseleave = () => { if (S.previewProfile) { S.previewProfile = null; render(); } };
+  }
   function renderAddPanel(d) {
     const have = new Set(deviceProfiles(d).flatMap(p => p.match.map(m => m.toLowerCase())));
     const apps = (S.apps || []).filter(a => a.name && !/logimx/i.test(a.wm_class || a.id || '')).slice().sort((a, b) => a.name.localeCompare(b.name));
     const icon = a => { const u = (S.appIconById || {})[a.id]; return u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`; };
     const rows = apps.map(a => {
       const added = have.has((a.wm_class || a.id || '').toLowerCase());
-      return `<button class="act add-app ${S.addSel === a.id ? 'on' : ''} ${added ? 'added' : ''}" data-act="add-pick" data-key="${esc(a.id)}" data-name="${esc(a.name.toLowerCase())}" ${added ? 'disabled' : ''}><span class="ic app-ic" data-icon="${esc(a.id)}">${icon(a)}</span><span class="t">${esc(a.name)}</span>${added ? '<span class="m">Added</span>' : ''}<i class="fa-solid fa-check chk"></i></button>`;
+      return `<button class="act add-app ${(S.addSel || []).includes(a.id) ? 'on' : ''} ${added ? 'added' : ''}" data-act="add-pick" data-key="${esc(a.id)}" data-name="${esc(a.name.toLowerCase())}" ${added ? 'disabled' : ''}><span class="ic app-ic" data-icon="${esc(a.id)}">${icon(a)}</span><span class="t">${esc(a.name)}</span>${added ? '<span class="m">Added</span>' : ''}<i class="fa-solid fa-check chk"></i></button>`;
     }).join('');
     return `<div class="drawer-wrap"><div class="dlg drawer bl-panel add-panel" data-stop>
       <div class="dlg-head"><span class="dh-key">Add application</span><span class="dh-sub">${esc(d.name)}</span></div>
@@ -1381,7 +1396,7 @@
         <div class="kg-t" style="margin:14px 0 6px">Applications</div>
         <div class="acts add-list">${rows || '<div class="row hint">No applications found</div>'}</div>
       </div>
-      <div class="dlg-foot"><span></span><div class="r"><button class="btn primary" data-act="add-confirm" ${S.addSel ? '' : 'disabled'}><i class="fa-solid fa-plus"></i>Add</button></div></div>
+      <div class="dlg-foot"><span></span><div class="r"><button class="btn primary" data-act="add-confirm" ${(S.addSel || []).length ? '' : 'disabled'}><i class="fa-solid fa-plus"></i>${addLabel()}</button></div></div>
     </div></div>`;
   }
   // a yes/no question; the safe answer (Cancel) is the highlighted one
@@ -1469,8 +1484,7 @@
       window.agent.appIcon({ icon: a.icon, id: a.id }).then(u => { if (!u) return; S.appIconById[id] = u; root.querySelectorAll(`.add-panel .app-ic[data-icon="${CSS.escape(id)}"]`).forEach(x => { x.innerHTML = `<img src="${u}" alt="">`; }); }).catch(() => {});
     });
     // hovering an app in the profile bar previews it; leaving the bar shows what was there again
-    root.querySelectorAll('.pbar .pf-app').forEach(b => b.onmouseenter = () => { const k = b.dataset.key; if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; render(); } });
-    const pbar = root.querySelector('.pbar'); if (pbar) pbar.onmouseleave = () => { if (S.previewProfile) { S.previewProfile = null; render(); } };
+    bindBarHover();
     root.querySelectorAll('.hotspot.pt').forEach(h => h.onclick = () => onAction('pt-pick', h));
     root.querySelectorAll('.hotspot.es').forEach(h => h.onclick = () => onAction('es-pick', h));
     root.querySelectorAll('.hotspot:not(.pt):not(.es)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
@@ -1620,7 +1634,7 @@
         }
         // with a panel open on the right, the back arrow folds the panel away first
         if (drawerUp()) { closeDrawer(); return; }
-        if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { if (S.addPanel) S.addPanel = false; else S.blClosed = true; }); return; }
+        if (root.querySelector('.devview2.panel-open')) { closeDrawer(() => { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }); return; }
         if (S.picker && S.picker.recording) { stopRecorder(); S.picker.recording = false; } go('home'); return;
       case 'home-step': { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); render(); return; }
       case 'home-open': go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return;
@@ -1667,9 +1681,26 @@
       case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
       case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
       case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
-      case 'pf-add': { if (S.addPanel) return; S.addPanel = true; S.addSel = null; S.dlg = null; S.picker = null; S.previewProfile = null; if (!S.apps) { try { S.apps = await window.agent.call('applications'); } catch (e) { S.apps = []; } } render(); return; }
-      case 'add-pick': { S.addSel = key; root.querySelectorAll('.add-list .add-app').forEach(x => x.classList.toggle('on', x.dataset.key === key)); const ok = root.querySelector('[data-act=add-confirm]'); if (ok) ok.disabled = false; return; }
-      case 'add-confirm': { const a = (S.apps || []).find(x => x.id === S.addSel); if (!a) return; closeDrawer(() => { S.addPanel = false; S.addSel = null; }); await addProfile(a.name, a.wm_class || a.id || appClass(a.name), 'bar'); return; }
+      case 'pf-add': { if (S.addPanel) return; S.addPanel = true; S.addSel = []; S.dlg = null; S.picker = null; S.previewProfile = null; if (!S.apps) { try { S.apps = await window.agent.call('applications'); } catch (e) { S.apps = []; } } render(); return; }
+      case 'add-pick': {
+        // tick or untick; the bar shows the ticked ones at once, faded until Add
+        const sel = S.addSel || (S.addSel = []), i = sel.indexOf(key);
+        if (i >= 0) sel.splice(i, 1); else sel.push(key);
+        b.classList.toggle('on', i < 0);
+        const ok = root.querySelector('[data-act=add-confirm]');
+        if (ok) { ok.disabled = !sel.length; ok.innerHTML = `<i class="fa-solid fa-plus"></i>${addLabel()}`; }
+        refreshBar();
+        return;
+      }
+      case 'add-confirm': {
+        const picked = (S.addSel || []).map(id => (S.apps || []).find(x => x.id === id)).filter(Boolean);
+        if (!picked.length) return;
+        S.addSel = [];
+        closeDrawer(() => { S.addPanel = false; });
+        for (const a of picked) await addProfile(a.name, a.wm_class || a.id || appClass(a.name), 'quiet');
+        toast(picked.length > 1 ? `${picked.length} applications added. Click one to set it up.` : `${picked[0].name} added. Click it to set it up.`);
+        render(); return;
+      }
       case 'pf-add-old': prompt('Add application', [{ key: 'name', label: 'Application', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name), true), 'Add'); return;
       case 'pf-remove': {
         const dd = dev(), p = deviceProfiles(dd).find(x => x.key === key); if (!p) return;
@@ -1867,7 +1898,7 @@
     if (/logimx/i.test(cls)) return toast('LogiMX itself cannot have a profile', true);
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     for (const dd of here ? [dev()] : S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
-    if (here === 'bar') { toast(`${name} added. Click it to set it up.`); render(); return; }   // the add panel: in the bar, set up when clicked
+    if (here === 'quiet') return;   // the add panel: in the bar, set up when clicked (it says so once for all)
     if (here) { S.editProfile = key; S.dlg = null; render(); return; }   // from a device's profile bar: that device only, editing it
     S.appDetail = { key, name, match: [cls] }; render();
   }

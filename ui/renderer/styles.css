@@ -944,3 +944,5 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .add-panel .act:disabled { cursor: default; }
 .add-panel .add-list { max-height: none; }
 .add-panel .dlg-body > .acts { flex: none; min-height: 0; overflow: visible; }
+/* ticked in the add panel, not added yet */
+.pf.pending { opacity: .55; border: 2px dashed var(--accbg); background: transparent; cursor: default; }
