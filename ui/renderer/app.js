@@ -253,9 +253,10 @@
     const slotsEls = root.querySelectorAll('.rs-chip, .rs-lab');
     if (!slotsEls.length || !(S.picker && S.picker.drawer && S.picker.section === 'ring')) return;
     root.querySelectorAll('.drawer [data-act="pick-item"], .drawer [data-act="pick-key"], .drawer .kc').forEach(el => {
+      if (el.dataset.key === 'ring:folder') return;   // a folder needs a name: clicked, not dragged
       el.draggable = true;
       el.ondragstart = e => {
-        const a = el.dataset.act === 'pick-key' ? { type: 'keystroke', keys: [el.dataset.key] } : el.dataset.key;
+        const a = el.dataset.act === 'pick-key' ? { type: 'keystroke', keys: [el.dataset.key] } : el.dataset.key === 'ring:profile' ? RING_NEXT_PROFILE : el.dataset.key;
         e.dataTransfer.setData('application/x-logimx-action', JSON.stringify(a));
         e.dataTransfer.effectAllowed = 'copy';
         document.body.classList.add('dragging-act');
@@ -977,7 +978,10 @@
   const RING_DIRS = ['Top', 'Top right', 'Right', 'Bottom right', 'Bottom', 'Bottom left', 'Left', 'Top left'];
   // The ring keeps several sets of eight actions (profiles); one is in use. Older settings had a
   // single list of slots, which becomes the first profile.
-  const eight = a => Array.from({ length: 8 }, (_, i) => (a || [])[i] || null);
+  const RING_NEXT_PROFILE = { type: 'ring_profile', label: 'Next ring profile' };
+  // a slot saved by an earlier build with the ring's own key instead of its action
+  const fixSlot = sl => sl && sl.action === 'ring:profile' ? { action: RING_NEXT_PROFILE, label: 'Next ring profile', icon: 'fa-layer-group' } : sl;
+  const eight = a => Array.from({ length: 8 }, (_, i) => fixSlot((a || [])[i]) || null);
   function ringState() {
     const r = S.general.ring || {};
     let profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map(p => ({ name: p.name || 'Profile', slots: eight(p.slots) })) : [{ name: 'Default', slots: eight(r.slots) }];
@@ -1259,12 +1263,17 @@
   const curOf = p => typeof p.current === 'string' ? p.current : (p.current && p.current.preset);
   // a single key: its keystroke, so the panel can say which one is in use
   const keyCur = p => p.current && typeof p.current === 'object' && p.current.type === 'keystroke' && (p.current.keys || []).length === 1 ? p.current.keys[0] : null;
-  const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}${i.key === 'action_ring' ? '<span class="new-tag">New</span>' : ''}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
+  const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}${i.key === 'action_ring' ? '<span class="new-tag">New</span>' : ''}${p.section === 'ring' ? adjBadge(i.key) : ''}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
   const keyRow = (p, k, meta) => `<button class="act ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}"><span class="kcap">${esc(k.label)}</span>${meta ? `<span class="m">${meta}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
   const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
   const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
   // the presets a control can take: keys never get the ring, gestures only on a button that can be held and moved
   const RING_RECOMMEND = ['volume_dial', 'overview', 'show_desktop', 'screenshot_area', 'lock', 'calculator', 'emoji_picker', 'terminal', 'play_pause', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3'];
+  // a ring action that changes a level in place: hold and drag it, or scroll over it, with the
+  // ring open. Marked in the lists with a small sliders badge.
+  const RING_DRAG = new Set(['volume_dial']);
+  const adjBadge = k => RING_DRAG.has(k) ? '<span class="adj-tag" title="Hold and drag, or scroll over it, to change"><i class="fa-solid fa-sliders"></i></span>'
+    : RING_WHEEL.has(k) ? '<span class="adj-tag" title="Scroll over it to change"><i class="fa-solid fa-sliders"></i></span>' : '';
   // turned with the wheel while the ring is open
   const RING_WHEEL = new Set(['volume_dial', 'volume_up', 'volume_down', 'brightness_up', 'brightness_down', 'zoom_in', 'zoom_out', 'next_track', 'prev_track']);
   // Easy-Switch named after the computer on that channel, when the mouse knows it
@@ -1300,7 +1309,7 @@
       // a ring slot or a gesture has no function of its own: only suggestions
       if (p.section === 'ring' || p.section === 'gesture') {
         const ring = p.section === 'ring';
-        const sugg = (ring ? RING_RECOMMEND : GESTURE_RECOMMEND).filter(k => ok.has(k) && S.presets.all[k]).map(k => { const i = presetItem(k), es = ring && easyLabel(k); if (es) i.label = es; if (ring && RING_WHEEL.has(k)) i.meta = 'Wheel adjusts'; return i; });
+        const sugg = (ring ? RING_RECOMMEND : GESTURE_RECOMMEND).filter(k => ok.has(k) && S.presets.all[k]).map(k => { const i = presetItem(k), es = ring && easyLabel(k); if (es) i.label = es; return i; });
         const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
         return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
       }
@@ -1827,7 +1836,7 @@
       case 'pick-key': { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; root.querySelectorAll('.drawer .act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-key' && x.dataset.key === key)); root.querySelectorAll('.drawer .kc').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return; }
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
       case 'pick-item':
-        if (key === 'ring:profile') return assignPicked({ type: 'ring_profile', label: 'Next ring profile' });
+        if (key === 'ring:profile') return assignPicked(RING_NEXT_PROFILE);
         if (key === 'ring:folder') {
           if (isFolderSlot({ action: S.picker.current })) return;
           prompt('New folder', [{ key: 'name', label: 'Name', placeholder: 'Media, Windows, Apps…' }], async v => {
@@ -2029,6 +2038,8 @@
       ]);
       S.devices = devices; S.status = status; S.presets = presets;
       S.general = status.general || {}; S.conflicts = status.conflicts || [];
+      // repair slots an earlier build saved with the ring's own key, so the ring itself can run them
+      if (JSON.stringify((S.general || {}).ring || {}).includes('"ring:profile"')) { const r = ringState(); saveRing({ profiles: r.profiles, apps: r.apps }).catch(() => {}); }
       if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPagesAll.includes(S.page) && S.page !== 'home') S.page = devicePages(S.devices[0])[0]; }
       S.connected = true; S.loaded = true;
       render();

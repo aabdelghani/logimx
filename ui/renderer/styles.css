@@ -980,3 +980,7 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 /* a device that is not connected: its view still opens and changes are kept; the pill says so */
 .dnav-bat.offline { background: var(--btn); }
 .dnav-bat.offline, .dnav-bat.offline i { color: var(--dim); }
+/* an action that changes a level in place (hold and drag, or scroll) */
+.adj-tag { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 18px; margin: -2px 0 -2px 8px; border-radius: 5px; background: color-mix(in srgb, var(--accbg) 16%, transparent); vertical-align: middle; line-height: 0; }
+.adj-tag i { font-size: 11px !important; color: var(--accbg); }
+.act.on .adj-tag { background: color-mix(in srgb, var(--accbg) 26%, transparent); }
