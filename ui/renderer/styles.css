@@ -985,9 +985,11 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 .adj-tag i { font-size: 11px !important; color: var(--accbg); }
 .act.on .adj-tag { background: color-mix(in srgb, var(--accbg) 26%, transparent); }
 /* home: the invite to wish for something or report a problem, above the agent line */
-.wish-line { flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 0 24px; font-size: 14px; color: var(--fg); }
-.wish-line > i { color: #e5484d; font-size: 14px !important; }
-.wish-line > span { opacity: .85; }
-.wish-line .btn i { font-size: 13px !important; }
+.wish-line { flex: none; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 6px 24px 4px; font-size: 17px; font-weight: 500; color: var(--fg); }
+.wish-line > i { color: #e5484d; font-size: 20px !important; }
+.wish-line > span { opacity: .9; }
+.wish-line .btn { font-size: 15px; padding: 9px 16px; border-radius: 9px; }
+.wish-line .btn i { font-size: 16px !important; }
+.wish-line .btn.primary i { color: #fff; }
 .wish-hero { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 10px; background: color-mix(in srgb, var(--accbg) 12%, transparent); margin-bottom: 12px; line-height: 1.45; }
 .wish-hero > i { font-size: 24px !important; color: var(--accbg); }
