@@ -1101,14 +1101,20 @@
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
       const rows = [Object.assign(presetItem('native'), { label: own, meta: 'Default' })];
       for (const c of (r || []).slice(1)) if (OPTS_CARD[c] && ok.has(OPTS_CARD[c])) rows.push(presetItem(OPTS_CARD[c]));
-      // Show action ring comes right after the button's own function
-      if (mouse) for (const k of [...(MOUSE_RECOMMEND[p.cid] || [])].sort((a, b) => (b === 'action_ring') - (a === 'action_ring'))) if (ok.has(k) && S.presets.all[k]) rows.push(presetItem(k));
+      // a button that can be held and moved offers the action ring and gestures right after its own
+      // function; the fixed gesture presets give way to the button's own gestures
+      const holdable = p.section === 'buttons' && !!(p.ctl && p.ctl.raw_xy);
+      if (holdable) rows.push(presetItem('action_ring'), { key: 'gestures', icon: 'fa-hand-pointer', label: 'Gestures' });
+      if (mouse) for (const k of (MOUSE_RECOMMEND[p.cid] || [])) if (ok.has(k) && S.presets.all[k] && !(holdable && (k === 'action_ring' || S.presets.all[k].type === 'gesture'))) rows.push(presetItem(k));
       if (p.section === 'thumbwheel') return `<div class="acts">${rows.map(i => actRow(p, i)).join('')}</div>`;
       const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
       // a button set to show the action ring gets a way straight to the ring's own settings
       // set to show the action ring: a way to the ring's own settings, tucked under that row
       const ringCfg = p.section === 'buttons' && isRingAction(p.current) ? `<button class="act ring-cfg" data-act="ring-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure action ring</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
-      return `<div class="acts">${rows.map(i => actRow(p, i) + (i.key === 'action_ring' ? ringCfg : '')).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+      const gesturesOn = p.section === 'buttons' && !!p.current && (typeof p.current === 'string' ? (S.presets.all[p.current] || {}) : p.current).type === 'gesture';
+      const gestRow = `<button class="act ${gesturesOn ? 'on' : ''}" data-act="pick-gestures"><i class="fa-solid fa-hand-pointer ic"></i><span class="t">Gestures</span><span class="m">Hold and swipe</span><i class="fa-solid fa-check chk"></i></button>` +
+        (gesturesOn ? `<button class="act ring-cfg" data-act="gest-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure gestures</span><i class="fa-solid fa-arrow-right more"></i></button>` : '');
+      return `<div class="acts">${rows.map(i => i.key === 'gestures' ? gestRow : actRow(p, i) + (i.key === 'action_ring' ? ringCfg : '')).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
     }
     if (k === 'smart') return sec('Run a command', `<input class="mono" data-field="cmd" placeholder="${IS_WIN() ? 'notepad.exe' : IS_MAC() ? 'open -a Calculator' : 'gnome-screenshot -i'}" value="${esc(p.cmd || '')}">`) +
         sec('Type text', `<input class="mono" data-field="text" placeholder="Text typed as keystrokes" value="${esc(p.text || '')}">`) +
@@ -1467,6 +1473,23 @@
       case 'dir': S.dir = key; render(); return;
       case 'pick': openPicker({ drawer: S.page === 'gestures' && (b.dataset.section === 'ring' || b.dataset.section === 'gesture'), dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
       case 'pick-gesture': openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
+      case 'pick-gestures': {
+        // this button now carries gestures: what it had for them before, else the navigation set
+        const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, g = gestureObject(dd, p.cid);
+        g.type = 'gesture';
+        await setAssign(dd, 'buttons', p.cid, g, p.profile);
+        S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
+        p.current = g; p.sel = null;
+        toast(`Gestures on ${p.label || 'this button'}`);
+        render(); return;
+      }
+      case 'gest-config': {
+        const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d;
+        stopRecorder();
+        S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
+        go('gestures', dd.id);
+        return;
+      }
       case 'ring-config': {
         // to the ring's settings: on this mouse's Gestures & action ring page when the button can carry
         // it there, otherwise the Action ring page
