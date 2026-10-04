@@ -654,26 +654,42 @@ function volApply() {
 }
 ipcMain.on('ring-vol-set', (_e, v) => { volPending = Number(v); volApply(); });
 // the ring's Brightness slot: the screen under the pointer. A laptop panel through its backlight
-// (logind, no root needed); an external monitor over DDC/CI with ddcutil, found by the name it
-// reports matching the one Electron gives the display. Linux only for now.
-let ddcList = null;   // [{ bus, model }], read once and again when displays change
-const ddcMonitors = () => ddcList || (ddcList = new Promise(res => execFile('ddcutil', ['detect', '--terse'], { timeout: 15000 }, (err, out) => {
-  if (err) { ddcList = null; return res([]); }
-  const found = [];
-  for (const block of String(out).split(/\n\s*\n/)) {
+// (logind, brightnessctl or sysfs, no root needed); an external monitor over DDC/CI with ddcutil,
+// found by the name it reports matching the one Electron gives the display. When the names do not
+// match (Wayland may name screens differently) every monitor is set together. Linux only for now.
+let ddcList = null;   // Promise of { ok, reason, list: [{ bus, model }] }, read again when displays change
+const ddcMonitors = () => ddcList || (ddcList = new Promise(res => execFile('ddcutil', ['detect', '--terse'], { timeout: 20000 }, (err, out, errOut) => {
+  if (err && err.code === 'ENOENT') { ddcList = null; return res({ ok: false, reason: 'ddcutil' }); }
+  const list = [];
+  for (const block of String(out || '').split(/\n\s*\n/)) {
     const bus = /\/dev\/i2c-(\d+)/.exec(block), mon = /Monitor:\s*([^\n]*)/.exec(block);
-    if (bus && !/Invalid display/i.test(block)) found.push({ bus: bus[1], model: mon ? (mon[1].split(':')[1] || '').trim() : '' });
+    if (bus && !/Invalid display/i.test(block)) list.push({ bus: bus[1], model: mon ? (mon[1].split(':')[1] || '').trim() : '' });
   }
-  res(found);
+  // nothing found and nothing to talk to: the I2C device nodes are missing or not ours to open
+  if (!list.length) { ddcList = null; return res({ ok: false, reason: briI2cReady() ? 'none' : 'i2c' }); }
+  res({ ok: true, list });
 })));
 app.whenReady().then(() => { const drop = () => { ddcList = null; }; screen.on('display-added', drop); screen.on('display-removed', drop); });
+// at least one /dev/i2c-N this user can open
+function briI2cReady() {
+  try { return fs.readdirSync('/dev').filter(n => /^i2c-\d+$/.test(n)).some(n => { try { fs.accessSync('/dev/' + n, fs.constants.R_OK | fs.constants.W_OK); return true; } catch (e) { return false; } }); } catch (e) { return false; }
+}
 function backlightDev() {
   try { const n = fs.readdirSync('/sys/class/backlight')[0]; return n ? '/sys/class/backlight/' + n : null; } catch (e) { return null; }
 }
-let briTarget = null;   // what the open dial changes: { kind: 'backlight', dir, max } or { kind: 'ddc', bus }
+const ddcGet = bus => new Promise(res => {
+  const once = (n) => execFile('ddcutil', ['--bus', bus, 'getvcp', '10', '--brief'], { timeout: 5000 }, (err, out) => {
+    const v = /VCP 10 C (\d+) (\d+)/.exec(out || '');
+    if (v) return res({ level: Number(v[1]), max: Number(v[2]) || 100 });
+    if (n) return once(n - 1);   // monitors sometimes miss the first request
+    res(null);
+  });
+  once(1);
+});
+let briTarget = null;   // what the open dial changes: { kind: 'backlight', dir, max } or { kind: 'ddc', buses, max }
 ipcMain.handle('ring-bri-get', async () => {
   briTarget = null;
-  if (!plat.IS_LINUX) return { level: null };
+  if (!plat.IS_LINUX) return { level: null, reason: 'platform' };
   const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const name = d.label || 'Screen';
   const bl = backlightDev();
@@ -684,32 +700,68 @@ ipcMain.handle('ring-bri-get', async () => {
       return { level: Math.round(cur * 100 / max), name };
     } catch (e) {}
   }
-  const mons = await ddcMonitors();
+  const found = await ddcMonitors();
+  if (!found.ok) return { level: null, name, reason: found.reason };
   const label = (d.label || '').toLowerCase();
-  const m = mons.find(x => x.model && label && (x.model.toLowerCase() === label || label.includes(x.model.toLowerCase()))) || (mons.length === 1 ? mons[0] : null);
-  if (!m) return { level: null, name };
-  return new Promise(res => execFile('ddcutil', ['--bus', m.bus, 'getvcp', '10', '--brief'], { timeout: 4000 }, (err, out) => {
-    const v = /VCP 10 C (\d+) (\d+)/.exec(out || '');
-    if (err || !v) return res({ level: null, name });
-    briTarget = { kind: 'ddc', bus: m.bus, max: Number(v[2]) || 100 };
-    res({ level: Math.round(Number(v[1]) * 100 / briTarget.max), name });
-  }));
+  const m = found.list.find(x => x.model && label && (x.model.toLowerCase() === label || label.includes(x.model.toLowerCase())));
+  const buses = m ? [m.bus] : found.list.map(x => x.bus);
+  const v = await ddcGet(buses[0]);
+  if (!v) return { level: null, name, reason: 'ddc' };
+  briTarget = { kind: 'ddc', buses, max: v.max };
+  return { level: Math.round(v.level * 100 / v.max), name: m || buses.length === 1 ? (m ? name : found.list[0].model || name) : 'All screens' };
 });
-let briPending = null, briBusy = false;
+let briPending = null, briBusy = false, ddcSlow = false;
+function ddcSet(bus, raw) {
+  return new Promise(res => {
+    const args = ['--bus', bus, 'setvcp', '10', String(raw), '--noverify'];
+    execFile('ddcutil', ddcSlow ? args : args.concat('--sleep-multiplier', '0.3'), { timeout: 5000 }, err => {
+      if (err && !ddcSlow) { ddcSlow = true; return execFile('ddcutil', args, { timeout: 8000 }, () => res()); }   // a slower monitor: its own timing from now on
+      res();
+    });
+  });
+}
+function backlightSet(t, v) {
+  const raw = Math.max(1, Math.round(v * t.max / 100));   // a panel never goes fully dark
+  const name = path.basename(t.dir);
+  return new Promise(res => execFile('busctl', ['call', 'org.freedesktop.login1', '/org/freedesktop/login1/session/auto', 'org.freedesktop.login1.Session', 'SetBrightness', 'ssu', 'backlight', name, String(raw)], { timeout: 2000 }, err => {
+    if (!err) return res();
+    execFile('brightnessctl', ['-q', '-d', name, 'set', String(raw)], { timeout: 2000 }, e2 => {
+      if (e2) { try { fs.writeFileSync(t.dir + '/brightness', String(raw)); } catch (e) {} }
+      res();
+    });
+  }));
+}
 function briApply() {
   if (briBusy || briPending === null || !briTarget) return;
   const v = Math.max(0, Math.min(100, Math.round(briPending))); briPending = null; briBusy = true;
-  const next = () => { briBusy = false; briApply(); };
   const t = briTarget;
-  if (t.kind === 'backlight') {
-    // logind lets the session's user set the backlight; a panel never goes fully dark
-    const raw = Math.max(1, Math.round(v * t.max / 100));
-    execFile('busctl', ['call', 'org.freedesktop.login1', '/org/freedesktop/login1/session/auto', 'org.freedesktop.login1.Session', 'SetBrightness', 'ssu', 'backlight', path.basename(t.dir), String(raw)], { timeout: 2000 }, next);
-    return;
-  }
-  execFile('ddcutil', ['--bus', t.bus, 'setvcp', '10', String(Math.round(v * t.max / 100)), '--noverify', '--sleep-multiplier', '0.3'], { timeout: 4000 }, next);
+  const work = t.kind === 'backlight' ? backlightSet(t, v) : Promise.all(t.buses.map(b => ddcSet(b, Math.round(v * t.max / 100))));
+  work.then(() => { briBusy = false; briApply(); });
 }
 ipcMain.on('ring-bri-set', (_e, v) => { briPending = Number(v); briApply(); });
+// what monitor brightness needs here, for the settings page
+ipcMain.handle('bri-status', async () => {
+  if (!plat.IS_LINUX) return { ok: false, reason: 'platform' };
+  if (backlightDev()) return { ok: true, backlight: true };
+  const found = await ddcMonitors();
+  return found.ok ? { ok: true, monitors: found.list.map(x => x.model) } : { ok: false, reason: found.reason };
+});
+// one-time setup with the administrator's password: ddcutil from the distribution, the I2C device
+// nodes loaded now and at boot, and the rule that lets the logged-in user open them
+ipcMain.handle('bri-setup', async () => {
+  if (!plat.IS_LINUX) return { ok: false, error: 'not needed on this system' };
+  const rule = resPath('udev', '60-logimx.rules'), mod = resPath('udev', 'logimx-i2c.conf');
+  const has = c => fs.existsSync('/usr/bin/' + c) || fs.existsSync('/bin/' + c);
+  const install = has('ddcutil') ? 'true' : has('apt-get') ? 'DEBIAN_FRONTEND=noninteractive apt-get install -y ddcutil' : has('dnf') ? 'dnf install -y ddcutil'
+    : has('pacman') ? 'pacman -S --noconfirm --needed ddcutil' : has('zypper') ? 'zypper --non-interactive install ddcutil' : null;
+  if (!install) return { ok: false, error: 'Install ddcutil with your package manager, then try again' };
+  const script = [install, `cp '${mod}' /etc/modules-load.d/logimx-i2c.conf`, 'modprobe i2c_dev',
+    fs.existsSync(rule) ? `cp '${rule}' /etc/udev/rules.d/60-logimx.rules` : 'true',
+    'udevadm control --reload', 'udevadm trigger --subsystem-match=i2c-dev --action=add', 'udevadm settle || true'].join(' && ');
+  const r = await run('pkexec', ['sh', '-c', script]);
+  ddcList = null;
+  return r.ok ? { ok: true } : { ok: false, error: r.error || 'cancelled' };
+});
 ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), displays: screen.getAllDisplays().map(d => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })), picker: emojiWin && !emojiWin.isDestroyed() ? { visible: emojiWin.isVisible(), bounds: emojiWin.getBounds() } : null }));
 ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 ipcMain.handle('general-changed', async () => { await refreshGeneral(); updateTray(); });

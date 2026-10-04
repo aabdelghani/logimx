@@ -21,13 +21,14 @@ UNPACKED="$ROOT/ui/dist/linux-unpacked"
 
 echo "== tree"
 rm -rf "$PKG"
-mkdir -p "$PKG/DEBIAN" "$PKG/opt/logimx" "$PKG/usr/bin" "$PKG/usr/lib/udev/rules.d" \
+mkdir -p "$PKG/DEBIAN" "$PKG/opt/logimx" "$PKG/usr/bin" "$PKG/usr/lib/udev/rules.d" "$PKG/usr/lib/modules-load.d" \
          "$PKG/usr/lib/systemd/user" "$PKG/usr/share/applications" \
          "$PKG/usr/share/icons/hicolor/256x256/apps" "$PKG/usr/share/doc/logimx"
 cp -a "$UNPACKED/." "$PKG/opt/logimx/"
 install -m755 "$ROOT/agent/build/logimx-agent" "$PKG/usr/bin/logimx-agent"
 install -m755 "$ROOT/agent/build/logimxctl"   "$PKG/usr/bin/logimxctl"
 install -m644 "$ROOT/udev/60-logimx.rules"    "$PKG/usr/lib/udev/rules.d/60-logimx.rules"
+install -m644 "$ROOT/udev/logimx-i2c.conf"    "$PKG/usr/lib/modules-load.d/logimx-i2c.conf"
 sed 's|^ExecStart=.*|ExecStart=/usr/bin/logimx-agent|' "$ROOT/systemd/logimx.service" \
   > "$PKG/usr/lib/systemd/user/logimx.service"
 install -m644 "$ROOT/ui/assets/icon.png" "$PKG/usr/share/icons/hicolor/256x256/apps/logimx.png"
@@ -62,7 +63,7 @@ Installed-Size: $SIZE_KB
 Maintainer: aabdelghany <ahmedabdelghany15@gmail.com>
 Homepage: https://github.com/aabdelghani/logimx
 Depends: libc6, libstdc++6, libx11-6, libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0, libgbm1, libasound2 | libasound2t64, udev
-Recommends: xdotool, pulseaudio-utils, libfuse2 | libfuse2t64
+Recommends: xdotool, pulseaudio-utils, libfuse2 | libfuse2t64, ddcutil
 Description: Configuration app for MX Master and MX Keys devices
  Button and key assignments, gestures, thumb wheel actions, SmartShift, DPI,
  smart backlighting, Easy-Switch and per-application profiles for the
@@ -78,6 +79,9 @@ if command -v udevadm >/dev/null 2>&1; then
   udevadm trigger --subsystem-match=hidraw --action=add || true
   udevadm trigger --subsystem-match=misc --action=add || true
 fi
+# monitor brightness: load the I2C device nodes now (kept loaded at boot by modules-load.d)
+modprobe i2c_dev 2>/dev/null || true
+command -v udevadm >/dev/null 2>&1 && udevadm trigger --subsystem-match=i2c-dev --action=add || true
 if command -v systemctl >/dev/null 2>&1; then
   systemctl --global enable logimx.service >/dev/null 2>&1 || true
 fi

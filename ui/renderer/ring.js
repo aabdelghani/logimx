@@ -37,16 +37,19 @@
   const volIcon = (l, kind) => 'fa-solid ' + (kind === 'brightness' ? (l < 30 ? 'fa-moon' : 'fa-sun') : l === 0 ? 'fa-volume-xmark' : l < 40 ? 'fa-volume-low' : 'fa-volume-high');
   // a screen whose brightness cannot be read or set says so instead of a level
   const dialOff = () => dial && dial.ready && dial.level === null;
+  const DIAL_WHY = { ddcutil: 'Set up monitor brightness in LogiMX first', i2c: 'Set up monitor brightness in LogiMX first', none: 'cannot be changed from here', ddc: 'did not answer', platform: 'not available on this system yet' };
+  const offText = () => { const w = DIAL_WHY[dial.reason] || 'cannot be changed from here'; return /^[A-Z]/.test(w) ? w : `${dial.name || 'This screen'} ${w}`; };
   function dialShow() {
     if (!dial) return;
     if (!dial.wheel) {
       volEl.style.left = CX + 'px'; volEl.style.top = CY + 'px';
-      volEl.innerHTML = dialOff() ? `<i class="${volIcon(50, dial.kind)}"></i><span class="vol-na">${esc(dial.name || 'This screen')} cannot be changed from here</span>`
+      volEl.innerHTML = dialOff() ? `<i class="${volIcon(50, dial.kind)}"></i><span class="vol-na">${esc(offText())}</span>`
+        : !dial.ready ? `<i class="${volIcon(50, dial.kind)}"></i><span class="vol-n">…</span>`
         : `<i class="${volIcon(dial.level, dial.kind)}"></i><span class="vol-n">${dial.level}</span><span class="vol-of">/100</span>${dial.name ? `<span class="vol-name">${esc(dial.name)}</span>` : ''}<span class="vol-bar"><span style="width:${dial.level}%"></span></span>`;
       return;
     }
     const lab = slotsEl.querySelector(`.lab[data-i="${dial.i}"]`), bub = slotsEl.querySelector(`.bub[data-i="${dial.i}"]`);
-    if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = dialOff() ? `<span class="vol-of">Not available on ${esc(dial.name || 'this screen')}</span>` : `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
+    if (lab) { lab.classList.add('on', 'dial'); lab.innerHTML = dialOff() ? `<span class="vol-of">${esc(offText())}</span>` : `<span class="vol-n">${dial.level}</span><span class="vol-of">/100</span><span class="vol-bar"><span style="width:${dial.level}%"></span></span>`; }
     if (bub) { bub.classList.add('dialing'); const ic = bub.querySelector('i'); if (ic) ic.className = volIcon(dialOff() ? 50 : dial.level, dial.kind); }
   }
   async function dialStart(i, x, wheel) {
@@ -54,7 +57,7 @@
     const kind = dialKind(slots[i]) || 'volume';   // Volume up and down turn with the wheel like the Volume dial
     dial = { i, kind, level: 50, lastX: x, tick: 0, ready: false, wheel: !!wheel };
     if (!wheel) { document.body.classList.add('vol-focus'); dialShow(); }
-    try { const v = await DIAL_IO[kind].get(); if (dial && dial.i === i) { dial.level = v.level; dial.name = v.name; dial.ready = true; } } catch (e) { if (dial) { dial.level = kind === 'volume' ? 50 : null; dial.ready = true; } }
+    try { const v = await DIAL_IO[kind].get(); if (dial && dial.i === i) { dial.level = v.level; dial.name = v.name; dial.reason = v.reason; dial.ready = true; } } catch (e) { if (dial) { dial.level = kind === 'volume' ? 50 : null; dial.ready = true; } }
     dialShow();
   }
   function dialMove(dx) {

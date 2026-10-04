@@ -64,6 +64,10 @@
           "to": "udev/60-logimx.rules"
         },
         {
+          "from": "../udev/logimx-i2c.conf",
+          "to": "udev/logimx-i2c.conf"
+        },
+        {
           "from": "../systemd/logimx.service",
           "to": "systemd/logimx.service"
         }

@@ -1285,6 +1285,14 @@
     const n = d && ((d.state.hosts.names || [])[Number(m[1]) - 1] || {}).name;
     return n ? `Switch to ${n}` : null;
   }
+  // monitor brightness needs ddcutil and access to the monitors' I2C buses: asked once, offered
+  // under Brightness when this computer does not have it yet
+  function briSetupRow() {
+    if (S.briStatus === undefined) { S.briStatus = null; window.agent.briStatus().then(st => { S.briStatus = st; if (!st.ok) render(); }).catch(() => {}); }
+    const st = S.briStatus;
+    if (!st || st.ok || !['ddcutil', 'i2c'].includes(st.reason)) return '';
+    return `<button class="act ring-cfg" data-act="bri-setup"><i class="fa-solid fa-screwdriver-wrench ic"></i><span class="t">Set up brightness</span><span class="m">${st.reason === 'ddcutil' ? 'Installs ddcutil' : 'Allows access'}</span><i class="fa-solid fa-arrow-right more"></i></button>`;
+  }
   // the ring's own actions: a folder of eight more, and the next ring profile
   function ringOwnRows(p) {
     const cur = p.current && typeof p.current === 'object' ? p.current.type : null;
@@ -1316,7 +1324,7 @@
         const vi = sugg.findIndex(i => i.key === 'volume_dial');
         if (ring && IS_LINUX()) sugg.splice(vi + 1, 0, { key: 'ring:brightness', icon: 'fa-sun', label: RING_BRIGHTNESS.label });
         const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
-        return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i)).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+        return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i) + (i.key === 'ring:brightness' ? briSetupRow() : '')).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
       }
       const r = mouse ? null : RECOMMEND[p.cid];
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
@@ -1858,6 +1866,13 @@
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-size': await saveRing({ size: key }); render(); return;
+      case 'bri-setup': {
+        toast('Setting up monitor brightness…');
+        const r = await window.agent.briSetup();
+        S.briStatus = await window.agent.briStatus().catch(() => null);
+        toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? 'Monitor brightness is ready' : 'Set up; this monitor does not answer brightness requests') : (r && r.error) || 'Failed', !(r && r.ok));
+        render(); return;
+      }
       case 'ring-open-folder': S.ringPath = [S.picker.cid]; S.picker.cid = 0; S.picker.label = RING_DIRS[0]; S.picker.current = (ringSlots()[0] || {}).action || null; render(); return;
       case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
       case 'ring-app-drop': { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); render(); return; }

@@ -2,3 +2,8 @@
 ACTION=="add", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="046d", TAG+="uaccess", GROUP="input", MODE="0660"
 ACTION=="add", SUBSYSTEM=="hidraw", KERNELS=="*:046D:*", TAG+="uaccess", GROUP="input", MODE="0660"
 KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput", GROUP="input", MODE="0660"
+# Screen brightness from the action ring: the logged-in user may talk DDC/CI to monitors over the
+# graphics card's I2C buses (display controllers, class 0x0300xx, and 3D controllers, 0x0302xx)
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTRS{class}=="0x030000", TAG+="uaccess"
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTRS{class}=="0x030200", TAG+="uaccess"
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTRS{class}=="0x038000", TAG+="uaccess"
