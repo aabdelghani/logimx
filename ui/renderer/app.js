@@ -436,8 +436,8 @@
   // 'thumb' for the thumb wheel) and where it is on the photo; its number is the row it has on the
   // Buttons page, so the two always agree. A mouse without an entry shows the rows only.
   const MOUSE_PHOTOS = (() => {
-    const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, pt: [['wheel', 690, 300], ['thumb', 520, 770], ['pointer', 640, 1250]], spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
-    const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303], ['thumb', 577, 899], ['pointer', 700, 1220]], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
+    const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, pt: [['wheel', 690, 300], ['thumb', 520, 770, 400], ['pointer', 800, 730]], spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
+    const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303], ['thumb', 577, 899, 457], ['pointer', 810, 770]], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
     return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4 };
   })();
   const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
@@ -594,20 +594,28 @@
     const st = d.state || {}, s = d.config.settings || {};
     if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${dpi} DPI · speed ${Math.round(((s.pointer_speed ?? 0) + 1) * 50)}`; }
     if (k === 'wheel') { const ss = s.smartshift || {}; return (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet' ? 'SmartShift on' : 'Free spin'; }
-    return presetLabel(assignment(d, 'thumbwheel'));
+    const t = thumbInfo(d);
+    return `Speed ${t.speed} · ${t.invert ? 'Inverted' : 'Standard'}`;
+  }
+  function thumbInfo(d) {
+    const tw = assignment(d, 'thumbwheel'), gain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
+    return { speed: Math.max(1, Math.min(10, Math.round(gain / 1.6))), invert: !!((d.config.settings || {}).thumbwheel || {}).invert };
   }
   function pointPhoto(d) {
     const P = MOUSE_PHOTOS[d.id];
     const shown = P.pt.filter(([k]) => k !== 'thumb' || d.controls.length);
     const on = k => backlightPanel(d) && S.ptSel === k;
     const spots = shown.map(([k, x, y]) => `<g class="hotspot ms pt ${on(k) ? 'selected' : ''}" data-cid="${k}" data-name="${esc(PT_NAMES[k])}"><circle class="ring" cx="${x}" cy="${y}" r="40"/></g>`).join('');
+    // most names sit in a column just outside the photo; one with a label x of its own sits right
+    // beside its ring on the left, on a short line
     const GAP = 150, place = {};
-    for (const side of ['l', 'r']) {
-      let prev = -Infinity;
-      shown.filter(([, x]) => (x < P.w / 2) === (side === 'l')).sort((p, q) => p[2] - q[2]).forEach(([k, , y]) => { const ly = Math.max(y, prev + GAP); place[k] = ly; prev = ly; });
-    }
-    const lines = shown.map(([k, x, y]) => { const left = x < P.w / 2, ly = place[k]; return `<polyline class="ms-line ${on(k) ? 'on' : ''}" points="${left ? x - 40 : x + 40},${y} ${left ? -20 : P.w + 20},${ly}"/>`; }).join('');
-    const labels = shown.map(([k, x]) => `<div class="ms-lab ${x < P.w / 2 ? 'l' : 'r'} ${on(k) ? 'on' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(PT_NAMES[k])}</span><span class="d">${esc(ptSummary(d, k))}</span></div>`).join('');
+    let prev = -Infinity;
+    shown.filter(s => s[3] === undefined).sort((p, q) => p[2] - q[2]).forEach(([k, , y]) => { const ly = Math.max(y, prev + GAP); place[k] = ly; prev = ly; });
+    const lines = shown.map(([k, x, y, lx]) => `<polyline class="ms-line ${on(k) ? 'on' : ''}" points="${lx !== undefined ? `${x - 40},${y} ${lx},${y}` : `${x + 40},${y} ${P.w + 20},${place[k]}`}"/>`).join('');
+    const labels = shown.map(([k, x, y, lx]) => {
+      const at = lx !== undefined ? `near" style="top:${(y / P.h * 100).toFixed(2)}%;left:${(lx / P.w * 100).toFixed(2)}%;right:auto;translate:calc(-100% - 6px) -50%` : `r" style="top:${(place[k] / P.h * 100).toFixed(2)}%`;
+      return `<div class="ms-lab ${on(k) ? 'on' : ''} ${at}" data-ring="${k}"><span class="k">${esc(PT_NAMES[k])}</span><span class="d">${esc(ptSummary(d, k))}</span></div>`;
+    }).join('');
     return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
   }
   function pagePointer(d) {
