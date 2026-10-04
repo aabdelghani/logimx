@@ -999,3 +999,23 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 @media (prefers-reduced-motion: reduce) { .wish-promise i { animation: none; } }
 .wish-pledge { margin-top: 8px; font-weight: 700; color: var(--accbg); }
 [data-theme="dark"] .wish-promise, [data-theme="ubuntu-dark"] .wish-promise { color: #f5a623; }
+/* Add device over Bluetooth: devices in pairing mode, found live */
+.bt-pulse { position: relative; }
+.bt-pulse::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--accbg); opacity: 0; animation: bt-pulse 1.8s ease-out infinite; }
+@keyframes bt-pulse { 0% { transform: scale(.8); opacity: .7; } 100% { transform: scale(1.35); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bt-pulse::after { animation: none; } }
+.bt-list { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 10px; min-height: 64px; }
+.bt-dev { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--brd); border-radius: 10px; background: var(--card); animation: bt-in .25s ease-out both; }
+@keyframes bt-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.bt-dev .ic { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--accbg) 14%, transparent); }
+.bt-dev .ic i { font-size: 16px !important; color: var(--accbg); }
+.bt-dev .nm { font-weight: 600; }
+.bt-dev .sub { font-size: 13px; color: var(--dim); }
+.bt-err { color: var(--err); }
+.bt-wait { display: inline-flex; align-items: center; gap: 8px; color: var(--dim); font-size: 14px; }
+.bt-wait i { font-size: 14px !important; }
+.bt-empty { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px; border: 1px dashed var(--brd); border-radius: 10px; color: var(--dim); }
+.bt-empty i { font-size: 15px !important; }
+.bt-passkey { text-align: center; padding: 12px; border-radius: 10px; background: color-mix(in srgb, var(--accbg) 12%, transparent); margin-top: 10px; }
+.bt-passkey .digits { font-size: 32px; font-weight: 700; letter-spacing: .25em; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.bt-pulse i { font-size: 26px !important; color: var(--accbg); }

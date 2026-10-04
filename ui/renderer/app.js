@@ -1088,7 +1088,8 @@
     return sec('Startup', card(row(IS_LINUX() ? 'Start agent at login' : 'Start LogiMX at sign-in', IS_LINUX() ? 'systemd user service' : IS_WIN() ? 'Starts hidden in the notification area' : 'Login item, starts hidden in the menu bar', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
         row(IS_MAC() ? 'Show menu bar icon' : 'Show tray indicator', IS_WIN() ? 'Battery and Easy-Switch in the notification area' : IS_MAC() ? 'Battery and Easy-Switch in the menu bar' : 'Battery and Easy-Switch in the top bar', sw(u.tray !== false, 'data-act="ui" data-key="tray"')) +
         row('Keep running when window closes', 'Closing hides to the tray', sw(u.minimize !== false, 'data-act="ui" data-key="minimize"')) +
-        row('Start hidden', 'Open in the tray only', sw(!!u.start_hidden, 'data-act="ui" data-key="start_hidden"')))) +
+        row('Start hidden', 'Open in the tray only', sw(!!u.start_hidden, 'data-act="ui" data-key="start_hidden"')) +
+        (IS_LINUX() ? row('Notice Bluetooth devices in pairing mode', 'Like Windows: a notification offers to connect an MX mouse or keyboard as soon as it is ready to pair', sw(u.bt_watch !== false, 'data-act="ui" data-key="bt_watch"')) : ''))) +
       sec(generalTitle, card(`<div class="row"><span class="grow lbl">Appearance</span><select class="sel" data-act="theme-select">${THEMES.map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
         row('Language', '', '<span class="val">System (English)</span>') +
         `<div class="row"><div class="grow"><div class="lbl">Check for updates</div><div class="sub">Looks at the GitHub release feed</div></div><button class="btn sm" data-act="check-updates">Check now</button>${sw(u.updates !== false, 'data-act="ui" data-key="updates"')}</div>`)) +
@@ -1411,12 +1412,33 @@
       <div class="dlg-foot"><button class="btn flat" data-act="bl-reset"><i class="fa-solid fa-rotate-left"></i>Reset backlighting</button></div>
     </div></div>`;
   }
+  // Bluetooth, the way Windows does it: put the device in pairing mode and it shows up here within
+  // seconds; Connect pairs, trusts and connects it, showing a keyboard's passkey to type
+  function btPairBody(p) {
+    const b = p.bt || { list: [] };
+    const busy = b.busy, list = b.list || [];
+    const rows = list.map(d => {
+      const mine = busy && busy.address === d.address;
+      const right = !mine ? `<button class="btn primary sm" data-act="bt-connect" data-key="${esc(d.address)}" ${busy && busy.state !== 'failed' ? 'disabled' : ''}>Connect</button>`
+        : busy.state === 'failed' ? `<button class="btn sm" data-act="bt-connect" data-key="${esc(d.address)}">Try again</button>`
+        : `<span class="bt-wait"><i class="fa-solid fa-spinner fa-spin"></i>Connecting…</span>`;
+      const sub = mine && busy.state === 'failed' ? `<span class="bt-err">${esc(busy.why || 'Could not connect')}</span>` : d.kind === 'keyboard' ? 'Keyboard' : 'Mouse';
+      return `<div class="bt-dev"><span class="ic"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i></span><div class="grow"><div class="nm">${esc(d.name)}</div><div class="sub">${sub}</div></div>${right}</div>`;
+    }).join('');
+    const passkey = busy && busy.state === 'passkey' ? `<div class="bt-passkey"><div>Type this on <b>${esc(busy.name)}</b>, then press Enter</div><div class="digits">${esc(busy.passkey)}</div></div>` : '';
+    return `<div class="center bt-search"><span class="ring bt-pulse"><i class="fa-brands fa-bluetooth-b"></i></span>
+        <div style="font-size:16px;font-weight:600">${list.length ? 'Ready to connect' : 'Put your device in pairing mode'}</div>
+        <div class="hint">Hold its Easy-Switch button for 3 seconds until the light blinks fast. It shows up here within a few seconds.</div></div>
+      ${passkey}<div class="bt-list">${rows || '<div class="bt-empty"><i class="fa-solid fa-satellite-dish"></i>Searching for devices in pairing mode…</div>'}</div>
+      <div class="hint" style="text-align:center"><a href="#" data-act="open-bt">Use the system Bluetooth settings instead</a></div>`;
+  }
   function renderPair() {
     const p = S.pair;
     const steps = [[1, 'Connection'], [2, 'Discover'], [3, 'Done']].map(([n, l]) => `<button class="${n < p.step ? 'done' : n === p.step ? 'cur' : ''}"><span class="bar"></span><span class="t">${l}</span></button>`).join('');
     let body = '';
-    if (p.step === 1) body = `<button class="choice on"><span class="ic"><i class="fa-brands fa-usb"></i></span><div class="grow"><div>Bolt receiver</div><div class="sub">${S.status.receivers ? esc(S.status.receivers) : 'Plugged in'}</div></div></button>
-      <button class="choice" data-act="open-bt"><span class="ic"><i class="fa-brands fa-bluetooth-b"></i></span><div class="grow"><div>Bluetooth</div><div class="sub">Via the system Bluetooth settings</div></div></button><div class="hint">Unifying receivers are supported for existing pairings only.</div>`;
+    if (p.step === 1) body = `<button class="choice ${p.via !== 'bt' ? 'on' : ''}" data-act="pair-via" data-key="bolt"><span class="ic"><i class="fa-brands fa-usb"></i></span><div class="grow"><div>Bolt receiver</div><div class="sub">${S.status.receivers ? esc(S.status.receivers) : 'Plugged in'}</div></div></button>
+      <button class="choice ${p.via === 'bt' ? 'on' : ''}" data-act="${IS_LINUX() ? 'pair-via' : 'open-bt'}" data-key="bt"><span class="ic"><i class="fa-brands fa-bluetooth-b"></i></span><div class="grow"><div>Bluetooth</div><div class="sub">${IS_LINUX() ? 'Found and connected right here' : 'Via the system Bluetooth settings'}</div></div></button><div class="hint">Unifying receivers are supported for existing pairings only.</div>`;
+    else if (p.step === 2 && p.via === 'bt') body = btPairBody(p);
     else if (p.step === 2) {
       const f = p.found[0];
       let title = 'Searching…', hint = 'Turn the device off and on, or hold its Easy-Switch key for 3 seconds until the LED blinks fast.';
@@ -1429,7 +1451,7 @@
     return `<div class="scrim" data-act="close-dlg"><div class="dlg" data-stop>
       <div class="dlg-head">Pair a device<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="dlg-body"><div class="steps">${steps}</div>${body}</div>
-      <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="pair-cancel">Cancel</button><button class="btn primary" data-act="pair-next" ${p.step === 2 && !p.error ? 'disabled' : ''}>${p.step === 3 ? 'Finish' : p.step === 2 ? 'Retry' : 'Continue'}</button></div></div></div></div>`;
+      <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="pair-cancel">Cancel</button>${p.step === 2 && p.via === 'bt' ? '' : `<button class="btn primary" data-act="pair-next" ${p.step === 2 && !p.error ? 'disabled' : ''}>${p.step === 3 ? 'Finish' : p.step === 2 ? 'Retry' : 'Continue'}</button>`}</div></div></div></div>`;
   }
   // The report goes into a public issue, so it is shown in full before anything leaves the machine
   // and it is the person who submits it, signed in to their own account in the browser.
@@ -1822,7 +1844,7 @@
         S.dlg = 'confirm'; render(); return;
       }
       case 'confirm-ok': { const p = S.confirm; S.dlg = null; S.confirm = null; render(); if (p && p.onOk) { await p.onOk(); render(); } return; }
-      case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
+      case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') { call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) window.agent.btClose(); } S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
       case 'pick': openPicker({ drawer: S.page === 'gestures' && (b.dataset.section === 'ring' || b.dataset.section === 'gesture'), dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
       case 'pick-gesture': openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: b.dataset.slot }); return;
@@ -1990,13 +2012,17 @@
       case 'restore-backup': { if (!confirm('Restore this backup? Current settings are backed up first.')) return; await call('restore_backup', { file: key }); toast('Backup restored'); refresh(); return; }
       case 'create-backup': { await call('create_backup', { note: 'Manual' }); S.backups = await call('list_backups'); toast('Backup written'); render(); return; }
       case 'pair': S.pair = { step: 1, found: [] }; S.dlg = 'pair'; S.menu = null; render(); return;
+      case 'pair-via': S.pair.via = key; render(); return;
+      case 'bt-connect': { const b = S.pair && S.pair.bt; if (!b) return; const d = (b.list || []).find(x => x.address === key); b.busy = { address: key, name: d ? d.name : key, state: 'pairing' }; render(); window.agent.btConnect(key); return; }
       case 'pair-next': {
+        // Bluetooth: the dialog's own live search
+        if (S.pair.step === 1 && S.pair.via === 'bt') { S.pair.step = 2; S.pair.bt = { list: [] }; render(); window.agent.btOpen().catch(() => {}); return; }
         if (S.pair.step === 1 || (S.pair.step === 2 && S.pair.error)) { S.pair.step = 2; S.pair.error = null; S.pair.found = []; S.pair.passkey = null; render(); try { await call('pair_start'); } catch (x) { S.pair.error = x.message || 'Pairing is not available'; render(); } return; }
-        if (S.pair.step === 3) { S.dlg = null; render(); return; }
+        if (S.pair.step === 3) { if (S.pair.bt) window.agent.btClose(); S.dlg = null; render(); return; }
         return;
       }
       case 'pair-confirm': { try { await call('pair_confirm', { address: key }); S.pair.step = 3; S.pair.done = 'Pairing… the device joins when it confirms'; } catch (x) { S.pair.error = x.message; } render(); return; }
-      case 'pair-cancel': call('pair_cancel').catch(() => {}); S.dlg = null; render(); return;
+      case 'pair-cancel': call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) window.agent.btClose(); S.dlg = null; render(); return;
       case 'prompt-ok': { const p = S.prompt; const vals = {}; for (const f of p.fields) vals[f.key] = f.value || ''; S.dlg = p.back || null; await p.onOk(vals); return; }
       case 'report': { S.report = { what: '' }; S.dlg = 'report'; render(); const r = await window.agent.diagReport(); S.report = Object.assign({ what: (S.report || {}).what || '' }, r); if (S.dlg === 'report') render(); return; }
       case 'wish': S.menu = null; S.wish = { what: '' }; S.dlg = 'wish'; render(); setTimeout(() => { const t = root.querySelector('textarea[data-field=wish]'); if (t) t.focus(); }, 50); return;
@@ -2115,6 +2141,16 @@
   });
   window.agent.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
   window.agent.onFlowEvent(m => { if (!m) return; S.flowStatus = m.status; S.flowDetail = m.detail || ''; if (S.flow) { S.flow.status = m.status; S.flow.peer = !!m.peer; S.flow.running = !(m.status === 'stopped' || m.status === 'error' || m.status === 'installing'); if (m.status === 'stopped' && m.detail && /installed/i.test(m.detail)) S.flow.installed = true; } if (S.page === 'flow') { flowRefresh(); } });
+  window.agent.onBt(m => {
+    const p = S.pair, b = p && p.bt;
+    if (!b || S.dlg !== 'pair') return;
+    if (m.type === 'found') b.list = m.list;
+    if (m.type === 'pair') {
+      if (m.state === 'connected') { p.step = 3; p.done = `${m.name} is connected`; window.agent.btClose(); }
+      else b.busy = { address: m.address, name: m.name, state: m.state, passkey: m.passkey, why: m.why };
+    }
+    render();
+  });
   window.agent.onEvent(msg => {
     const { event, data } = msg;
     if (event === 'device' || event === 'device_added') { merge(data); if (!S.dev) S.dev = data.id; render(); }

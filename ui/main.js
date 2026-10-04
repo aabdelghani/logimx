@@ -799,93 +799,143 @@ function createWindow() {
     const keep = !uiSettings || uiSettings.minimize !== false;
     if (!app.isQuitting && tray && keep) { e.preventDefault(); win.hide(); }
   });
-  win.on('show', () => btWatch(true));
-  win.on('hide', () => btWatch(false));
-  win.on('closed', () => { win = null; btWatch(false); });
+  win.on('closed', () => { win = null; });
   flow.setWindow(win);
 }
 
-// ---------------------------------------------------------------- pairing-mode watch
-// While the window is open, a short Bluetooth scan now and then looks for an MX device that is
-// advertising in pairing mode (its name shows up and BlueZ has not paired it). Found one: a
-// notification names it, and clicking it pairs, trusts and connects it through bluetoothctl.
-// The scan is brief and spaced out because discovery shares the radio with audio and the Bolt band.
-const BT_SCAN_MS = 12000, BT_EVERY_MS = 90000, BT_RENOTIFY_MS = 10 * 60000;
+// ---------------------------------------------------------------- Bluetooth: devices in pairing mode
+// Windows announces a mouse in pairing mode by itself (Swift Pair); BlueZ has nothing like it, so
+// LogiMX listens. The scan is Bluetooth Low Energy only (MX devices are LE, and classic inquiry is
+// the part that disturbs headphones) and filtered to discoverable devices, the ones in pairing
+// mode, so the dozens of other devices around never show up.
+// Two modes: 'watch' (in the background, short scans spaced out, a notification for each device)
+// and 'pair' (the Add device dialog is open: the scan runs without pause and the list is live).
+const BT_WATCH_ON_MS = 10000, BT_WATCH_OFF_MS = 20000, BT_RENOTIFY_MS = 10 * 60000;
 const btNotified = new Map();     // address -> when we last told the user
-let btScan = null, btTimer = null, btPairing = false;
+const btFound = new Map();        // address -> { address, name, kind }, what the dialog lists
+let btScan = null, btTimer = null, btPairing = null, btMode = null, btPairOpen = false;
 const stripAnsi = t => t.replace(/\x1b\[[0-9;]*m/g, '');
-const isMxName = n => /^(MX |MX-|Logi |Logitech MX|M7\d\d|Signature|Lift|Ergo)/i.test(n || '');
+const isLogiName = n => /^(MX[ -]|Logi|Logitech|Signature|Lift|ERGO|Pebble|POP |[KM]\d{3}\b)/i.test(n || '');
+const btEmit = data => notify('bt-event', data);
 function btInfo(addr) {
   return new Promise(res => execFile('bluetoothctl', ['info', addr], { timeout: 4000 }, (err, out) => {
     if (err) return res(null);
     const get = k => { const m = new RegExp(`^\\s*${k}: (.*)$`, 'm').exec(out || ''); return m ? m[1].trim() : ''; };
-    res({ name: get('Name') || get('Alias'), paired: get('Paired') === 'yes', connected: get('Connected') === 'yes', icon: get('Icon') });
+    // the advertising flags, when BlueZ heard them just now: bit 0 or 1 set means discoverable (pairing mode)
+    const fl = /AdvertisingFlags:\s*\n\s*([0-9a-f]{2})/i.exec(out || '');
+    res({ name: get('Name') || get('Alias'), paired: get('Paired') === 'yes', connected: get('Connected') === 'yes', icon: get('Icon'), logi: /ManufacturerData\.Key: 0x01da/i.test(out || ''), flags: fl ? parseInt(fl[1], 16) : null });
   }));
 }
+const btKind = (info, name) => /keyboard/i.test((info && info.icon) || '') || /keys|^K\d{3}|ERGO K/i.test(name) ? 'keyboard' : 'mouse';
 async function btCandidate(addr, nameHint) {
   if (btPairing) return;
+  const info = await btInfo(addr);
+  if (!info || info.connected) return;
+  // heard because another app is scanning without our filter: its flags say it is not pairing
+  if (info.flags !== null && !(info.flags & 3)) return;
+  const name = info.name || nameHint;
+  if (!isLogiName(name) && !info.logi) return;
+  const dev = { address: addr, name, kind: btKind(info, name), paired: info.paired };
+  const isNew = !btFound.has(addr);
+  btFound.set(addr, dev);
+  if (isNew) btEmit({ type: 'found', list: [...btFound.values()] });
+  // the dialog is open and shows it; otherwise a notification, at most every ten minutes per device
+  if (btMode !== 'watch') return;
   const seen = btNotified.get(addr);
   if (seen && Date.now() - seen < BT_RENOTIFY_MS) return;
-  const info = await btInfo(addr);
-  const name = (info && info.name) || nameHint;
-  if (!info || info.paired || info.connected || !isMxName(name)) return;
   btNotified.set(addr, Date.now());
   if (!Notification.isSupported()) return;
-  const kbd = /keyboard/i.test(info.icon) || /keys/i.test(name);
   const n = new Notification({
     title: `${name} is ready to connect`,
-    body: `It is in pairing mode. Click here to connect ${name} to this computer.`,
-    icon: path.join(__dirname, 'assets', kbd ? 'full-keyboard.png' : 'full-mouse.png'),
+    body: `It is in pairing mode. Click to connect it to this computer.`,
+    icon: path.join(__dirname, 'assets', dev.kind === 'keyboard' ? 'full-keyboard.png' : 'full-mouse.png'),
     urgency: 'normal',
   });
   n.on('click', () => btPair(addr, name));
   n.show();
 }
-function btScanOnce() {
+// one bluetoothctl session: LE only, discoverable devices only. Devices BlueZ already knows are
+// listed when it starts; only what arrives after "Discovery started" is a device seen now.
+function btStartScan() {
   if (btScan || btPairing) return;
   let p;
-  try { p = spawn('bluetoothctl', ['--timeout', String(Math.round(BT_SCAN_MS / 1000)), 'scan', 'on']); } catch (e) { return; }
+  try { p = spawn('bluetoothctl'); } catch (e) { return; }
   btScan = p;
-  let buf = '';
+  let buf = '', live = false;
+  const send = c => { try { p.stdin.write(c + '\n'); } catch (e) {} };
   p.stdout.on('data', d => {
     buf += stripAnsi(d.toString());
     const lines = buf.split('\n'); buf = lines.pop();
     for (const l of lines) {
-      // [NEW] Device AA:BB:.. MX Master 3S   /   [CHG] Device AA:BB:.. Name: MX Master 3S
-      const m = /\[(NEW|CHG)\] Device ([0-9A-F:]{17}) (?:Name: |Alias: )?(.*)$/i.exec(l);
-      if (m && isMxName(m[3])) btCandidate(m[2].toUpperCase(), m[3].trim());
+      if (/Discovery started|Discovering: yes/.test(l)) live = true;
+      if (!live) continue;
+      // [NEW] Device AA:BB:.. MX Master 3S  /  [CHG] Device AA:BB:.. RSSI: -60  /  ... Name: MX Keys S
+      const m = /\[(NEW|CHG)\] Device ([0-9A-F:]{17})\s*(.*)$/i.exec(l);
+      if (!m) continue;
+      const rest = m[3].trim(), nm = /^(?:Name|Alias): (.*)$/.exec(rest);
+      if (m[1] === 'NEW' || /^RSSI|^ManufacturerData|^Name|^Alias/.test(rest)) btCandidate(m[2].toUpperCase(), nm ? nm[1] : (m[1] === 'NEW' ? rest : ''));
     }
   });
-  p.on('error', () => { btScan = null; });
-  p.on('exit', () => { btScan = null; });
+  p.stdin.on('error', () => {});
+  p.on('error', () => { if (btScan === p) btScan = null; });
+  p.on('exit', () => { if (btScan === p) btScan = null; });
+  send('menu scan'); send('transport le'); send('discoverable on'); send('back'); send('scan on');
 }
-function btWatch(on) {
-  clearInterval(btTimer); btTimer = null;
-  if (!on || !plat.IS_LINUX) return;   // bluetoothctl is BlueZ's; Windows and macOS announce pairing themselves
-  setTimeout(btScanOnce, 1500);
-  btTimer = setInterval(() => { if (win && !win.isDestroyed() && win.isVisible()) btScanOnce(); }, BT_EVERY_MS);
+function btStopScan() {
+  if (!btScan) return;
+  const p = btScan; btScan = null;
+  try { p.stdin.write('scan off\nquit\n'); } catch (e) {}
+  setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
 }
-// pair, trust and connect in one bluetoothctl session; a keyboard's passkey is shown to type
+// what should be running now: the dialog's live scan, the background watch, or nothing
+function btSetMode() {
+  const want = !plat.IS_LINUX || btPairing ? null : btPairOpen ? 'pair' : (uiSettings || loadUi()).bt_watch !== false ? 'watch' : null;
+  if (want === btMode && (want !== 'pair' || btScan)) return;
+  btMode = want;
+  clearTimeout(btTimer); btTimer = null;
+  btStopScan();
+  if (want === 'pair') { setTimeout(btStartScan, 300); return; }
+  if (want === 'watch') {
+    const cycle = () => {
+      if (btMode !== 'watch') return;
+      btStartScan();
+      btTimer = setTimeout(() => { btStopScan(); btTimer = setTimeout(cycle, BT_WATCH_OFF_MS); }, BT_WATCH_ON_MS);
+    };
+    btTimer = setTimeout(cycle, 3000);
+  }
+}
+// pair, trust and connect in one bluetoothctl session; a keyboard's passkey is shown to type. A
+// device that was paired here before and is in pairing mode again has a stale bond: removed first.
 function btPair(addr, name) {
   if (btPairing) return;
-  btPairing = true;
-  if (btScan) { try { btScan.kill(); } catch (e) {} btScan = null; }
-  const say = (title, body) => { if (Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); };
-  say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
+  const dev = btFound.get(addr) || { address: addr, name };
+  btPairing = addr;
+  clearTimeout(btTimer); btTimer = null; btStopScan(); btMode = null;
+  const quiet = btPairOpen && win && !win.isDestroyed() && win.isVisible();   // the dialog shows progress itself
+  const say = (title, body) => { if (!quiet && Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); };
+  const state = (s, extra) => btEmit(Object.assign({ type: 'pair', address: addr, name, state: s }, extra || {}));
+  state('pairing'); say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
   let p;
-  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = false; return say(`Could not connect ${name}`, 'bluetoothctl is not available.'); }
+  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = null; state('failed', { why: 'bluetoothctl is not available.' }); return btSetMode(); }
   let out = '', done = false, step = 'pair';
   const send = c => { try { p.stdin.write(c + '\n'); } catch (e) {} };
   const finish = (ok, why) => {
-    if (done) return; done = true; btPairing = false;
+    if (done) return; done = true; btPairing = null;
     send('scan off'); send('quit'); setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
-    if (ok) { btNotified.set(addr, Date.now() + 24 * 3600e3); say(`${name} is connected`, 'LogiMX will pick it up in a moment.'); }
-    else say(`Could not connect ${name}`, why || 'Put it back in pairing mode and try again from the notification.');
+    if (ok) {
+      btNotified.set(addr, Date.now() + 24 * 3600e3); btFound.delete(addr);
+      state('connected'); say(`${name} is connected`, 'LogiMX picks it up in a moment.');
+    } else {
+      why = why || 'Put it back in pairing mode and try again.';
+      state('failed', { why }); say(`Could not connect ${name}`, why);
+    }
+    setTimeout(btSetMode, 2000);
   };
+  p.stdin.on('error', () => {});
   p.stdout.on('data', d => {
     out += stripAnsi(d.toString());
     const pk = /Passkey:? (\d{6})/i.exec(out) || /Confirm passkey (\d{6})/i.exec(out);
-    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
+    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; state('passkey', { passkey: pk[1] }); say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
     if (/Confirm passkey|Request confirmation/i.test(out) && !out.includes('[confirmed]')) { out += '[confirmed]'; send('yes'); }
     if (step === 'pair' && /Pairing successful|AlreadyExists/i.test(out)) { step = 'connect'; send(`trust ${addr}`); send(`connect ${addr}`); }
     if (step === 'connect' && /Connection successful/i.test(out)) finish(true);
@@ -893,10 +943,15 @@ function btPair(addr, name) {
     if (step === 'connect' && /Failed to connect/i.test(out)) finish(false, `${name} paired, but did not connect. Turn it off and on again.`);
   });
   p.on('exit', () => finish(false));
-  send('agent KeyboardDisplay'); send('default-agent'); send('scan on');
-  setTimeout(() => send(`pair ${addr}`), 3000);
+  send('agent KeyboardDisplay'); send('default-agent');
+  if (dev.paired) send(`remove ${addr}`);
+  send('menu scan'); send('transport le'); send('back'); send('scan on');
+  setTimeout(() => send(`pair ${addr}`), dev.paired ? 4000 : 2500);
   setTimeout(() => finish(false, 'It took too long. Put it back in pairing mode and try again.'), 45000);
 }
+ipcMain.handle('bt-open', () => { btPairOpen = true; btFound.clear(); btSetMode(); return { linux: plat.IS_LINUX, list: [] }; });
+ipcMain.handle('bt-close', () => { btPairOpen = false; btSetMode(); });
+ipcMain.handle('bt-connect', (_e, addr) => { const d = btFound.get(addr); if (d) btPair(addr, d.name); });
 
 function showWindow() {
   if (!win || win.isDestroyed()) createWindow();
@@ -929,6 +984,7 @@ ipcMain.handle('ui-settings', (_e, patch) => {
     saveUi(uiSettings);
     if ('tray' in patch) { if (patch.tray && !tray) createTray(); else if (!patch.tray && tray) { tray.destroy(); tray = null; } }
     if ('autostart' in patch) setAutostart(!!patch.autostart);
+    if ('bt_watch' in patch) btSetMode();
   }
   return uiSettings;
 });
@@ -1271,8 +1327,9 @@ if (!single) {
     createWindow();
     flow.init({ win, getUi: () => (uiSettings = uiSettings || loadUi()), setUi: p => { uiSettings = uiSettings || loadUi(); Object.assign(uiSettings, p); saveUi(uiSettings); } });
     try { registerShortcuts(); } catch (e) {}
+    btSetMode();
   });
   app.on('will-quit', () => { globalShortcut.unregisterAll(); flow.shutdown(); });
   app.on('window-all-closed', () => { /* stay in the tray */ });
-  app.on('before-quit', () => { app.isQuitting = true; flow.shutdown(); });
+  app.on('before-quit', () => { app.isQuitting = true; flow.shutdown(); btMode = null; clearTimeout(btTimer); btStopScan(); });
 }
