@@ -1,15 +1,13 @@
 #include "config.h"
 
-#include <sys/stat.h>
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
-#include <dirent.h>
 #include <ctime>
-#include <algorithm>
+#include <filesystem>
+#include <fstream>
 
+#include "platform/platform.h"
 #include "tables.gen.h"
 
 const json& controlLabels() {
@@ -27,29 +25,15 @@ std::string Config::key(uint16_t pid) {
     return b;
 }
 
-// The project was called openoptions before 0.4. Carry a configuration over once so an upgrade
-// keeps every assignment, profile and backup.
-static void migrateFromOldName(const std::string& base, const std::string& newDir) {
-    std::string oldDir = base + "/openoptions";
-    struct stat st{};
-    if (stat(newDir.c_str(), &st) == 0) return;          // already on the new path
-    if (stat(oldDir.c_str(), &st) != 0) return;          // nothing to carry over
-    std::string cmd = "cp -a '" + oldDir + "' '" + newDir + "' 2>/dev/null";
-    if (std::system(cmd.c_str()) != 0) { /* best effort */ }
-}
-
 Config::Config() {
-    const char* xdg = getenv("XDG_CONFIG_HOME");
-    std::string base = xdg && *xdg ? xdg : std::string(getenv("HOME") ? getenv("HOME") : "/tmp") + "/.config";
-    migrateFromOldName(base, base + "/logimx");
-    path_ = base + "/logimx/config.json";
+    path_ = platform::configDir() + "/config.json";
     data_ = {{"devices", json::object()}, {"general", {{"desktop", "gnome"}}}};
     load();
 }
 
 void Config::load() {
     std::lock_guard<std::recursive_mutex> lk(m_);
-    std::ifstream f(path_);
+    std::ifstream f(platform::fsPath(path_));
     if (f) {
         try {
             json j = json::parse(f);
@@ -69,16 +53,14 @@ void Config::load() {
 
 void Config::save() {
     std::lock_guard<std::recursive_mutex> lk(m_);
-    std::string dir = path_.substr(0, path_.rfind('/'));
-    std::string parent = dir.substr(0, dir.rfind('/'));
-    mkdir(parent.c_str(), 0755);
-    mkdir(dir.c_str(), 0755);
+    std::error_code ec;
+    std::filesystem::create_directories(platform::fsPath(path_.substr(0, path_.rfind('/'))), ec);
     std::string tmp = path_ + ".tmp";
     {
-        std::ofstream o(tmp);
+        std::ofstream o(platform::fsPath(tmp));
         o << data_.dump(2) << "\n";
     }
-    std::rename(tmp.c_str(), path_.c_str());
+    std::filesystem::rename(platform::fsPath(tmp), platform::fsPath(path_), ec);   // replaces the old file on every OS, unlike std::rename on Windows
 }
 
 json& Config::device(uint16_t pid, const std::string& kind) {
@@ -141,25 +123,26 @@ std::string Config::backupDir() const { return path_.substr(0, path_.rfind('/'))
 
 std::string Config::backup(const std::string& note) {
     std::lock_guard<std::recursive_mutex> lk(m_);
-    std::ifstream in(path_, std::ios::binary);
+    std::ifstream in(platform::fsPath(path_), std::ios::binary);
     if (!in) return "";
     std::string dir = backupDir();
-    mkdir(dir.c_str(), 0755);
+    std::error_code ec;
+    std::filesystem::create_directories(platform::fsPath(dir), ec);
     std::time_t t = std::time(nullptr);
     char stamp[32];
     std::strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", std::localtime(&t));
     std::string file = dir + "/config-" + stamp + ".json";
-    { std::ofstream out(file, std::ios::binary); out << in.rdbuf(); }
+    { std::ofstream out(platform::fsPath(file), std::ios::binary); out << in.rdbuf(); }
     json idx = json::object();
-    { std::ifstream f(dir + "/index.json"); if (f) { try { idx = json::parse(f); } catch (...) {} } }
+    { std::ifstream f(platform::fsPath(dir + "/index.json")); if (f) { try { idx = json::parse(f); } catch (...) {} } }
     if (!idx.is_object()) idx = json::object();
     idx[file.substr(dir.size() + 1)] = {{"note", note}, {"time", static_cast<long>(t)}};
     // keep the newest 15
     std::vector<std::string> names;
     for (auto& [k, v] : idx.items()) names.push_back(k);
     std::sort(names.begin(), names.end());
-    while (names.size() > 15) { unlink((dir + "/" + names.front()).c_str()); idx.erase(names.front()); names.erase(names.begin()); }
-    { std::ofstream f(dir + "/index.json"); f << idx.dump(2); }
+    while (names.size() > 15) { std::filesystem::remove(platform::fsPath(dir + "/" + names.front()), ec); idx.erase(names.front()); names.erase(names.begin()); }
+    { std::ofstream f(platform::fsPath(dir + "/index.json")); f << idx.dump(2); }
     return file;
 }
 
@@ -168,7 +151,7 @@ json Config::listBackups() {
     json out = json::array();
     std::string dir = backupDir();
     json idx = json::object();
-    { std::ifstream f(dir + "/index.json"); if (f) { try { idx = json::parse(f); } catch (...) {} } }
+    { std::ifstream f(platform::fsPath(dir + "/index.json")); if (f) { try { idx = json::parse(f); } catch (...) {} } }
     std::vector<std::string> names;
     for (auto& [k, v] : idx.items()) names.push_back(k);
     std::sort(names.rbegin(), names.rend());
@@ -183,8 +166,8 @@ json Config::listBackups() {
 
 bool Config::restoreBackup(const std::string& file) {
     std::lock_guard<std::recursive_mutex> lk(m_);
-    if (file.find('/') != std::string::npos || file.find("..") != std::string::npos) return false;
-    std::ifstream in(backupDir() + "/" + file);
+    if (file.find('/') != std::string::npos || file.find('\\') != std::string::npos || file.find("..") != std::string::npos) return false;
+    std::ifstream in(platform::fsPath(backupDir() + "/" + file));
     if (!in) return false;
     json j;
     try { j = json::parse(in); } catch (...) { return false; }

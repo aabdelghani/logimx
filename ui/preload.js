@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('agent', {
   openExternal: url => ipcRenderer.invoke('open-external', url),
   openPath: p => ipcRenderer.invoke('open-path', p),
   installUdev: () => ipcRenderer.invoke('install-udev'),
+  accessibility: prompt => ipcRenderer.invoke('accessibility', !!prompt),
+  openAccessibility: () => ipcRenderer.invoke('open-accessibility'),
   stopTool: name => ipcRenderer.invoke('stop-tool', name),
   windowAction: a => ipcRenderer.invoke('window-action', a),
   uiSettings: (patch) => ipcRenderer.invoke('ui-settings', patch || null),

@@ -6,3 +6,5 @@ __pycache__/
 PLAN.md
 dist/
 ui/dist/
+ui/build/license.txt
+ui/build/license_en.txt

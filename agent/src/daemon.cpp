@@ -2,18 +2,18 @@
 #include "apps/tracker.h"
 #include "apps/recorder.h"
 #include "tables.gen.h"
+#include "platform/platform.h"
 
-#include <signal.h>
+#ifdef __linux__
 #include <poll.h>
 #include <sys/inotify.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include <cstring>
 #include <cmath>
 #include <cstdarg>
 #include <deque>
-#include <dirent.h>
 #include <fstream>
 #include <sstream>
 
@@ -256,19 +256,11 @@ void ManagedDevice::applySettings(const std::string& only) {
     }
 }
 
-// OS-side pointer speed (-1..1): GNOME through gsettings, otherwise libinput on X11 via xinput
+// OS-side pointer speed (-1..1)
 void ManagedDevice::applyPointerSpeed(double v) {
     if (v < -1) v = -1;
     if (v > 1) v = 1;
-    char val[32];
-    snprintf(val, sizeof(val), "%.2f", v);
-    const char* desk = getenv("XDG_CURRENT_DESKTOP");
-    std::string cmd;
-    if (desk && std::string(desk).find("GNOME") != std::string::npos)
-        cmd = std::string("gsettings set org.gnome.desktop.peripherals.mouse speed ") + val + " >/dev/null 2>&1";
-    else if (getenv("DISPLAY"))
-        cmd = std::string("for n in \"pointer:") + dev_->name() + "\" \"pointer:" + t_.info().name + " Mouse\"; do xinput --set-prop \"$n\" 'libinput Accel Speed' " + val + " >/dev/null 2>&1; done";
-    if (!cmd.empty() && std::system(cmd.c_str()) != 0) { /* ignore */ }
+    platform::setPointerSpeed(v, dev_->name(), t_.info().name);
 }
 
 void ManagedDevice::applyAssignments() {
@@ -474,13 +466,12 @@ bool Daemon::linkAlive(ManagedDevice& md) {
     }
 }
 
-static json listApplications();
 
 static json cachedApplications() {
     static json cache;
     static std::chrono::steady_clock::time_point at{};
     auto now = std::chrono::steady_clock::now();
-    if (cache.is_null() || now - at > 60s) { cache = listApplications(); at = now; }
+    if (cache.is_null() || now - at > 60s) { cache = platform::listApplications(); at = now; }
     return cache;
 }
 
@@ -500,16 +491,18 @@ std::vector<Daemon::DevPtr> Daemon::snapshot() {
 int Daemon::run() {
     tracker_->start();
     INFO("app tracker backend: %s", tracker_->backend().c_str());
-    signal(SIGTERM, [](int) { if (gDaemon) gDaemon->stop(); });
-    signal(SIGINT, [](int) { if (gDaemon) gDaemon->stop(); });
+    platform::onStop([] { if (gDaemon) gDaemon->stop(); });
 
+    int ifd = -1;
+#ifdef __linux__
     // hot plug: watch /dev for hidraw nodes appearing, disappearing or changing permissions
-    int ifd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+    ifd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
     if (ifd >= 0 && inotify_add_watch(ifd, "/dev", IN_CREATE | IN_DELETE | IN_ATTRIB) < 0) {
         ::close(ifd);
         ifd = -1;
     }
-    INFO("hot plug: %s", ifd >= 0 ? "inotify on /dev" : "polling only");
+#endif
+    INFO("hot plug: %s", ifd >= 0 ? "inotify on /dev" : "polling");
 
     auto lastScan = std::chrono::steady_clock::time_point{};
     auto lastPoll = std::chrono::steady_clock::now();
@@ -517,6 +510,7 @@ int Daemon::run() {
     const auto pollInterval = ifd >= 0 ? 15s : 3s;
     while (!stop_) {
         auto now = std::chrono::steady_clock::now();
+#ifdef __linux__
         if (ifd >= 0) {
             pollfd p{ifd, POLLIN, 0};
             if (::poll(&p, 1, 0) > 0) {
@@ -534,6 +528,7 @@ int Daemon::run() {
                 }
             }
         }
+#endif
         if ((scanAt && now >= *scanAt) || now - lastScan > pollInterval) {
             scan();
             lastScan = now;
@@ -551,7 +546,9 @@ int Daemon::run() {
         }
         std::this_thread::sleep_for(100ms);
     }
+#ifdef __linux__
     if (ifd >= 0) ::close(ifd);
+#endif
     INFO("shutting down");
     return 0;
 }
@@ -686,9 +683,7 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
         if (st.contains("hosts")) {
             int cur = st["hosts"].value("current", 0);
             std::string name = st["hosts"]["names"].size() > static_cast<size_t>(cur) ? st["hosts"]["names"][cur].value("name", "") : "";
-            char hn[64] = {0};
-            gethostname(hn, sizeof(hn) - 1);
-            std::string host = std::string(hn).substr(0, 24);
+            std::string host = platform::hostName().substr(0, 24);
             // factory names start with the maker's name, which the receiver reports as the first word of its HID name
             std::string rname = md->transport().info().name, maker = rname.substr(0, rname.find(' '));
             bool factory = name.empty() || name == "Bolt receiver" || (maker.size() >= 4 && name.rfind(maker.substr(0, 4), 0) == 0);
@@ -971,40 +966,28 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
     throw std::runtime_error("unknown setting " + k + (path.size() > 1 ? "." + path[1] : ""));
 }
 
-// battery history: one sample per device per hour, kept for 14 days, in the XDG state dir
-static std::string statePath(const std::string& name) {
-    const char* xs = getenv("XDG_STATE_HOME");
-    std::string base = xs && *xs ? xs : std::string(getenv("HOME") ? getenv("HOME") : "/tmp") + "/.local/state";
-    mkdir(base.c_str(), 0755);
-    std::string dir = base + "/logimx";
-    struct stat st{};
-    if (stat(dir.c_str(), &st) != 0 && stat((base + "/openoptions").c_str(), &st) == 0) {
-        std::string cmd = "cp -a '" + base + "/openoptions' '" + dir + "' 2>/dev/null";   // pre-0.4 name
-        if (std::system(cmd.c_str()) != 0) { /* best effort */ }
-    }
-    mkdir(dir.c_str(), 0755);
-    return dir + "/" + name;
-}
+// battery history: one sample per device per hour, kept for 14 days, in the state dir
+static std::string statePath(const std::string& name) { return platform::stateDir() + "/" + name; }
 static std::mutex gHistMutex;
 static void recordBattery(const std::string& id, int percent, bool charging) {
     std::lock_guard<std::mutex> lk(gHistMutex);
     std::string file = statePath("battery-" + id + ".json");
     json arr = json::array();
-    { std::ifstream f(file); if (f) { try { arr = json::parse(f); } catch (...) {} } }
+    { std::ifstream f(platform::fsPath(file)); if (f) { try { arr = json::parse(f); } catch (...) {} } }
     if (!arr.is_array()) arr = json::array();
     long now = static_cast<long>(std::time(nullptr));
     if (!arr.empty() && now - arr.back().value("t", 0L) < 3600 && arr.back().value("p", -1) == percent) return;
     if (!arr.empty() && now - arr.back().value("t", 0L) < 900) arr.erase(arr.size() - 1);
     arr.push_back({{"t", now}, {"p", percent}, {"c", charging}});
     while (!arr.empty() && now - arr.front().value("t", 0L) > 14 * 86400) arr.erase(arr.begin());
-    std::ofstream f(file);
+    std::ofstream f(platform::fsPath(file));
     f << arr.dump();
 }
 static json batteryHistory(const std::string& id) {
     std::lock_guard<std::mutex> lk(gHistMutex);
     std::string file = statePath("battery-" + id + ".json");
     json arr = json::array();
-    { std::ifstream f(file); if (f) { try { arr = json::parse(f); } catch (...) {} } }
+    { std::ifstream f(platform::fsPath(file)); if (f) { try { arr = json::parse(f); } catch (...) {} } }
     // 14 half-day buckets over the last 7 days, most recent last; empty buckets carry the previous value
     long now = static_cast<long>(std::time(nullptr));
     std::vector<int> buckets(14, -1);
@@ -1022,129 +1005,6 @@ static json batteryHistory(const std::string& id) {
     return out;
 }
 
-// Steam games have no desktop entry unless someone made a shortcut, so read the library
-// directly. They launch through the steam:// handler rather than a .desktop file.
-static std::string acfValue(const std::string& text, const std::string& key) {
-    std::string needle = "\"" + key + "\"";
-    size_t i = text.find(needle);
-    if (i == std::string::npos) return "";
-    i = text.find('"', i + needle.size());          // opening quote of the value
-    if (i == std::string::npos) return "";
-    size_t e = text.find('"', i + 1);
-    return e == std::string::npos ? "" : text.substr(i + 1, e - i - 1);
-}
-
-static void scanSteamGames(json& out, std::set<std::string>& seen) {
-    const char* home = getenv("HOME");
-    if (!home) return;
-    std::string h = home;
-    std::vector<std::string> roots = {
-        h + "/.steam/steam/steamapps",
-        h + "/.local/share/Steam/steamapps",
-        h + "/snap/steam/common/.local/share/Steam/steamapps",
-        h + "/.var/app/com.valvesoftware.Steam/data/Steam/steamapps",
-    };
-    // extra library folders the user added on other drives
-    for (size_t i = 0, n = roots.size(); i < n; ++i) {
-        std::ifstream lf(roots[i] + "/libraryfolders.vdf");
-        if (!lf) continue;
-        std::string line;
-        while (std::getline(lf, line)) {
-            size_t p1 = line.find("\"path\"");
-            if (p1 == std::string::npos) continue;
-            size_t a = line.find('"', p1 + 6);
-            if (a == std::string::npos) continue;
-            size_t b = line.find('"', a + 1);
-            if (b == std::string::npos) continue;
-            roots.push_back(line.substr(a + 1, b - a - 1) + "/steamapps");
-        }
-    }
-    static const char* kSkip[] = {"Proton", "Steam Linux Runtime", "Steamworks Common", "SteamVR", "Steam Runtime"};
-    for (auto& dir : roots) {
-        DIR* dp = opendir(dir.c_str());
-        if (!dp) continue;
-        while (dirent* e = readdir(dp)) {
-            std::string fn = e->d_name;
-            if (fn.rfind("appmanifest_", 0) != 0 || fn.size() < 17) continue;
-            std::ifstream f(dir + "/" + fn);
-            if (!f) continue;
-            std::string text((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            std::string appid = acfValue(text, "appid"), name = acfValue(text, "name");
-            if (appid.empty() || name.empty()) continue;
-            bool skip = false;
-            for (const char* pre : kSkip)
-                if (name.rfind(pre, 0) == 0) skip = true;
-            if (skip) continue;
-            std::string id = "steam:" + appid;
-            if (seen.count(id)) continue;
-            // some games also ship a real desktop entry; keep that one rather than listing twice
-            bool dup = false;
-            for (auto& a : out)
-                if (a.value("name", "") == name) dup = true;
-            if (dup) continue;
-            seen.insert(id);
-            out.push_back({{"id", id}, {"name", name}, {"icon", "steam"}, {"wm_class", ""},
-                           {"url", "steam://rungameid/" + appid}, {"source", "steam"}});
-        }
-        closedir(dp);
-    }
-}
-
-static json listApplications() {
-    json out = json::array();
-    std::set<std::string> seen;
-    std::vector<std::string> dirs = {"/usr/share/applications", "/usr/local/share/applications", "/var/lib/flatpak/exports/share/applications", "/var/lib/snapd/desktop/applications"};
-    if (const char* h = getenv("HOME")) {
-        dirs.insert(dirs.begin(), std::string(h) + "/.local/share/applications");
-        dirs.push_back(std::string(h) + "/.local/share/flatpak/exports/share/applications");
-    }
-    for (auto& d : dirs) {
-        DIR* dp = opendir(d.c_str());
-        if (!dp) continue;
-        while (dirent* e = readdir(dp)) {
-            std::string fn = e->d_name;
-            if (fn.size() < 9 || fn.substr(fn.size() - 8) != ".desktop") continue;
-            std::string id = fn.substr(0, fn.size() - 8);
-            if (seen.count(id)) continue;
-            std::ifstream f(d + "/" + fn);
-            std::string line, name, icon, wmclass, exec;
-            bool nodisplay = false, hidden = false, inEntry = false;
-            while (std::getline(f, line)) {
-                if (line.rfind("[", 0) == 0) { inEntry = line == "[Desktop Entry]"; continue; }
-                if (!inEntry) continue;
-                if (line.rfind("Name=", 0) == 0 && name.empty()) name = line.substr(5);
-                else if (line.rfind("Icon=", 0) == 0) icon = line.substr(5);
-                else if (line.rfind("StartupWMClass=", 0) == 0) wmclass = line.substr(15);
-                else if (line.rfind("Exec=", 0) == 0) exec = line.substr(5);
-                else if (line.rfind("NoDisplay=true", 0) == 0) nodisplay = true;
-                else if (line.rfind("Hidden=true", 0) == 0) hidden = true;
-            }
-            if (name.empty() || nodisplay || hidden || exec.empty()) continue;
-            seen.insert(id);
-            out.push_back({{"id", id}, {"name", name}, {"icon", icon}, {"wm_class", wmclass}});
-        }
-        closedir(dp);
-    }
-    scanSteamGames(out, seen);
-    std::sort(out.begin(), out.end(), [](const json& a, const json& b) { return a["name"].get<std::string>() < b["name"].get<std::string>(); });
-    return out;
-}
-
-static json conflictingTools() {
-    json out = json::array();
-    DIR* dp = opendir("/proc");
-    if (!dp) return out;
-    while (dirent* e = readdir(dp)) {
-        if (e->d_name[0] < '0' || e->d_name[0] > '9') continue;
-        std::ifstream f(std::string("/proc/") + e->d_name + "/comm");
-        std::string comm;
-        std::getline(f, comm);
-        if (comm == "solaar" || comm == "logid") out.push_back({{"name", comm}, {"pid", atoi(e->d_name)}});
-    }
-    closedir(dp);
-    return out;
-}
-
 void Daemon::onApp(const std::string& cls) {
     appClass_ = cls;
     for (auto& md : snapshot()) md->setProfile(cls);
@@ -1158,6 +1018,18 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return md;
     };
     if (method == "ping") return "pong";
+    if (method == "shutdown") { stop(); return true; }
+    if (method == "audio_get") {
+        auto a = platform::audioGet();
+        if (!a.ok) throw std::runtime_error("audio is not handled by the agent on this system");
+        return {{"volume", a.volume}, {"muted", a.muted}, {"mic_muted", a.micMuted}};
+    }
+    if (method == "audio_set") {
+        if (!p.contains("volume") || !p["volume"].is_number()) throw std::runtime_error("volume must be a number");
+        int v = std::max(0, std::min(100, static_cast<int>(std::lround(p["volume"].get<double>()))));
+        if (!platform::audioSetVolume(v)) throw std::runtime_error("cannot set the volume on this system");
+        return json{{"volume", v}};
+    }
     if (method == "status")
     {
         std::string recv;
@@ -1170,7 +1042,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
             }
         }
         return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.6.23"},
-                {"conflicts", conflictingTools()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
+                {"conflicts", platform::conflictingTools()}, {"os", platform::name()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
     }
     if (method == "logs") {
         std::lock_guard<std::mutex> lk(gLogMutex);

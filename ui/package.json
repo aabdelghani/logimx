@@ -2,15 +2,17 @@
   "name": "logimx-ui",
   "productName": "LogiMX",
   "version": "0.6.23",
-  "description": "LogiMX: third-party configuration app for MX Master and MX Keys devices on Linux",
+  "description": "LogiMX: configuration app for MX Master and MX Keys devices on Linux, Windows and macOS",
   "homepage": "https://github.com/aabdelghani/logimx",
-  "author": "aabdelghany",
+  "author": "Ahmed Abdelghany",
   "license": "MIT",
   "main": "main.js",
   "scripts": {
     "start": "electron . --class=LogiMX",
     "dist:appimage": "electron-builder --linux AppImage --publish never",
-    "dist:dir": "electron-builder --linux dir --publish never"
+    "dist:dir": "electron-builder --linux dir --publish never",
+    "dist:win": "node build/prep.js && electron-builder --win nsis --x64 --publish never",
+    "dist:mac": "node build/prep.js && electron-builder --mac dmg zip --publish never"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2"
@@ -22,34 +24,18 @@
   "build": {
     "appId": "io.github.aabdelghani.logimx",
     "productName": "LogiMX",
-    "executableName": "logimx",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
+      "platform.js",
+      "flow.js",
       "preload*.js",
       "renderer/**/*",
       "assets/**/*",
       "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "../agent/build/logimx-agent",
-        "to": "agent/logimx-agent"
-      },
-      {
-        "from": "../agent/build/logimxctl",
-        "to": "agent/logimxctl"
-      },
-      {
-        "from": "../udev/60-logimx.rules",
-        "to": "udev/60-logimx.rules"
-      },
-      {
-        "from": "../systemd/logimx.service",
-        "to": "systemd/logimx.service"
-      }
     ],
     "linux": {
       "target": [
@@ -63,7 +49,127 @@
         "StartupWMClass": "logimx",
         "Keywords": "mouse;keyboard;MX;Bolt;"
       },
-      "artifactName": "LogiMX-${version}-${arch}.${ext}"
-    }
+      "artifactName": "LogiMX-${version}-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "../agent/build/logimx-agent",
+          "to": "agent/logimx-agent"
+        },
+        {
+          "from": "../agent/build/logimxctl",
+          "to": "agent/logimxctl"
+        },
+        {
+          "from": "../udev/60-logimx.rules",
+          "to": "udev/60-logimx.rules"
+        },
+        {
+          "from": "../systemd/logimx.service",
+          "to": "systemd/logimx.service"
+        }
+      ],
+      "executableName": "logimx"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "publisherName": "Ahmed Abdelghany",
+      "legalTrademarks": "LogiMX is not affiliated with Logitech.",
+      "extraResources": [
+        {
+          "from": "../agent/build/logimx-agent.exe",
+          "to": "agent/logimx-agent.exe"
+        },
+        {
+          "from": "../agent/build/logimxctl.exe",
+          "to": "agent/logimxctl.exe"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "license": "build/license.txt",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/uninstallerSidebar.bmp",
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LogiMX",
+      "uninstallDisplayName": "LogiMX",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "artifactName": "LogiMX-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.utilities",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "darkModeSupport": true,
+      "artifactName": "LogiMX-${version}-${arch}.${ext}",
+      "extendInfo": {
+        "LSMinimumSystemVersion": "11.0",
+        "NSHumanReadableCopyright": "MIT License. LogiMX is not affiliated with Logitech."
+      },
+      "extraResources": [
+        {
+          "from": "../agent/build/logimx-agent",
+          "to": "agent/logimx-agent"
+        },
+        {
+          "from": "../agent/build/logimxctl",
+          "to": "agent/logimxctl"
+        }
+      ]
+    },
+    "dmg": {
+      "title": "LogiMX ${version}",
+      "contents": [
+        {
+          "x": 150,
+          "y": 190
+        },
+        {
+          "x": 390,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "afterPack": "build/afterPack.js"
   }
 }

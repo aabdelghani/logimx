@@ -1,12 +1,7 @@
 #include "transport.h"
 
-#include <fcntl.h>
-#include <linux/hidraw.h>
-#include <poll.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 
 namespace hidpp {
@@ -15,45 +10,10 @@ HidppError::HidppError(uint8_t c, uint8_t f, uint8_t fn)
     : std::runtime_error("HID++ error 0x" + std::to_string(c) + " (feature idx " + std::to_string(f) + ")"),
       code(c), featureIndex(f), function(fn) {}
 
-RawInfo rawInfo(const std::string& path) {
-    RawInfo r;
-    int fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK);
-    if (fd < 0) throw std::runtime_error("open " + path + ": " + strerror(errno));
-    hidraw_devinfo di{};
-    if (ioctl(fd, HIDIOCGRAWINFO, &di) == 0) {
-        r.bustype = di.bustype;
-        r.vendor = static_cast<uint16_t>(di.vendor);
-        r.product = static_cast<uint16_t>(di.product);
-    }
-    char name[256] = {0};
-    if (ioctl(fd, HIDIOCGRAWNAME(sizeof(name)), name) >= 0) r.name = name;
-    ::close(fd);
-    return r;
-}
-
-bool supportsHidpp(const std::string& path) {
-    int fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK);
-    if (fd < 0) return false;
-    int size = 0;
-    bool ok = false;
-    if (ioctl(fd, HIDIOCGRDESCSIZE, &size) == 0 && size > 0) {
-        hidraw_report_descriptor rd{};
-        rd.size = size;
-        if (ioctl(fd, HIDIOCGRDESC, &rd) == 0) {
-            const uint8_t a[] = {0x06, 0x00, 0xff}, b[] = {0x06, 0x43, 0xff};
-            for (int i = 0; i + 3 <= size && !ok; ++i)
-                ok = !memcmp(rd.value + i, a, 3) || !memcmp(rd.value + i, b, 3);
-        }
-    }
-    ::close(fd);
-    return ok;
-}
-
 Transport::Transport(std::string path, Callback cb, double timeoutSec)
     : path_(std::move(path)), timeout_(timeoutSec), cb_(std::move(cb)) {
-    info_ = rawInfo(path_);
-    fd_ = ::open(path_.c_str(), O_RDWR | O_NONBLOCK);
-    if (fd_ < 0) throw std::runtime_error("open " + path_ + ": " + strerror(errno));
+    hid_ = HidDevice::open(path_);
+    info_ = hid_->info();
     thread_ = std::thread([this] { reader(); });
 }
 
@@ -65,18 +25,14 @@ void Transport::setCallback(Callback cb) {
 Transport::~Transport() {
     stop_ = true;
     if (thread_.joinable()) thread_.join();
-    if (fd_ >= 0) ::close(fd_);
 }
 
 void Transport::reader() {
-    pollfd p{fd_, POLLIN, 0};
     uint8_t buf[64];
     while (!stop_) {
-        int r = ::poll(&p, 1, 200);
-        if (r <= 0) continue;
-        if (p.revents & (POLLERR | POLLHUP | POLLNVAL)) return;
-        ssize_t n = ::read(fd_, buf, sizeof(buf));
-        if (n <= 0) continue;
+        int n = hid_->read(buf, sizeof(buf), 200);
+        if (n < 0) return;   // unplugged
+        if (n == 0) continue;
         dispatch(Bytes(buf, buf + n));
     }
 }
@@ -148,11 +104,10 @@ Bytes Transport::exchange(const Bytes& frame, uint8_t devIdx, uint8_t b2, uint8_
         error_.reset();
         result_.clear();
     }
-    ssize_t w = ::write(fd_, frame.data(), frame.size());
-    if (w < 0) {
+    if (!hid_->write(frame.data(), frame.size())) {
         std::lock_guard<std::mutex> lk(slotMutex_);
         pending_ = false;
-        throw std::runtime_error(std::string("write: ") + strerror(errno));
+        throw std::runtime_error("write to " + path_ + " failed");
     }
     if (noReply) return {};
     std::unique_lock<std::mutex> lk(slotMutex_);

@@ -2,6 +2,8 @@ name: release
 on:
   push:
     tags: ['v*']
+    # every push to the cross-platform branch builds all three, without publishing anything
+    branches: ['feature/cross-platform']
   workflow_dispatch:
 
 # the default token is read-only; creating the release and attaching files needs write
@@ -28,7 +30,7 @@ jobs:
         run: cd ui && npx electron-builder --linux AppImage --publish never
       - uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: linux
           path: |
             dist/*.deb
             ui/dist/*.AppImage
@@ -39,3 +41,73 @@ jobs:
           files: |
             dist/*.deb
             ui/dist/*.AppImage
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      # the same clang toolchain the agent is developed with (llvm-mingw): one static exe,
+      # no Visual C++ runtime to install beside it
+      - name: Toolchain
+        shell: pwsh
+        run: |
+          $v = '20260922'
+          Invoke-WebRequest "https://github.com/mstorsjo/llvm-mingw/releases/download/$v/llvm-mingw-$v-ucrt-x86_64.zip" -OutFile llvm-mingw.zip
+          Expand-Archive llvm-mingw.zip -DestinationPath C:\llvm-mingw
+          "C:\llvm-mingw\llvm-mingw-$v-ucrt-x86_64\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+      - name: Agent
+        run: |
+          cmake -S agent -B agent/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=x86_64-w64-mingw32-clang -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-clang++
+          cmake --build agent/build
+      - name: UI dependencies
+        run: cd ui && npm ci --no-audit --no-fund
+      - name: Installer
+        run: cd ui && npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: ui/dist/LogiMX-Setup-*.exe
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ui/dist/LogiMX-Setup-*.exe
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Agent (Apple Silicon and Intel in one binary)
+        run: |
+          cmake -S agent -B agent/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build agent/build -j 4
+          lipo -info agent/build/logimx-agent
+      - name: UI dependencies
+        run: cd ui && npm ci --no-audit --no-fund
+      - name: Disk images
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: cd ui && npm run dist:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            ui/dist/*.dmg
+            ui/dist/*.zip
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ui/dist/*.dmg
+            ui/dist/*.zip

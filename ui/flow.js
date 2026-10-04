@@ -9,13 +9,15 @@
 // Everything is wrapped so Deskflow's own window never opens. The config LogiMX writes
 // lives under LogiMX's own directory and never touches a manual Deskflow setup.
 
-const { app, ipcMain } = require('electron');
+const { app, ipcMain, shell } = require('electron');
 const { spawn, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const APP_ID = 'org.deskflow.deskflow';
+const IS_WIN = process.platform === 'win32', IS_MAC = process.platform === 'darwin';
+const DOWNLOAD_URL = 'https://github.com/deskflow/deskflow/releases/latest';
 const PORT = 24800;                 // Deskflow / Barrier default
 const POS = { left: 'left', right: 'right', up: 'up', down: 'down' };
 const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
@@ -50,7 +52,7 @@ function defaultName() {
 // container/VM bridge (docker/virbr/br-)
 function lanIp() {
   const ifs = os.networkInterfaces();
-  const skip = /^(docker|virbr|br-|veth|vmnet|tun|tap)/;
+  const skip = /^(docker|virbr|br-|veth|vmnet|tun|tap|vEthernet|VirtualBox|VMware|Hyper-V|Loopback|Bluetooth)/i;
   for (const [name, addrs] of Object.entries(ifs)) {
     if (skip.test(name)) continue;
     for (const a of addrs || []) {
@@ -83,8 +85,22 @@ function saveCfg(patch) {
 //   'flatpak'     the org.deskflow.deskflow flatpak
 //   '<path>'      a native deskflow-core / deskflow-server binary
 let installed = null;
+// Windows and macOS: Deskflow's own installer puts deskflow-core in a known place
+function nativeCandidates() {
+  if (IS_WIN) {
+    const roots = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs')].filter(Boolean);
+    return roots.map(r => path.join(r, 'Deskflow', 'deskflow-core.exe'));
+  }
+  return ['/Applications', path.join(os.homedir(), 'Applications')].map(r => path.join(r, 'Deskflow.app', 'Contents', 'MacOS', 'deskflow-core'));
+}
 function checkInstalled(cb) {
   if (installed !== null) return cb(installed);
+  if (IS_WIN || IS_MAC) {
+    installed = nativeCandidates().find(p => { try { return fs.existsSync(p); } catch (e) { return false; } }) || false;
+    if (installed || !IS_WIN) return cb(installed);
+    // installed somewhere else but on the PATH
+    return execFile('where', ['deskflow-core'], { timeout: 4000, windowsHide: true }, (e, out) => { installed = e ? false : (String(out).trim().split(/\r?\n/)[0] || false); cb(installed); });
+  }
   execFile('flatpak', ['info', APP_ID], { timeout: 4000 }, err => {
     if (!err) { installed = 'flatpak'; return cb(installed); }
     execFile('sh', ['-c', 'command -v deskflow-core || command -v deskflow-server'], { timeout: 4000 }, (e2, out) => {
@@ -175,7 +191,7 @@ function start() {
     const [cmd, args] = coreArgv('server', settingsPath);
     // Own process group: the flatpak child runs deskflow-core under bwrap, so killing the
     // wrapper alone leaves it running. Starting a group lets stop() take down the whole tree.
-    p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+    p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], detached: !IS_WIN, windowsHide: true });
   } catch (e) { push('error', 'Could not start Flow.'); return { ok: false, error: String(e) }; }
   child = p;
   const line = buf => {
@@ -196,6 +212,12 @@ function start() {
 
 function killChild() {
   const settings = lastSettings;
+  if (child && IS_WIN) {
+    // the whole tree, by pid: nothing else of the person's is touched
+    execFile('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});
+    child = null;
+    return;
+  }
   if (child) {
     const pid = child.pid;
     // kill the wrapper's whole group (covers a native deskflow-core cleanly)
@@ -215,8 +237,31 @@ function stop() {
   return { ok: true };
 }
 
+// No package manager to lean on: open Deskflow's download page (the Windows build is signed
+// and installs in a minute). Windows with winget installs it in place.
+function openDownload() {
+  shell.openExternal(DOWNLOAD_URL);
+  push('stopped', 'Opened the Deskflow download page. Install it, then come back here.');
+  return { ok: true, page: true };
+}
 function install() {
   if (installing) return { ok: true, already: true };
+  if (IS_MAC) return openDownload();
+  if (IS_WIN) {
+    push('installing');
+    let w;
+    try { w = spawn('winget', ['install', '--id', 'Deskflow.Deskflow', '-e', '--silent', '--accept-source-agreements', '--accept-package-agreements'], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); }
+    catch (e) { return openDownload(); }
+    installing = w;
+    const line = buf => { const s = buf.toString().replace(/[\r\u0008]/g, '\n').trim(); if (s) push('installing', s.split('\n').filter(Boolean).pop().slice(0, 80)); };
+    w.stdout.on('data', line); w.stderr.on('data', line);
+    w.on('error', () => { installing = null; openDownload(); });
+    w.on('exit', () => {
+      installing = null; installed = null;
+      checkInstalled(ok => { if (ok) push('stopped', 'Flow support installed.'); else openDownload(); });
+    });
+    return { ok: true };
+  }
   push('installing');
   let p;
   try { p = spawn('flatpak', ['install', '-y', '--noninteractive', 'flathub', APP_ID], { stdio: ['ignore', 'pipe', 'pipe'] }); }

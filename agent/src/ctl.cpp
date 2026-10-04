@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     try {
         ipc::Client c;
         if (cmd == "status") printf("%s\n", c.call("status").dump(1).c_str());
-        else if (cmd == "devices") for (auto& d : c.call("devices")) printDevice(d);
+        else if (cmd == "devices") { json devs = c.call("devices"); for (auto& d : devs) printDevice(d); }
         else if (cmd == "show" && a.size() == 1) printf("%s\n", c.call("device", {{"id", a[0]}}).dump(1).c_str());
         else if (cmd == "set" && a.size() == 3) {
             std::vector<std::string> path;
@@ -78,7 +78,10 @@ int main(int argc, char** argv) {
             json d = c.call("set_assignment", {{"id", a[0]}, {"section", a[1]}, {"control", a[2]}, {"action", parseValue(a[3])}, {"profile", a.size() > 4 ? a[4] : "default"}});
             printDevice(d);
         } else if (cmd == "host" && a.size() == 2) c.call("change_host", {{"id", a[0]}, {"host", std::stoi(a[1]) - 1}});
-        else if (cmd == "presets") for (auto& [k, v] : c.call("presets")["all"].items()) printf("%-22s %s\n", k.c_str(), v.value("label", "").c_str());
+        else if (cmd == "presets") {
+            json all = c.call("presets")["all"];   // held: iterating into the temporary would outlive it
+            for (auto& [k, v] : all.items()) printf("%-22s %s\n", k.c_str(), v.value("label", "").c_str());
+        }
         else if (cmd == "config") printf("%s\n", c.call("config").dump(1).c_str());
         else if (cmd == "reload") c.call("reload");
         else { usage(); return 2; }
