@@ -71,12 +71,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: ui/dist/LogiMX-Setup-*.exe
+          path: ui/dist/*-Setup-*.exe
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ui/dist/LogiMX-Setup-*.exe
+          files: ui/dist/*-Setup-*.exe
 
   macos:
     runs-on: macos-14
