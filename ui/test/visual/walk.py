@@ -31,7 +31,10 @@ class Page:
         return r.get('result', {}).get('value')
     def click(self, sel, wait=0.9):
         # a dispatched click, so SVG hotspots (no .click()) work too
-        ok = self.js(f"(()=>{{const e=document.querySelector({json.dumps(sel)});if(!e)return false;e.dispatchEvent(new MouseEvent('click',{{bubbles:true,cancelable:true}}));return true}})()")
+        js = f"(()=>{{const e=document.querySelector({json.dumps(sel)});if(!e)return false;e.dispatchEvent(new MouseEvent('click',{{bubbles:true,cancelable:true}}));return true}})()"
+        ok = self.js(js)
+        if not ok:   # not drawn yet: give the redraw a moment, once
+            time.sleep(.6); ok = self.js(js)
         time.sleep(wait)
         return ok
     def shot(self, path):

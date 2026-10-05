@@ -26,13 +26,15 @@ function keepTyping(t) {
   n.value = t.v; n.dataset.keep = '1'; n.focus();
   try { n.setSelectionRange(t.a, t.b); } catch (e) {}
 }
-// what the view models ask for: one redraw at the next frame, however many changes came first
+// what the view models ask for: one redraw at the next frame, however many changes came first (a
+// hidden window gets no frames, so a timer stands in for them)
 let dirty = false, queued = false;
 function schedule() {
   dirty = true;
   if (queued) return;
   queued = true;
-  requestAnimationFrame(() => { queued = false; if (dirty) render(); });
+  const run = () => { if (!queued) return; queued = false; if (dirty) render(); };
+  requestAnimationFrame(run); setTimeout(run, 50);
 }
 function render() {
   dirty = false;

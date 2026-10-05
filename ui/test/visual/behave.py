@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Runs real commands through NotLogi's window (clicks over the DevTools port) and checks what the
-agent saved. Takes a backup first and restores it at the end, so the settings come back as they were.
+agent saved. The agent's config file is copied first and put back at the end (then reloaded), so
+the settings come back as they were. It does not use the agent's backups: those keep only the
+newest 15, and test runs would push the real ones out.
 
   python3 behave.py        (NotLogi running with --remote-debugging-port=9333)
 """
@@ -16,8 +18,9 @@ def check(name, cond, detail=''):
 def main():
     p = Page()
     agent = lambda m, params=None: p.js(f"window.agent.call({json.dumps(m)}, {json.dumps(params or {})})")
-    backup = os.path.basename(agent('create_backup', {'note': 'Before the window check'}) or '')
-    print('backup:', backup)
+    cfg = os.path.join(os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'), 'logimx', 'config.json')
+    saved = open(cfg, 'rb').read()
+    saved_ui = p.js('window.agent.uiSettings()') or {}   # the window's own settings, put back the same way
     general = lambda: (agent('status') or {}).get('general', {})
     mouse = lambda: next(d for d in agent('devices') if d['id'] == MOUSE)
     try:
@@ -33,12 +36,14 @@ def main():
         # a switch in Settings flips a window setting (kept by the main process), and flips it back
         home(p)
         p.click('[data-act=page][data-page=settings]')
+        # what the switch shows is what a click turns the other way
+        shown = lambda: p.js("document.querySelector('.switch[data-act=ui][data-key=updates]').classList.contains('on')")
         ui = lambda: (p.js('window.agent.uiSettings()') or {}).get('updates')
-        before = ui()
+        before = shown()
         p.click('.switch[data-act=ui][data-key=updates]', 1.0)
         mid = ui()
         p.click('.switch[data-act=ui][data-key=updates]', 1.0)
-        check('Settings switch saves', mid != before and ui() == before, f'{before} -> {mid} -> {ui()}')
+        check('Settings switch saves', mid == (not before) and ui() == before, f'shown {before}, saved {mid}, then {ui()}')
         # a notification switch is a general (agent) setting
         p.click('[data-act=menu-main]', .4); p.click('[data-act=page][data-page=notif]')
         key = p.js("(()=>{const s=document.querySelector('.switch[data-act=general]');return s&&s.dataset.key})()")
@@ -95,10 +100,11 @@ def main():
         p.js("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))"); time.sleep(.5)
         check('wish dialog opens and Esc closes it', opened and not p.js("!!document.querySelector('textarea[data-field=wish]')"))
     finally:
-        if backup:
-            agent('restore_backup', {'file': backup})
-            p.js('window.agent.generalChanged()')   # the main process reads the restored settings too
-            print('restored', backup)
+        with open(cfg, 'wb') as f: f.write(saved)
+        agent('reload')                          # the agent reads it again (no backup made)
+        p.js(f'window.agent.uiSettings({json.dumps(saved_ui)})')
+        p.js('window.agent.generalChanged()')   # and the main process
+        print('settings put back' if open(cfg, 'rb').read() == saved else 'SETTINGS DIFFER after putting them back')
         p.js('location.reload()')
     sys.exit(0 if ok else 1)
 
