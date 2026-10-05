@@ -45,7 +45,7 @@ def main():
         p.click('.switch[data-act=ui][data-key=updates]', 1.0)
         check('Settings switch saves', mid == (not before) and ui() == before, f'shown {before}, saved {mid}, then {ui()}')
         # a notification switch is a general (agent) setting
-        p.click('[data-act=menu-main]', .4); p.click('[data-act=page][data-page=notif]')
+        p.click('.row[data-act=page][data-page=notif]')
         key = p.js("(()=>{const s=document.querySelector('.switch[data-act=general]');return s&&s.dataset.key})()")
         if key:
             g0 = general().get(key)

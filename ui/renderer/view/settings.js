@@ -35,8 +35,16 @@ function pageSettings(generalTitle = 'General') {
     sec(generalTitle, card(`<div class="row"><span class="grow lbl">Appearance</span><select class="sel" data-act="theme-select">${THEMES.map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
       row('Language', '', '<span class="val">System (English)</span>') +
       `<div class="row"><div class="grow"><div class="lbl">Check for updates</div><div class="sub">Looks at the GitHub release feed</div></div><button class="btn sm" data-act="check-updates">Check now</button>${sw(u.updates !== false, 'data-act="ui" data-key="updates"')}</div>`)) +
-    sec('Privacy', card(row('Telemetry', 'Off. NotLogi never sends data anywhere.', '<span class="val">Not available</span>')));
+    sec('Privacy', card(row('Telemetry', 'Off. NotLogi never sends data anywhere.', '<span class="val">Not available</span>'))) +
+    // the window's other pages, each a row that opens it
+    sec('More', card(morePages().map(([p, i, l, sub]) => `<div class="row click" data-act="page" data-page="${p}"><i class="fa-solid ${i}" style="width:20px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${l}</div><div class="sub">${sub}</div></div><i class="fa-solid fa-chevron-right" style="color:var(--dim);font-size:12px"></i></div>`).join('')));
 }
+const morePages = () => [
+  ['notif', 'fa-bell', 'Notifications', 'On-screen overlays, low battery, devices connecting'],
+  ['backup', 'fa-cloud-arrow-down', 'Backup & sync', 'Back up, restore, export and import settings'],
+  ['apps', 'fa-layer-group', 'Profiles', 'Settings for each application'],
+].concat(S.devices.some(isMouse) ? [] : [['ring', 'fa-circle-notch', 'Action ring', 'Eight actions around the pointer']],
+  [['about', 'fa-circle-info', 'About NotLogi', 'Version, links, diagnostics']]);
 
 // Flow: share the mouse, keyboard and clipboard with other computers on the LAN. LogiMX
 // drives Deskflow (the open-source software KVM) under the hood; this computer is the

@@ -196,7 +196,6 @@ function renderWindow() {
           ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
           <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
           <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
-          <div style="position:relative"><button class="hbtn icon" data-act="menu-main" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>${S.menu === 'main' ? mainMenu() : ''}</div>
           <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
   let body;
@@ -244,23 +243,6 @@ function devicePanel(d) {
 }
 const THEMES = [['light', 'Light', 'linear-gradient(135deg,#fff 50%,#3584e4 50%)'], ['dark', 'Dark', 'linear-gradient(135deg,#222 50%,#3584e4 50%)'], ['ubuntu', 'Ubuntu', 'linear-gradient(135deg,#fafafa 50%,#e95420 50%)'], ['ubuntu-dark', 'Ubuntu dark', 'linear-gradient(135deg,#2c2c2c 50%,#e95420 50%)']];
 const themeMenu = () => `<div class="menu" data-menu><div class="mhead">Appearance</div>${THEMES.map(([k, l, s]) => `<button data-act="theme" data-key="${k}"><span class="swatch" style="background:${s}"></span><span>${l}</span>${S.theme === k ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}</div>`;
-const mainMenu = () => `<div class="menu" data-menu>
-  <button data-act="export"><i class="fa-solid fa-download"></i>Export settings…</button>
-  <button data-act="import"><i class="fa-solid fa-upload"></i>Import settings…</button>
-  <button data-act="pair"><i class="fa-solid fa-plus"></i>Pair a device…</button>
-  <button data-act="pause"><i class="fa-solid ${S.status.paused ? 'fa-play' : 'fa-pause'}"></i>${S.status.paused ? 'Resume custom buttons' : 'Pause custom buttons'}</button>
-  <div class="sep"></div>
-  <button data-act="page" data-page="apps"><i class="fa-solid fa-layer-group"></i>Profiles</button>
-  ${S.devices.some(isMouse) ? '' : '<button data-act="page" data-page="ring"><i class="fa-solid fa-circle-notch"></i>Action ring</button>'}
-  <button data-act="page" data-page="notif"><i class="fa-solid fa-bell"></i>Notifications</button>
-  <button data-act="page" data-page="backup"><i class="fa-solid fa-cloud-arrow-down"></i>Backup & sync</button>
-  <button data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button>
-  <button data-act="page" data-page="about"><i class="fa-solid fa-circle-info"></i>About NotLogi</button>
-  <div class="sep"></div>
-  <button data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish…</button>
-  <button data-act="report"><i class="fa-solid fa-bug"></i>Report an issue…</button>
-  <div class="sep"></div>
-  <button data-act="quit"><i class="fa-solid fa-power-off"></i>Quit</button></div>`;
 
 function renderPage(d) {
   if (S.appDetail) return pageAppDetail(S.appDetail);
@@ -366,4 +348,4 @@ function bind() {
   }, 20);
 }
 
-export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, devicePanel, THEMES, themeMenu, mainMenu, renderPage, renderDialog, bind, schedule };
+export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, devicePanel, THEMES, themeMenu, renderPage, renderDialog, bind, schedule };

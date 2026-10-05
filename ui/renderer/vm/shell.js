@@ -48,7 +48,6 @@ export const commands = {
   'win-close': async (it, e, d, key) => { api.host.windowAction('close'); return; },
   'quit': async (it, e, d, key) => { api.host.windowAction('quit'); return; },
   'menu-theme': async (it, e, d, key) => { S.menu = S.menu === 'theme' ? null : 'theme'; changed(); return; },
-  'menu-main': async (it, e, d, key) => { S.menu = S.menu === 'main' ? null : 'main'; changed(); return; },
   'menu-ringprof': async (it, e, d, key) => { S.menu = S.menu === 'ringprof' ? null : 'ringprof'; changed(); return; },
   'theme': async (it, e, d, key) => { S.theme = key; try { localStorage.setItem('theme', key); } catch (x) {} api.host.setTheme(key); S.menu = null; changed(); return; },
   'theme-select': async (it, e, d, key) => { S.theme = it.value; try { localStorage.setItem('theme', it.value); } catch (x) {} api.host.setTheme(it.value); changed(); return; },
