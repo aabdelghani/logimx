@@ -5,36 +5,39 @@ import { batIcon, batClass } from '../shared/battery.mjs';
 import * as Prof from '../shared/profiles.mjs';
 import { isMouse, isNative } from '../shared/profiles.mjs';
 const { ICON, PRESET_ICON, MODS, codeToKey, toolName } = Act;
+import { createApi } from './model/api.js';
+import { createStore } from './model/store.js';
 const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newRingId } = Ring;
 (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const root = $('#root');
 
-  const S = {
-    devices: [], presets: null, apps: null, general: {}, conflicts: [], status: {}, connected: false, appInfo: {},
+  // the Model: requests to the agent, and what it knows mirrored here
+  const api = createApi(window.agent, msg => toast(msg, true));
+  const store = createStore(api);
+  // the screens' own state: where the window is, what is open, what is being edited
+  const view = {
     theme: 'light', mode: 'app', page: 'home', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
     pair: { step: 1, found: [] }, ob: { step: 1, preset: 'gnome' }, appDetail: null, conflictDismissed: false,
-    thumbSpeed: 5, history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null, ready: false, loaded: false, running: null,
-    flow: null, flowStatus: 'stopped', flowDetail: '',
   };
+  // one name for both while the screens move to their view models: the Model's fields read and
+  // write the store, the rest the screens' state
+  const S = new Proxy(view, {
+    get: (t, k) => k in store.data ? store.data[k] : t[k],
+    set: (t, k, v) => { if (k in store.data) store.data[k] = v; else t[k] = v; return true; },
+  });
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
   const VERSION = '0.8.2';
 
   // ------------------------------------------------------------------ rpc
-  async function call(method, params) {
-    try { return await window.agent.call(method, params); }
-    catch (e) { toast(String(e.message || e).replace(/^Error invoking remote method '[^']*': (Error: )?/, ''), true); throw e; }
-  }
+  const call = api.call;
   window.addEventListener('resize', () => alignToNav());
   function toast(msg, err) {
     const t = $('#toast'); t.textContent = msg; t.hidden = false; t.classList.toggle('err', !!err);
     clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2600);
   }
-  function merge(summary) {
-    const i = S.devices.findIndex(x => x.id === summary.id);
-    if (i >= 0) S.devices[i] = summary; else S.devices.push(summary);
-  }
+  const merge = store.merge;
   const dev = () => S.devices.find(d => d.id === S.dev) || null;
   const profileOf = Prof.profileOf;
   // The profile the device view shows: one being previewed (hover in the profile bar), else the one
@@ -97,7 +100,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   }
   function stopRecorder() {
     recGen++;   // a record_start still in flight must not take effect after this
-    if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; window.agent.call('record_cancel').catch(() => {}); }
+    if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; api.quiet('record_cancel').catch(() => {}); }
     if (!recorder) return;
     document.removeEventListener('keydown', recorder.onDown, true);
     document.removeEventListener('keyup', recorder.onUp, true);
@@ -115,9 +118,9 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   const row = (label, sub, right, cls = '') => `<div class="row ${cls}"><div class="grow"><div class="lbl">${label}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>${right}</div>`;
   const drop = (a, attrs = '') => `<button class="drop" ${attrs}><i class="fa-solid ic ${actionIcon(a)}"></i>${esc(presetLabel(a))}<i class="fa-solid fa-chevron-down chev"></i></button>`;
   const range = (attrs, val, min, max, step) => `<input type="range" ${attrs} min="${min}" max="${max}" step="${step}" value="${val}" style="width:160px">`;
-  const setSetting = async (d, path, value) => { const st = await call('set_setting', { id: d.id, path, value }); d.state = st; let x = d.config.settings || (d.config.settings = {}); for (const p of path.slice(0, -1)) { x[p] = x[p] || {}; x = x[p]; } x[path[path.length - 1]] = value; };
-  const setGeneral = async patch => { try { S.general = await call('set_general', patch); } catch (e) { Object.assign(S.general, patch); } window.agent.generalChanged(); };
-  const setAssign = async (d, section, control, action, profile) => { merge(await call('set_assignment', { id: d.id, profile: profile || S.editProfile || 'default', section, control: section === 'thumbwheel' ? '' : String(control), action })); };
+  const setSetting = api.setSetting;
+  const setGeneral = store.setGeneral;
+  const setAssign = (d, section, control, action, profile) => store.assign(d, section, control, action, profile || S.editProfile || 'default');
 
   // ------------------------------------------------------------- nav
   const PAGES = {
@@ -870,7 +873,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
     S.appIcons = S.appIcons || {};
     if (a && !(key in S.appIcons)) {
       S.appIcons[key] = null;
-      window.agent.appIcon({ icon: a.icon, id: a.id }).then(u => { if (u) { S.appIcons[key] = u; render(); } }).catch(() => {});
+      api.host.appIcon({ icon: a.icon, id: a.id }).then(u => { if (u) { S.appIcons[key] = u; render(); } }).catch(() => {});
     }
     return S.appIcons[key] ? `<img src="${S.appIcons[key]}" alt="">` : `<span class="pf-letter" style="background:${colorFor(p.name)}">${esc(p.name.charAt(0).toUpperCase())}</span>`;
   }
@@ -1200,7 +1203,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   // drives Deskflow (the open-source software KVM) under the hood; this computer is the
   // server and the others join as clients. S.flow holds the last flow-info from main.
   const FLOW_POS = [['left', 'Left', 'fa-arrow-left'], ['right', 'Right', 'fa-arrow-right'], ['up', 'Above', 'fa-arrow-up'], ['down', 'Below', 'fa-arrow-down']];
-  function flowRefresh() { window.agent.flowInfo().then(f => { S.flow = f; if (f) { S.flowStatus = f.status || (f.running ? 'running' : 'stopped'); } if (S.page === 'flow') render(); }); }
+  function flowRefresh() { store.loadFlow().then(() => { if (S.page === 'flow') render(); }); }
   // While Flow is off, the device's Flow page is a single invitation; Start using Flow opens
   // the setup (installing the sharing engine first if it is missing).
   function flowIntro(f) {
@@ -1433,7 +1436,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   // monitor brightness needs ddcutil and access to the monitors' I2C buses: asked once, offered
   // under Brightness when this computer does not have it yet
   function briSetupRow() {
-    if (S.briStatus === undefined) { S.briStatus = null; window.agent.briStatus().then(st => { S.briStatus = st; if (!st.ok) render(); }).catch(() => {}); }
+    if (S.briStatus === undefined) { S.briStatus = null; api.host.briStatus().then(st => { S.briStatus = st; if (!st.ok) render(); }).catch(() => {}); }
     const st = S.briStatus;
     if (!st || st.ok || !['ddcutil', 'i2c'].includes(st.reason)) return '';
     return `<button class="act ring-cfg" data-act="bri-setup"><i class="fa-solid fa-screwdriver-wrench ic"></i><span class="t">Set up brightness</span><span class="m">${st.reason === 'ddcutil' ? 'Installs ddcutil' : 'Allows access'}</span><i class="fa-solid fa-arrow-right more"></i></button>`;
@@ -1753,7 +1756,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       if (id in S.appIconById) return;
       S.appIconById[id] = null;
       const a = (S.apps || []).find(x => x.id === id); if (!a) return;
-      window.agent.appIcon({ icon: a.icon, id: a.id }).then(u => { if (!u) return; S.appIconById[id] = u; root.querySelectorAll(`.add-panel .app-ic[data-icon="${CSS.escape(id)}"]`).forEach(x => { x.innerHTML = `<img src="${u}" alt="">`; }); }).catch(() => {});
+      api.host.appIcon({ icon: a.icon, id: a.id }).then(u => { if (!u) return; S.appIconById[id] = u; root.querySelectorAll(`.add-panel .app-ic[data-icon="${CSS.escape(id)}"]`).forEach(x => { x.innerHTML = `<img src="${u}" alt="">`; }); }).catch(() => {});
     });
     // hovering an app in the profile bar previews it; leaving the bar shows what was there again
     bindBarHover();
@@ -1839,11 +1842,11 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
     };
     const gen = ++recGen;
     armPending = true;
-    window.agent.call('record_start').then(() => {
+    api.quiet('record_start').then(() => {
       armPending = false;
       // disarmed while the agent was setting the grab up (the typed field took focus): let go
       // again, or the agent would keep swallowing keys the page no longer wants
-      if (gen !== recGen) { window.agent.call('record_cancel').catch(() => {}); return; }
+      if (gen !== recGen) { api.quiet('record_cancel').catch(() => {}); return; }
       agentGrab = true; recordDone = onFinal; recordPartial = onPartial;
     })
       .catch(() => {
@@ -1858,7 +1861,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   }
   function openPicker(t) {
     // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
-    window.agent.call('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
+    api.quiet('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
     const d = t.dev || dev();
     const section = t.section, cid = t.cid;
     const gslot = section === 'gesture' && d && t.slot ? gestureObject(d, cid)[t.slot] : null;
@@ -1928,42 +1931,42 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       case 'dir-pick': { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; }
       case 'goinfo': go('info', S.dev); return;
       case 'back-apps': S.appDetail = null; render(); return;
-      case 'win-close': window.agent.windowAction('close'); return;
-      case 'quit': window.agent.windowAction('quit'); return;
+      case 'win-close': api.host.windowAction('close'); return;
+      case 'quit': api.host.windowAction('quit'); return;
       case 'menu-theme': S.menu = S.menu === 'theme' ? null : 'theme'; render(); return;
       case 'menu-main': S.menu = S.menu === 'main' ? null : 'main'; render(); return;
       case 'menu-ringprof': S.menu = S.menu === 'ringprof' ? null : 'ringprof'; render(); return;
-      case 'theme': S.theme = key; try { localStorage.setItem('theme', key); } catch (x) {} window.agent.setTheme(key); S.menu = null; render(); return;
-      case 'theme-select': S.theme = b.value; try { localStorage.setItem('theme', b.value); } catch (x) {} window.agent.setTheme(b.value); render(); return;
+      case 'theme': S.theme = key; try { localStorage.setItem('theme', key); } catch (x) {} api.host.setTheme(key); S.menu = null; render(); return;
+      case 'theme-select': S.theme = b.value; try { localStorage.setItem('theme', b.value); } catch (x) {} api.host.setTheme(b.value); render(); return;
       case 'start-agent': {
         const build = agentNeedsBuild();
         S.agentBusy = true; S.agentErr = null; S.buildStep = build ? 'Preparing the build…' : null; render();
         let r;
-        try { r = build ? await window.agent.buildAgent() : await window.agent.startAgent(); }
+        try { r = build ? await api.host.buildAgent() : await api.host.startAgent(); }
         catch (x) { r = { ok: false, error: x.message }; }
         S.agentBusy = false; S.buildStep = null;
-        try { S.agentInfo = await window.agent.agentInfo(); } catch (x) {}
+        try { S.agentInfo = await api.host.agentInfo(); } catch (x) {}
         if (r && r.ok) { toast('Agent started'); try { await refresh(); } catch (x) {} }
         else { S.agentErr = (r && r.error) || 'could not start'; toast('Could not start the agent: ' + S.agentErr, true); }
         render(); return;
       }
-      case 'osd-test': window.agent.osdTest(key); return;
+      case 'osd-test': api.host.osdTest(key); return;
       case 'pause': await call(S.status.paused ? 'resume_diversion' : 'pause_diversion'); S.status = await call('status'); render(); return;
       case 'dismiss-conflict': S.conflictDismissed = true; render(); return;
-      case 'stop-tool': { const r = await window.agent.stopTool(b.dataset.tool); toast(r && r.ok ? `${b.dataset.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; }
-      case 'open': window.agent.openExternal(b.dataset.url); return;
-      case 'flow-install': window.agent.flowInstall(); S.flowStatus = 'installing'; render(); return;
-      case 'flow-begin': S.flowSetup = true; if (S.flow && !S.flow.installed) { window.agent.flowInstall(); S.flowStatus = 'installing'; } render(); return;
-      case 'flow-start': { const r = await window.agent.flowStart(); if (r && !r.ok) toast(r.error || 'Could not start Flow', true); flowRefresh(); return; }
-      case 'flow-stop': await window.agent.flowStop(); flowRefresh(); return;
-      case 'flow-name': { const v = (b.value || '').trim(); if (v) await window.agent.flowConfig({ name: v }); flowRefresh(); return; }
-      case 'flow-clip': { const cur = (S.flow || {}).clipboard !== false; await window.agent.flowConfig({ clipboard: !cur }); flowRefresh(); return; }
-      case 'flow-peer-add': prompt('Add computer', [{ key: 'name', label: 'Name', placeholder: 'macbook, work-pc…' }], async v => { const name = (v.name || '').trim(); if (!name) return; const peers = ((S.flow || {}).peers || []).slice(); if (peers.some(p => p.name === name)) return toast('That name is already added', true); peers.push({ name: name.replace(/[^A-Za-z0-9_-]/g, '-'), pos: 'right' }); await window.agent.flowConfig({ peers }); flowRefresh(); }, 'Add'); return;
-      case 'flow-peer-del': { const peers = ((S.flow || {}).peers || []).slice(); peers.splice(Number(b.dataset.i), 1); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
-      case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await window.agent.flowConfig({ peers }); flowRefresh(); return; }
-      case 'open-bt': window.agent.openBluetooth(); toast('Opening Bluetooth settings'); return;
+      case 'stop-tool': { const r = await api.host.stopTool(b.dataset.tool); toast(r && r.ok ? `${b.dataset.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; }
+      case 'open': api.host.openExternal(b.dataset.url); return;
+      case 'flow-install': api.host.flowInstall(); S.flowStatus = 'installing'; render(); return;
+      case 'flow-begin': S.flowSetup = true; if (S.flow && !S.flow.installed) { api.host.flowInstall(); S.flowStatus = 'installing'; } render(); return;
+      case 'flow-start': { const r = await api.host.flowStart(); if (r && !r.ok) toast(r.error || 'Could not start Flow', true); flowRefresh(); return; }
+      case 'flow-stop': await api.host.flowStop(); flowRefresh(); return;
+      case 'flow-name': { const v = (b.value || '').trim(); if (v) await api.host.flowConfig({ name: v }); flowRefresh(); return; }
+      case 'flow-clip': { const cur = (S.flow || {}).clipboard !== false; await api.host.flowConfig({ clipboard: !cur }); flowRefresh(); return; }
+      case 'flow-peer-add': prompt('Add computer', [{ key: 'name', label: 'Name', placeholder: 'macbook, work-pc…' }], async v => { const name = (v.name || '').trim(); if (!name) return; const peers = ((S.flow || {}).peers || []).slice(); if (peers.some(p => p.name === name)) return toast('That name is already added', true); peers.push({ name: name.replace(/[^A-Za-z0-9_-]/g, '-'), pos: 'right' }); await api.host.flowConfig({ peers }); flowRefresh(); }, 'Add'); return;
+      case 'flow-peer-del': { const peers = ((S.flow || {}).peers || []).slice(); peers.splice(Number(b.dataset.i), 1); await api.host.flowConfig({ peers }); flowRefresh(); return; }
+      case 'flow-peer-pos': { const peers = ((S.flow || {}).peers || []).slice(); const i = Number(b.dataset.i); if (peers[i]) peers[i] = Object.assign({}, peers[i], { pos: b.value }); await api.host.flowConfig({ peers }); flowRefresh(); return; }
+      case 'open-bt': api.host.openBluetooth(); toast('Opening Bluetooth settings'); return;
       case 'pf-edit': { const k = key === 'default' ? null : key; if ((S.editProfile || null) === k) return; S.editProfile = k; S.ringPath = []; S.previewProfile = null; S.dlg = null; S.picker = null; render(); return; }
-      case 'pf-add': { if (S.addPanel) return; S.addPanel = true; S.addSel = []; S.dlg = null; S.picker = null; S.previewProfile = null; if (!S.apps) { try { S.apps = await window.agent.call('applications'); } catch (e) { S.apps = []; } } render(); return; }
+      case 'pf-add': { if (S.addPanel) return; S.addPanel = true; S.addSel = []; S.dlg = null; S.picker = null; S.previewProfile = null; if (!S.apps) { try { S.apps = await api.quiet('applications'); } catch (e) { S.apps = []; } } render(); return; }
       case 'add-pick': {
         // tick or untick; the bar shows the ticked ones at once, faded until Add
         const sel = S.addSel || (S.addSel = []), i = sel.indexOf(key);
@@ -1995,7 +1998,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
         S.dlg = 'confirm'; render(); return;
       }
       case 'confirm-ok': { const p = S.confirm; S.dlg = null; S.confirm = null; render(); if (p && p.onOk) { await p.onOk(); render(); } return; }
-      case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') { call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) window.agent.btClose(); } S.dlg = null; render(); return;
+      case 'close-dlg': if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; render(); return; } if (drawerUp()) { closeDrawer(); return; } stopRecorder(); if (S.dlg === 'pair') { call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) api.host.btClose(); } S.dlg = null; render(); return;
       case 'dir': S.dir = key; render(); return;
       case 'pick': {
         // a folder on the ring opens straight away (its ⋯ menu removes it)
@@ -2076,7 +2079,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       case 'rec-start': if (S.picker.drawer) S.picker.cat = 'key'; if (S.picker.recording) return; S.picker.recording = true; render(); return;
       case 'pick-launch': { if (S.picker.drawer) { S.picker.cat = 'app'; S.picker.launch = key; S.picker.cmd = S.picker.text = S.picker.open = ''; return onAction('pick-assign'); } S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') renderAppList(); else render(); return; }
       case 'pick-disable': await assignPicked('nothing'); return;
-      case 'ring-test': window.agent.ringShow(); return;
+      case 'ring-test': api.host.ringShow(); return;
       case 'ring-size': await saveRing({ size: key }); render(); return;
       case 'folder-rename': { const n = root.querySelector('.folder-name'); if (n) { n.focus(); n.select(); } return; }
       case 'rs-parent': {
@@ -2156,8 +2159,8 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       }
       case 'bri-setup': {
         toast('Setting up monitor brightness…');
-        const r = await window.agent.briSetup();
-        S.briStatus = await window.agent.briStatus().catch(() => null);
+        const r = await api.host.briSetup();
+        S.briStatus = await api.host.briStatus().catch(() => null);
         toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? 'Monitor brightness is ready' : 'Set up; this monitor does not answer brightness requests') : (r && r.error) || 'Failed', !(r && r.ok));
         render(); return;
       }
@@ -2176,7 +2179,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
         if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await saveRingSlots(slots); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); render(); return; }
-        const defs = ((await window.agent.call('defaults', { id: dd.id })).profiles || {}).default || {};
+        const defs = ((await api.quiet('defaults', { id: dd.id })).profiles || {}).default || {};
         let a = 'native';
         if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';
         else if (p.section === 'gesture') a = 'nothing';
@@ -2211,7 +2214,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
         // one button, one job: taking the ring keeps the gestures aside so they come back as they were
         const cid = gestureControl(d), cur = assignment(d, 'buttons', cid);
         const curType = (typeof cur === 'string' ? (S.presets.all[cur] || {}) : (cur || {})).type;
-        if (curType === 'gesture') S.ui = await window.agent.uiSettings({ savedGesture: Object.assign({}, (S.ui || {}).savedGesture, { [d.id + ':' + cid]: gestureObject(d, cid) }) }) || S.ui;
+        if (curType === 'gesture') S.ui = await api.host.uiSettings({ savedGesture: Object.assign({}, (S.ui || {}).savedGesture, { [d.id + ':' + cid]: gestureObject(d, cid) }) }) || S.ui;
         if (key === 'ring') await setAssign(d, 'buttons', cid, 'action_ring');
         else if (key === 'gestures') { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); }
         else await setAssign(d, 'buttons', cid, 'native');
@@ -2225,10 +2228,10 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       case 'setting': { const on = !b.classList.contains('on'); const path = b.dataset.path.split('.'); let v = b.dataset.on ? (on ? b.dataset.on : b.dataset.off) : on; if (v === 'true') v = true; else if (v === 'false') v = false; await setSetting(d, path, v); render(); return; }
       case 'setting-val': await setSetting(d, b.dataset.path.split('.'), b.dataset.val); render(); return;
       case 'setting-range': await setSetting(d, b.dataset.path.split('.'), Number(b.value)); return;
-      case 'haptic-level': await setSetting(d, ['haptic', 'level'], Number(b.value)); window.agent.call('haptic_play', { id: d.id, waveform: 4 }).catch(() => {}); return;
-      case 'haptic-play': window.agent.call('haptic_play', { id: d.id, waveform: Number(key) }).catch(e => toast(e.message, true)); return;
+      case 'haptic-level': await setSetting(d, ['haptic', 'level'], Number(b.value)); api.quiet('haptic_play', { id: d.id, waveform: 4 }).catch(() => {}); return;
+      case 'haptic-play': api.quiet('haptic_play', { id: d.id, waveform: Number(key) }).catch(e => toast(e.message, true)); return;
       case 'panel-force-reset': { const f = ((d.state || {}).force || [])[0]; if (f) { await setSetting(d, ['panel_force'], f.default); render(); } return; }
-      case 'bl-reset': { const def = (((await window.agent.call('defaults', { id: d.id })).settings || {}).backlight) || { enabled: true, mode: 'auto' }; for (const k of ['enabled', 'mode']) if (k in def) await setSetting(d, ['backlight', k], def[k]); await setSetting(d, ['backlight', 'battery_saving'], false); toast('Backlighting reset'); render(); return; }
+      case 'bl-reset': { const def = (((await api.quiet('defaults', { id: d.id })).settings || {}).backlight) || { enabled: true, mode: 'auto' }; for (const k of ['enabled', 'mode']) if (k in def) await setSetting(d, ['backlight', k], def[k]); await setSetting(d, ['backlight', 'battery_saving'], false); toast('Backlighting reset'); render(); return; }
       case 'bl-level': await setSetting(d, ['backlight', 'mode'], 'manual'); await setSetting(d, ['backlight', 'level'], Number(key)); render(); return;
       case 'step': { const st = (d.state || {}).backlight || {}, s = (d.config.settings || {}).backlight || {}; const v = Math.max(Number(b.dataset.lo), Math.min(Number(b.dataset.hi), (s[key] ?? st[key] ?? 0) + Number(b.dataset.d))); await setSetting(d, ['backlight', key], v); render(); return; }
       case 'thumb-speed': { const tw = assignment(d, 'thumbwheel'); let a = typeof tw === 'string' ? Object.assign({}, S.presets.all[tw], { preset: tw }) : Object.assign({}, tw || S.presets.all.hscroll); a.gain = Number(b.value) * 1.6; await setAssign(d, 'thumbwheel', '', a); return; }
@@ -2239,60 +2242,60 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       case 'general-val': await setGeneral({ [key]: b.dataset.val }); render(); return;
       case 'general-range': await setGeneral({ [key]: Number(b.value) }); return;
       case 'osd-event': { const ev = Object.assign({ mic: true, smartshift: true, backlight: true, host: true, dpi: false }, S.general.osd_events || {}); ev[key] = !b.classList.contains('on'); await setGeneral({ osd_events: ev }); render(); return; }
-      case 'ui': { const v = !b.classList.contains('on'); S.ui = await window.agent.uiSettings({ [key]: v }) || Object.assign(S.ui, { [key]: v }); render(); return; }
+      case 'ui': { const v = !b.classList.contains('on'); S.ui = await api.host.uiSettings({ [key]: v }) || Object.assign(S.ui, { [key]: v }); render(); return; }
       case 'fwupd': toast('Are you serious now ?'); setTimeout(() => toast('You must be a Windows user !'), 2200); return;
-      case 'check-updates': { const r = await window.agent.checkUpdates(); if (!r.ok) return toast('Update check failed: ' + r.error, true); const cur = S.status.version || VERSION; const newer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) > (y[i] || 0)) return true; if ((x[i] || 0) < (y[i] || 0)) return false; } return false; }; const has = r.latest && newer(r.latest, cur); toast(has ? `Version ${r.latest} is available` : `You are on the latest version (${cur})`); if (has && r.url) window.agent.openExternal(r.url); return; }
+      case 'check-updates': { const r = await api.host.checkUpdates(); if (!r.ok) return toast('Update check failed: ' + r.error, true); const cur = S.status.version || VERSION; const newer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) > (y[i] || 0)) return true; if ((x[i] || 0) < (y[i] || 0)) return false; } return false; }; const has = r.latest && newer(r.latest, cur); toast(has ? `Version ${r.latest} is available` : `You are on the latest version (${cur})`); if (has && r.url) api.host.openExternal(r.url); return; }
       case 'reset-overrides': { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { const keep = { name: profs[key].name, match: profs[key].match }; profs[key] = keep; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } toast('Overrides cleared'); render(); return; }
-      case 'reset-buttons': { const defs = ((await window.agent.call('defaults', { id: d.id })).profiles || {}).default || {}; const btns = defs.buttons || {}; for (const cid of Object.keys(btns)) await setAssign(d, 'buttons', cid, btns[cid]); if (defs.thumbwheel) await setAssign(d, 'thumbwheel', null, defs.thumbwheel); toast('Buttons reset to defaults'); render(); return; }
-      case 'reset-keys': { const defs = ((await window.agent.call('defaults', { id: d.id })).profiles || {}).default || {}; const keys = defs.keys || {}; const lay = keyLayout(d); for (const { cid } of lay.frow.concat(lay.special)) await setAssign(d, 'keys', cid, keys[cid] || 'native'); toast('Keys reset to defaults'); render(); return; }
+      case 'reset-buttons': { const defs = ((await api.quiet('defaults', { id: d.id })).profiles || {}).default || {}; const btns = defs.buttons || {}; for (const cid of Object.keys(btns)) await setAssign(d, 'buttons', cid, btns[cid]); if (defs.thumbwheel) await setAssign(d, 'thumbwheel', null, defs.thumbwheel); toast('Buttons reset to defaults'); render(); return; }
+      case 'reset-keys': { const defs = ((await api.quiet('defaults', { id: d.id })).profiles || {}).default || {}; const keys = defs.keys || {}; const lay = keyLayout(d); for (const { cid } of lay.frow.concat(lay.special)) await setAssign(d, 'keys', cid, keys[cid] || 'native'); toast('Keys reset to defaults'); render(); return; }
       case 'app-detail': { const p = allProfiles().find(x => x.key === key); S.appDetail = key === 'default' ? { key: 'default', name: 'Default' } : Object.assign({ key }, p || { name: key }); S.menu = null; render(); return; }
       case 'add-app': prompt('Add application', [{ key: 'name', label: 'Application', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name)), 'Add'); return;
       case 'add-app-quick': await addProfile(b.dataset.name, b.dataset.cls); return;
       case 'rename-profile': prompt('Rename profile', [{ key: 'name', label: 'Name', value: (S.appDetail || {}).name }], async v => { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { profs[key].name = v.name; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } S.appDetail.name = v.name; render(); }, 'Rename'); return;
       case 'del-profile': { if (!confirm('Remove this profile on all devices?')) return; for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } S.appDetail = null; render(); return; }
       case 'ov-reset': { const dd = S.devices.find(x => x.id === b.dataset.dev); const profs = JSON.parse(JSON.stringify(dd.config.profiles)); const sect = profs[b.dataset.profile][b.dataset.section]; if (sect) delete sect[b.dataset.cid]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); render(); return; }
-      case 'export': { const cfg = await call('export_config'); const p = await window.agent.saveJson('logimx-settings.json', cfg); if (p) toast('Saved ' + p); S.menu = null; return; }
-      case 'import': { const cfg = await window.agent.openJson(); if (!cfg) return; await call('import_config', { config: cfg }); toast('Settings imported'); S.menu = null; refresh(); return; }
+      case 'export': { const cfg = await call('export_config'); const p = await api.host.saveJson('logimx-settings.json', cfg); if (p) toast('Saved ' + p); S.menu = null; return; }
+      case 'import': { const cfg = await api.host.openJson(); if (!cfg) return; await call('import_config', { config: cfg }); toast('Settings imported'); S.menu = null; refresh(); return; }
       case 'reset-all': { if (!confirm('Reset every device to default settings and assignments?')) return; for (const dd of S.devices) merge(await call('reset_device', { id: dd.id })); toast('Reset to defaults'); render(); return; }
-      case 'show-config': window.agent.openPath(S.status.config_path || '~/.config/logimx'); return;
+      case 'show-config': api.host.openPath(S.status.config_path || '~/.config/logimx'); return;
       case 'sync-device': { const dd = S.devices.find(x => x.id === key); try { merge(await call('sync_from_device', { id: key })); toast(`${dd.name}: settings read from device`); } catch (x) { merge(await call('device', { id: key })); } render(); return; }
       case 'restore-backup': { if (!confirm('Restore this backup? Current settings are backed up first.')) return; await call('restore_backup', { file: key }); toast('Backup restored'); refresh(); return; }
       case 'create-backup': { await call('create_backup', { note: 'Manual' }); S.backups = await call('list_backups'); toast('Backup written'); render(); return; }
       case 'pair': S.pair = { step: 1, found: [] }; S.dlg = 'pair'; S.menu = null; render(); return;
       case 'pair-via': S.pair.via = key; render(); return;
-      case 'bt-connect': { const b = S.pair && S.pair.bt; if (!b) return; const d = (b.list || []).find(x => x.address === key); b.busy = { address: key, name: d ? d.name : key, state: 'pairing' }; render(); window.agent.btConnect(key); return; }
+      case 'bt-connect': { const b = S.pair && S.pair.bt; if (!b) return; const d = (b.list || []).find(x => x.address === key); b.busy = { address: key, name: d ? d.name : key, state: 'pairing' }; render(); api.host.btConnect(key); return; }
       case 'pair-next': {
         // Bluetooth: the dialog's own live search
-        if (S.pair.step === 1 && S.pair.via === 'bt') { S.pair.step = 2; S.pair.bt = { list: [] }; render(); window.agent.btOpen().catch(() => {}); return; }
+        if (S.pair.step === 1 && S.pair.via === 'bt') { S.pair.step = 2; S.pair.bt = { list: [] }; render(); api.host.btOpen().catch(() => {}); return; }
         if (S.pair.step === 1 || (S.pair.step === 2 && S.pair.error)) { S.pair.step = 2; S.pair.error = null; S.pair.found = []; S.pair.passkey = null; render(); try { await call('pair_start'); } catch (x) { S.pair.error = x.message || 'Pairing is not available'; render(); } return; }
-        if (S.pair.step === 3) { if (S.pair.bt) window.agent.btClose(); S.dlg = null; render(); return; }
+        if (S.pair.step === 3) { if (S.pair.bt) api.host.btClose(); S.dlg = null; render(); return; }
         return;
       }
       case 'pair-confirm': { try { await call('pair_confirm', { address: key }); S.pair.step = 3; S.pair.done = 'Pairing… the device joins when it confirms'; } catch (x) { S.pair.error = x.message; } render(); return; }
-      case 'pair-cancel': call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) window.agent.btClose(); S.dlg = null; render(); return;
+      case 'pair-cancel': call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) api.host.btClose(); S.dlg = null; render(); return;
       case 'prompt-ok': { const p = S.prompt; const vals = {}; for (const f of p.fields) vals[f.key] = f.value || ''; S.dlg = p.back || null; await p.onOk(vals); return; }
-      case 'report': { S.report = { what: '' }; S.dlg = 'report'; render(); const r = await window.agent.diagReport(); S.report = Object.assign({ what: (S.report || {}).what || '' }, r); if (S.dlg === 'report') render(); return; }
+      case 'report': { S.report = { what: '' }; S.dlg = 'report'; render(); const r = await api.host.diagReport(); S.report = Object.assign({ what: (S.report || {}).what || '' }, r); if (S.dlg === 'report') render(); return; }
       case 'wish': S.menu = null; S.wish = { what: '' }; S.dlg = 'wish'; render(); setTimeout(() => { const t = root.querySelector('textarea[data-field=wish]'); if (t) t.focus(); }, 50); return;
       case 'wish-open': {
         const w = S.wish, what = ((w && w.what) || '').trim(); if (!what) return;
         const title = 'Wish: ' + (what.split('\n')[0].length > 70 ? what.split('\n')[0].slice(0, 67) + '…' : what.split('\n')[0]);
-        window.agent.openExternal(`${ISSUE_URL}?labels=enhancement&title=${encodeURIComponent(title)}&body=${encodeURIComponent(wishBody(w))}`);
+        api.host.openExternal(`${ISSUE_URL}?labels=enhancement&title=${encodeURIComponent(title)}&body=${encodeURIComponent(wishBody(w))}`);
         S.dlg = null; toast('Wish received by the genie! Submit it on GitHub and the 24-hour clock starts'); render(); return;
       }
-      case 'report-copy': window.agent.copy(reportBody(S.report, true)); toast('Report copied'); return;
+      case 'report-copy': api.host.copy(reportBody(S.report, true)); toast('Report copied'); return;
       case 'report-open': {
         const r = S.report; if (!r || !r.summary) return;
         // a link can only carry so much: past that the log travels on the clipboard instead
         let body = reportBody(r, true), full = true;
-        if (encodeURIComponent(body).length > 6000) { body = reportBody(r, false); full = false; window.agent.copy('```\n' + r.log + '\n```'); }
-        window.agent.openExternal(`${ISSUE_URL}?title=${encodeURIComponent(r.title)}&body=${encodeURIComponent(body)}`);
+        if (encodeURIComponent(body).length > 6000) { body = reportBody(r, false); full = false; api.host.copy('```\n' + r.log + '\n```'); }
+        api.host.openExternal(`${ISSUE_URL}?title=${encodeURIComponent(r.title)}&body=${encodeURIComponent(body)}`);
         S.dlg = null; toast(full ? 'Issue opened in your browser' : 'Issue opened; the log is on the clipboard to paste', false); render(); return;
       }
-      case 'export-diag': { const diag = { status: S.status, devices: S.devices, config: await call('export_config'), logs: S.logs, ui: S.ui, when: new Date().toISOString() }; const p = await window.agent.saveJson('logimx-diagnostics.json', diag); if (p) toast('Saved ' + p); return; }
-      case 'copy-diag': window.agent.copy(S.logs.map(l => l.t).join('\n') || JSON.stringify(S.status)); toast('Copied'); return;
+      case 'export-diag': { const diag = { status: S.status, devices: S.devices, config: await call('export_config'), logs: S.logs, ui: S.ui, when: new Date().toISOString() }; const p = await api.host.saveJson('logimx-diagnostics.json', diag); if (p) toast('Saved ' + p); return; }
+      case 'copy-diag': api.host.copy(S.logs.map(l => l.t).join('\n') || JSON.stringify(S.status)); toast('Copied'); return;
       case 'refresh-logs': await loadLogs(); render(); return;
-      case 'ax-open': window.agent.accessibility(true); window.agent.openAccessibility(); setTimeout(async () => { S.ax = await window.agent.accessibility(false); render(); }, 4000); return;
-      case 'install-udev': { const r = await window.agent.installUdev(); toast(r && r.ok ? 'Rule installed, re-plug the receiver' : (r && r.error) || 'Failed', !(r && r.ok)); setTimeout(refresh, 2000); return; }
+      case 'ax-open': api.host.accessibility(true); api.host.openAccessibility(); setTimeout(async () => { S.ax = await api.host.accessibility(false); render(); }, 4000); return;
+      case 'install-udev': { const r = await api.host.installUdev(); toast(r && r.ok ? 'Rule installed, re-plug the receiver' : (r && r.error) || 'Failed', !(r && r.ok)); setTimeout(refresh, 2000); return; }
       case 'onboard': S.mode = 'onboard'; S.ob = { step: 1, preset: IS_WIN() ? 'win' : IS_MAC() ? 'mac' : 'gnome' }; render(); return;
       case 'ob-close': S.mode = 'app'; try { localStorage.setItem('onboarded', '1'); } catch (x) {} render(); return;
       case 'ob-step': S.ob.step = Number(key); render(); return;
@@ -2330,7 +2333,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
         profs['libreoffice-writer'] = { name: 'LibreOffice Writer', match: ['libreoffice-writer'], buttons: { 83: 'undo', 86: 'redo', 196: 'smartshift_toggle' }, thumbwheel: 'zoom_wheel' };
         merge(await call('set_profiles', { id: dd.id, profiles: profs }));
       }
-      S.ui = await window.agent.uiSettings({ seeded_profiles: true }) || S.ui;
+      S.ui = await api.host.uiSettings({ seeded_profiles: true }) || S.ui;
       render();
     } catch (e) { } finally { seeding = false; }
   }
@@ -2348,27 +2351,16 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   }
 
   // --------------------------------------------------------- lifecycle
-  async function loadLogs() { try { S.logs = (await window.agent.call('logs')).map(t => ({ t, c: /WARN/.test(t) ? 'warn' : /ERR|fatal/.test(t) ? 'err' : 'dim' })); } catch (e) { S.logs = []; } }
+  const loadLogs = store.loadLogs;
   async function refresh() {
     try {
-      // everything the first paint needs, in one round trip
-      const [devices, status, presets] = await Promise.all([
-        window.agent.call('devices'),
-        window.agent.call('status'),
-        S.presets ? Promise.resolve(S.presets) : window.agent.call('presets'),
-      ]);
-      S.devices = devices; S.status = status; S.presets = presets;
-      S.general = status.general || {}; S.conflicts = status.conflicts || [];
+      await store.load();
       // repair slots an earlier build saved with the ring's own key, so the ring itself can run them
       if (JSON.stringify((S.general || {}).ring || {}).includes('"ring:profile"')) { const r = ringState(); saveRing({ profiles: r.profiles, apps: r.apps }).catch(() => {}); }
       if (!S.dev || !S.devices.some(d => d.id === S.dev)) { S.dev = S.devices.length ? S.devices[0].id : null; if (S.dev && !generalPagesAll.includes(S.page) && S.page !== 'home') S.page = devicePages(S.devices[0])[0]; }
-      S.connected = true; S.loaded = true;
       render();
       seedProfiles();
-      // the rest is not needed to show the device, so let it arrive afterwards
-      if (!S.apps) window.agent.call('applications').then(a => { S.apps = a; }).catch(() => { S.apps = []; });
-      try { S.backups = await window.agent.call('list_backups'); } catch (e) { S.backups = []; }
-      for (const d of S.devices) { try { S.history[d.id] = await window.agent.call('battery_history', { id: d.id }); } catch (e) {} }
+      await store.loadRest();
       if (S.page === 'about') await loadLogs();
     } catch (e) { S.connected = false; }
     render();
@@ -2384,41 +2376,36 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
     const b = root.querySelector(`.home-arrow[data-key="${e.key === 'ArrowLeft' ? -1 : 1}"]:not([disabled])`);
     if (b) { e.preventDefault(); onAction('home-step', b); }
   });
-  window.agent.onStatus(st => {
+  api.host.onStatus(st => {
     S.connected = !!st.connected;
     if (st.connected) { S.agentBusy = false; S.agentErr = null; refresh(); }
     else { S.devices = []; S.loaded = false; if (st.starting) S.agentBusy = true; render(); }
   });
-  window.agent.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
-  window.agent.onFlowEvent(m => { if (!m) return; S.flowStatus = m.status; S.flowDetail = m.detail || ''; if (S.flow) { S.flow.status = m.status; S.flow.peer = !!m.peer; S.flow.running = !(m.status === 'stopped' || m.status === 'error' || m.status === 'installing'); if (m.status === 'stopped' && m.detail && /installed/i.test(m.detail)) S.flow.installed = true; } if (S.page === 'flow') { flowRefresh(); } });
-  window.agent.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') render(); });
-  window.agent.onBt(m => {
+  api.host.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
+  api.host.onFlowEvent(m => { if (!m) return; store.applyFlow(m); if (S.page === 'flow') { flowRefresh(); } });
+  api.host.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') render(); });
+  api.host.onBt(m => {
     const p = S.pair, b = p && p.bt;
     if (!b || S.dlg !== 'pair') return;
     if (m.type === 'found') b.list = m.list;
     if (m.type === 'pair') {
-      if (m.state === 'connected') { p.step = 3; p.done = `${m.name} is connected`; window.agent.btClose(); }
+      if (m.state === 'connected') { p.step = 3; p.done = `${m.name} is connected`; api.host.btClose(); }
       else b.busy = { address: m.address, name: m.name, state: m.state, passkey: m.passkey, why: m.why };
     }
     render();
   });
-  window.agent.onEvent(msg => {
+  api.host.onEvent(msg => {
     const { event, data } = msg;
-    if (event === 'device' || event === 'device_added') { merge(data); if (!S.dev) S.dev = data.id; render(); }
-    else if (event === 'device_removed') {
-      // keep the card, greyed out, so a device that dropped off (asleep, out of range) stays in view
-      const gone = S.devices.find(d => d.id === data.id); if (gone) gone.offline = true;
-      if (S.dev === data.id && S.page !== 'home') go('home');
-      render();
+    // the Model takes the event; what is on screen decides whether it needs redrawing
+    const changed = store.applyEvent(event, data);
+    if (changed) {
+      if (event === 'device' || event === 'device_added') { if (!S.dev) S.dev = data.id; render(); }
+      else if (event === 'device_removed') { if (S.dev === data.id && S.page !== 'home') go('home'); render(); }
+      else if (event === 'battery' || event === 'general') render();
+      else if (event === 'profile') { if (S.dev === data.id && S.page !== 'home') render(); }
+      else if (event === 'backlight') { if (S.page === 'backlight') render(); }
     }
-    else if (event === 'battery') { const d = S.devices.find(x => x.id === data.id); if (d) { d.battery = data.battery; render(); } }
-    else if (event === 'app') { S.status.app = data.app || ''; }
-    // settings changed elsewhere (the ring's Next profile, another window); our own save's echo is
-    // identical and is not redrawn, so an animation that just started is not cut short
-    else if (event === 'general') { if (JSON.stringify(data || {}) !== JSON.stringify(S.general || {})) { S.general = data || {}; render(); } }
-    else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) { d.profile = data.profile; if (S.dev === d.id && S.page !== 'home') render(); } }
-    else if (event === 'backlight') { const d = S.devices.find(x => x.id === data.id); if (d && d.state && d.state.backlight) { d.state.backlight.current_level = data.level; if (S.page === 'backlight') render(); } }
-    else if (event === 'record') {
+    if (event === 'record') {
       if (!agentGrab || !S.picker) return;
       if (data.done && data.timeout) { recordDone = recordPartial = null; agentGrab = false; S.picker.chord = data.keys || []; S.picker.recording = false; render(); }
       else if (data.done) { const f = recordDone; recordDone = recordPartial = null; agentGrab = false; if (f) f(data.keys || []); }
@@ -2428,17 +2415,17 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
   });
   render();
   (async () => {
-    S.ui = (await window.agent.uiSettings()) || {};
+    S.ui = (await api.host.uiSettings()) || {};
     // the theme also lives in the agent-side settings, which survive a rename of the app
     let storedTheme = null; try { storedTheme = localStorage.getItem('theme'); } catch (e) {}
     if (!storedTheme && S.ui.theme) { S.theme = S.ui.theme; try { localStorage.setItem('theme', S.ui.theme); } catch (e) {} }
-    S.appInfo = (await window.agent.appInfo()) || {};
-    if (IS_MAC()) S.ax = await window.agent.accessibility(false);
+    S.appInfo = (await api.host.appInfo()) || {};
+    if (IS_MAC()) S.ax = await api.host.accessibility(false);
     if (!IS_LINUX() && S.ob.preset === 'gnome') S.ob.preset = IS_WIN() ? 'win' : 'mac';   // the first-run guide starts on this OS's own preset
-    try { S.agentInfo = await window.agent.agentInfo(); } catch (e) {}
+    try { S.agentInfo = await api.host.agentInfo(); } catch (e) {}
     let onboarded = false; try { onboarded = localStorage.getItem('onboarded') === '1'; } catch (e) {}
     if (!onboarded) S.mode = 'onboard';
-    const c = await window.agent.connected();
+    const c = await api.host.connected();
     if (c) { S.connected = true; await refresh(); S.ready = true; render(); return; }
     // the main process starts the agent on launch; show that rather than a bare "not running"
     S.ready = true; S.agentBusy = true; render();
