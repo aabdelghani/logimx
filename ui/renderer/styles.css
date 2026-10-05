@@ -1033,3 +1033,7 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 .about-hero .tagline { margin-top: -4px; font-size: 15px; color: var(--dim); }
 .about-hero .mark i { font-size: 30px !important; }
 .act.soon { opacity: .45; cursor: default; pointer-events: none; }
+/* gestures: an action dragged over a direction of the pad */
+body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg) 60%, transparent); outline-offset: 3px; }
+.gs-cell.drop-on { background: var(--accbg) !important; color: #fff !important; transform: scale(1.06); }
+.gs-cell.drop-on .gs-d, .gs-cell.drop-on .gs-k { color: #fff !important; }
