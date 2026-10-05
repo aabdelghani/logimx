@@ -1040,3 +1040,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* a selected label on the photo: its text white on the accent box, whatever colours a changed or
    app-specific action uses when it is not selected */
 .ms-lab.on .k, .ms-lab.on .d, .ms-lab.on .k::after { color: #fff !important; }
+/* configuring a ring or gestures while hovering an app that uses the button for something else */
+.pv-note { align-self: center; margin: 120px auto 0; max-width: 420px; text-align: center; padding: 22px 26px; border-radius: 14px; background: var(--card); border: 1px solid var(--brd); font-size: 16px; line-height: 1.45; }
+.pv-note > i { font-size: 22px !important; color: var(--accbg); display: block; margin-bottom: 8px; }
+.pv-note .sub { margin-top: 6px; font-size: 14px; color: var(--dim); }
+.rs-where.preview { outline: 2px dashed color-mix(in srgb, var(--accbg) 45%, transparent); }

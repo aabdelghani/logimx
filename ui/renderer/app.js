@@ -461,7 +461,7 @@
   function renderPage(d) {
     if (S.appDetail) return pageAppDetail(S.appDetail);
     // previewing an app profile from another of the device's pages: show the controls it changes
-    if (S.previewProfile && d && S.page !== 'buttons' && S.page !== 'keys' && devicePages(d).includes(S.page)) return isMouse(d) ? pageButtons(d) : pageKeys(d);
+    if (S.previewProfile && d && S.page !== 'buttons' && S.page !== 'keys' && !(S.page === 'gestures' && S.cfgFrom) && devicePages(d).includes(S.page)) return isMouse(d) ? pageButtons(d) : pageKeys(d);
     switch (S.page) {
       case 'buttons': return d ? pageButtons(d) : '';
       case 'gestures': return d ? pageGestures(d) : '';
@@ -609,6 +609,16 @@
     const sens = Math.max(1, Math.min(10, Math.round((165 - (g.threshold ?? 60)) / 15)));
     // opened from a button's Configure gestures: laid out like the action ring, the directions as a pad
     // in the middle naming what each runs, the picked one's actions in the panel on the right
+    // an app hovered in the bar while configuring: its own ring or gestures are shown in place; when the
+    // button does something else in that app, a note says what, and the view keeps its kind
+    if (S.cfgFrom && S.previewProfile) {
+      const own = assignment(d, 'buttons', cid, S.editProfile || 'default'), viewRing = isRingAction(own);
+      if (!(viewRing ? mode === 'ring' : active)) {
+        const pk = S.previewProfile, pn = pk === 'default' ? 'Global settings' : ((deviceProfiles(d).find(x => x.key === pk) || {}).name || pk);
+        const bn = (gestureCapable(d).find(c => c.cid === cid) || {}).label || 'This button';
+        return `<div class="ring-stage"><div class="pv-note"><i class="fa-solid fa-circle-info"></i><div>In <b>${esc(pn)}</b>, ${esc(bn)} does <b>${esc(presetLabel(a))}</b>.</div><div class="sub">${viewRing ? 'Its action ring applies' : 'Its gestures apply'} where the button is set to ${viewRing ? 'the action ring' : 'gestures'}.</div></div></div>`;
+      }
+    }
     if (active && S.cfgFrom) return gestureStage(d, cid, g, sens);
     const seg = (k, l) => `<button class="${mode === k ? 'on' : ''}" data-act="hold-mode" data-key="${k}">${l}</button>`;
     // gestures and the action ring share the held button: choosing one turns the other off
@@ -1029,7 +1039,7 @@
   const eight = a => Array.from({ length: 8 }, (_, i) => fixSlot((a || [])[i]) || null);
   function ringState() {
     const r = S.general.ring || {};
-    let profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map(p => ({ name: p.name || 'Profile', slots: eight(p.slots) })) : [{ name: 'Default', slots: eight(r.slots) }];
+    let profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map((p, i) => ({ id: p.id || 'p' + i, name: p.name || 'Profile', slots: eight(p.slots) })) : [{ id: 'p0', name: 'Default', slots: eight(r.slots) }];
     const active = Math.max(0, Math.min(profiles.length - 1, Number(r.active) || 0));
     const apps = r.apps && typeof r.apps === 'object' ? JSON.parse(JSON.stringify(r.apps)) : {};
     return { profiles, active, apps, size: r.size || 'medium', travel: r.travel || 30, free_pointer: !!r.free_pointer };
@@ -1037,10 +1047,23 @@
   // with an application picked in the profile bar the ring edited is that application's own (the
   // global one until something is changed); inside a folder, the folder's eight
   const ringApp = () => S.editProfile && S.editProfile !== 'default' ? S.editProfile : null;
-  const ringTop = r => { const k = ringApp(); return eight(k && r.apps[k] ? r.apps[k].slots : r.profiles[r.active].slots); };
+  // what the ring view shows: the app hovered in the bar, else the one being edited
+  const ringViewApp = () => S.previewProfile ? (S.previewProfile === 'default' ? null : S.previewProfile) : ringApp();
+  // Ring profiles are one list shared by everything: an application points at one of them (or follows
+  // the global one); an older build's own copy of slots still counts as the app's ring
+  const newRingId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const appRing = (r, k) => {
+    const a = k && r.apps[k]; if (!a) return null;
+    if (a.profile) { const i = r.profiles.findIndex(p => p.id === a.profile); return i >= 0 ? { i } : null; }
+    return Array.isArray(a.slots) ? { legacy: true } : null;
+  };
+  const ringTop = (r, view) => {
+    const k = view ? ringViewApp() : ringApp(), ar = appRing(r, k);
+    return eight(ar ? (ar.legacy ? r.apps[k].slots : r.profiles[ar.i].slots) : r.profiles[r.active].slots);
+  };
   const isFolderSlot = sl => !!(sl && sl.action && sl.action.type === 'folder');
   const ringFolder = top => { const i = (S.ringPath || [])[0], f = i != null ? top[i] : null; return isFolderSlot(f) ? f : null; };
-  const ringSlots = () => { const top = ringTop(ringState()), f = ringFolder(top); return eight(f ? f.action.slots : top); };
+  const ringSlots = view => { const top = ringTop(ringState(), view), f = ringFolder(top); return eight(f ? f.action.slots : top); };
   async function saveRing(patch) {
     const r = Object.assign(ringState(), patch);
     r.active = Math.max(0, Math.min(r.profiles.length - 1, r.active));
@@ -1053,18 +1076,26 @@
     const f = ringFolder(top);
     if (f) top[S.ringPath[0]] = Object.assign({}, f, { action: Object.assign({}, f.action, { slots }) }); else top = slots;
     if (k) {
-      const prof = deviceProfiles(dev()).find(x => x.key === k);
-      r.apps[k] = { slots: top, match: prof && prof.match.length ? prof.match : [k] };
-      return saveRing({ apps: r.apps });
+      const ar = appRing(r, k);
+      if (ar && !ar.legacy) { r.profiles[ar.i].slots = top; return saveRing({ profiles: r.profiles }); }
+      if (ar) { r.apps[k].slots = top; return saveRing({ apps: r.apps }); }
+      // an app on the global ring that gets changed: its own profile, named after it, from the global one
+      const id = newRingId();
+      r.profiles.push({ id, name: ringAppName(k), slots: top });
+      r.apps[k] = { profile: id, match: ringAppMatch(k) };
+      return saveRing({ profiles: r.profiles, apps: r.apps });
     }
     r.profiles[r.active].slots = top;
     return saveRing({ profiles: r.profiles });
   }
-  const ringAppName = () => { const k = ringApp(), prof = k && deviceProfiles(dev()).find(x => x.key === k); return prof ? prof.name : k; };
+  const ringAppName = key => { const k = key || ringViewApp(), prof = k && deviceProfiles(dev()).find(x => x.key === k); return prof ? prof.name : k; };
+  const ringAppMatch = k => { const prof = deviceProfiles(dev()).find(x => x.key === k); return prof && prof.match.length ? prof.match : [k]; };
+  // which ring an app uses, in words
+  const ringUseName = (r, k) => { const ar = appRing(r, k); return !ar ? 'the global ring' : ar.legacy ? 'its own ring' : r.profiles[ar.i].name; };
   // Gestures & action ring in a device's view, laid out like the keyboard: the ring in the middle with
   // each slot's action beside it; a slot opens its actions in the panel on the right
   function ringStage() {
-    const slots = ringSlots();
+    const slots = ringSlots(true);   // the hovered app's ring, else the one being edited
     const parts = slots.map((sl, i) => {
       const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
@@ -1073,16 +1104,22 @@
         `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(sl ? sl.label : 'Empty')}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>`;
     }).join('');
     // inside a folder the middle goes back up, and the folder's name sits above the ring
-    const top = ringTop(ringState()), f = ringFolder(top);
+    const top = ringTop(ringState(), true), f = ringFolder(top);
     const hub = f ? `<button class="rs-hub back" data-act="ring-up" title="Back to the ring"><i class="fa-solid fa-arrow-left"></i></button>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
-    const where = f ? `<div class="rs-where"><i class="fa-solid fa-folder-open"></i>${esc(f.label || 'Folder')}</div>` : ringApp() ? `<div class="rs-where"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())}${ringState().apps[ringApp()] ? '' : ' · uses the global ring'}</div>` : '';
+    const where = f ? `<div class="rs-where"><i class="fa-solid fa-folder-open"></i>${esc(f.label || 'Folder')}</div>` : ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
     return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''}">${parts}${hub}</div></div>`;
   }
   // the ring's profiles, from the panel head: switch, add one, or remove the one in use
   function ringProfileMenu() {
     const rs = ringState(), cur = rs.profiles[rs.active];
     const k = ringApp();
-    if (k) return rs.apps[k] ? `<button class="hbtn prof-btn" data-act="ring-app-drop" title="Drop this application's ring and use the global one"><i class="fa-solid fa-globe"></i><span>Use the global ring</span></button>` : '';
+    if (k) {
+      const ar = appRing(rs, k), name = ringAppName(k);
+      const item = (key, label, on, icon) => `<button data-act="ring-app-use" data-key="${esc(key)}"><i class="fa-solid ${icon}"></i>${esc(label)}${on ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`;
+      const list = item('', 'Same as global', !ar, 'fa-globe') + (ar && ar.legacy ? item('#own', 'Its own ring', true, 'fa-circle-notch') : '') + rs.profiles.map(pr => item(pr.id, pr.name, ar && !ar.legacy && rs.profiles[ar.i].id === pr.id, 'fa-layer-group')).join('');
+      const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">Ring for ${esc(name)}</div>${list}<div class="sep"></div><button data-act="ring-app-new"><i class="fa-solid fa-plus"></i>New blank profile</button></div>` : '';
+      return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="The ring ${esc(name)} uses"><i class="fa-solid ${ar ? 'fa-layer-group' : 'fa-globe'}"></i><span>${esc(ar ? (ar.legacy ? 'Own ring' : rs.profiles[ar.i].name) : 'Same as global')}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;
+    }
     const list = rs.profiles.map((pr, i) => `<button data-act="ring-profile" data-key="${i}"><i class="fa-solid fa-layer-group"></i>${esc(pr.name)}${i === rs.active ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('');
     const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">Ring profiles</div>${list}<div class="sep"></div><button data-act="ring-profile-add"><i class="fa-solid fa-plus"></i>New profile</button>${rs.profiles.length > 1 ? `<button data-act="ring-profile-delete" class="danger"><i class="fa-solid fa-trash"></i>Remove "${esc(cur.name)}"</button>` : ''}</div>` : '';
     return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="Ring profile"><i class="fa-solid fa-layer-group"></i><span>${esc(cur.name)}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;
@@ -2006,6 +2043,24 @@
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-size': await saveRing({ size: key }); render(); return;
+      case 'ring-app-use': {
+        const r = ringState(), k = ringApp(); S.menu = null; if (!k || key === '#own') return render();
+        if (!key) delete r.apps[k]; else r.apps[k] = { profile: key, match: ringAppMatch(k) };
+        S.ringPath = []; await saveRing({ apps: r.apps });
+        if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null;
+        toast(`${ringAppName(k)} uses ${ringUseName(ringState(), k)}`); render(); return;
+      }
+      case 'ring-app-new': {
+        const k = ringApp(); S.menu = null; if (!k) return render();
+        prompt('New blank ring profile', [{ key: 'name', label: 'Name', value: ringAppName(k), placeholder: 'Work, Remote desktop…' }], async v => {
+          const r = ringState(), name = (v.name || '').trim() || ringAppName(k), id = newRingId();
+          r.profiles.push({ id, name, slots: [] }); r.apps[k] = { profile: id, match: ringAppMatch(k) };
+          S.ringPath = []; await saveRing({ profiles: r.profiles, apps: r.apps });
+          if (S.picker && S.picker.section === 'ring') S.picker.current = null;
+          toast(`${ringAppName(k)} uses the new profile "${name}"`); render();
+        }, 'Create');
+        return;
+      }
       case 'bri-setup': {
         toast('Setting up monitor brightness…');
         const r = await window.agent.briSetup();
@@ -2022,7 +2077,9 @@
       case 'ring-profile-add': S.menu = null; prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); render(); }, 'Create'); return;
       case 'ring-profile-copy': { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast('Profile duplicated'); render(); return; }
       case 'ring-profile-rename': { const r = ringState(); prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return render(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); render(); }, 'Rename'); return; }
-      case 'ring-profile-delete': { S.menu = null; const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0]; await saveRing({ profiles: r.profiles, active: Math.max(0, r.active - 1) }); toast(`Profile "${gone.name}" deleted`); render(); return; }
+      case 'ring-profile-delete': { S.menu = null; const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0];
+        for (const [ak, av] of Object.entries(r.apps)) if (av && av.profile === gone.id) delete r.apps[ak];
+        await saveRing({ profiles: r.profiles, apps: r.apps, active: Math.max(0, r.active - 1) }); toast(`Profile "${gone.name}" deleted`); render(); return; }
       case 'ring-clear': await saveRingSlots([]); toast('Slots cleared'); render(); return;
       case 'pick-default': {
         const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;

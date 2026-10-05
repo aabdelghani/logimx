@@ -466,9 +466,13 @@ let currentApp = '';       // window class of the focused application (the agent
 function ringFor(rs) {
   const app = (currentApp || '').toLowerCase();
   for (const [k, v] of Object.entries(rs.apps || {})) {
-    if (!v || !Array.isArray(v.slots)) continue;
+    if (!v) continue;
+    // an app points at one of the shared ring profiles; an older build kept its own slots
+    const prof = v.profile && Array.isArray(rs.profiles) ? rs.profiles.find(p => p.id === v.profile) : null;
+    const slots = prof ? prof.slots : v.slots;
+    if (!Array.isArray(slots)) continue;
     const match = Array.isArray(v.match) && v.match.length ? v.match : [k];   // the app profile's own match strings
-    if (app && match.some(m => m && app.includes(String(m).toLowerCase()))) return { slots: v.slots, app: k };
+    if (app && match.some(m => m && app.includes(String(m).toLowerCase()))) return { slots, app: k, name: prof && prof.name };
   }
   const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
   return { slots: (prof && prof.slots) || rs.slots || [], name: prof && prof.name };
