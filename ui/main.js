@@ -462,33 +462,15 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // reports the picked slot, and the action runs through the agent like any assignment would.
 let ringRawMode = false;
 let currentApp = '';       // window class of the focused application (the agent's 'app' event)
-// the ring for the application in front: one set up for it (its class contains the key, as
-// profiles match), else the ring profile in use
-function ringFor(rs) {
-  const app = (currentApp || '').toLowerCase();
-  for (const [k, v] of Object.entries(rs.apps || {})) {
-    if (!v) continue;
-    // an app points at one of the shared ring profiles; an older build kept its own slots
-    const prof = v.profile && Array.isArray(rs.profiles) ? rs.profiles.find(p => p.id === v.profile) : null;
-    const slots = prof ? prof.slots : v.slots;
-    if (!Array.isArray(slots)) continue;
-    const match = Array.isArray(v.match) && v.match.length ? v.match : [k];   // the app profile's own match strings
-    if (app && match.some(m => m && app.includes(String(m).toLowerCase()))) return { slots, app: k, name: prof && prof.name };
-  }
-  const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
-  return { slots: (prof && prof.slots) || rs.slots || [], name: prof && prof.name };
-}
+// the ring's settings read the same way as in the settings window (shared/ring.mjs, an ES module,
+// loaded before anything opens the ring)
+let Ring = null;
+const ringModel = import('./shared/ring.mjs').then(m => { Ring = m; });
+// the ring for the application in front: one set up for it, else the ring profile in use
+const ringFor = rs => Ring.ringForApp(rs, currentApp);
 const RING_SCALE = { small: 0.85, medium: 1, large: 1.2 };
 // a slot by its place: [i] on the ring, [i, j] inside the folder at i
-function ringSlotAt(path) {
-  let list = ringSlots, slot = null;
-  for (let k = 0; k < path.length; k++) {
-    slot = list[path[k]];
-    if (!slot) return null;
-    if (k < path.length - 1) list = (slot.action && slot.action.slots) || [];
-  }
-  return slot;
-}
+const ringSlotAt = path => Ring.slotAt(ringSlots, path);
 // the device a ring action runs through: the one that opened it, else the first connected (so
 // Easy-Switch works from Try it too)
 const ringRunDevice = () => ringDevice || ((devices.find(d => d.online !== false) || devices[0] || {}).id) || null;
@@ -611,7 +593,7 @@ ipcMain.on('ring-pick', async (_e, { index, path }) => {
     const rs = Object.assign({}, general.ring || {}), n = Array.isArray(rs.profiles) ? rs.profiles.length : 0;
     if (n < 2) return;
     rs.active = ((rs.active || 0) + 1) % n;
-    rs.slots = rs.profiles[rs.active].slots;
+    Ring.finishRing(rs);
     try { general = await rpc('set_general', { ring: rs }); } catch (e) { return; }
     ringSlots = rs.profiles[rs.active].slots || [];
     ringCue('ring_run');
@@ -1384,7 +1366,8 @@ if (!single) {
     notify('agent-build', { step: 'Starting the agent…' });
     return startAgent();
   });
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    await ringModel;
     ensureDesktopEntry();
     ensureAutostart();
     setTimeout(() => { startAgent().catch(() => {}); }, 600);

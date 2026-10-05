@@ -9,6 +9,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron . --class=LogiMX",
+    "test": "node --test test/",
     "dist:appimage": "electron-builder --linux AppImage --publish never",
     "dist:dir": "electron-builder --linux dir --publish never",
     "dist:win": "node build/prep.js && electron-builder --win nsis --x64 --publish never",
@@ -30,6 +31,7 @@
     },
     "files": [
       "main.js",
+    "shared/**/*",
       "platform.js",
       "flow.js",
       "preload*.js",

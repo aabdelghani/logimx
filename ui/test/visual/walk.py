@@ -91,7 +91,7 @@ def walk(out):
                 if not p.click(sel):
                     missing.append(f'{name}: {sel}')
                     break
-            time.sleep(.4)
+            time.sleep(1.1)   # glides and pop-ins settle
             p.shot(os.path.join(out, f'{theme}-{name}.png'))
     set_theme(p, theme0)
     print(f'{len(STEPS) * 2} screenshots in {out}')

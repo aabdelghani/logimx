@@ -1,4 +1,6 @@
 /* LogiMX renderer. One state object, full re-render on change, Adwaita-style layout. */
+import * as Ring from '../shared/ring.mjs';
+const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newRingId } = Ring;
 (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1056,70 +1058,29 @@
       sec('Backups', `<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="btn sm" data-act="create-backup"><i class="fa-solid fa-plus"></i>Back up now</button></div>` + card(S.backups.length ? S.backups.map(b => `<div class="row"><i class="fa-solid fa-clock-rotate-left" style="width:20px;text-align:center;color:var(--dim)"></i><span class="grow lbl">${esc(b.when)}</span><span class="val">${esc(b.note || '')}</span><button class="btn sm" data-act="restore-backup" data-key="${esc(b.file)}">Restore</button></div>`).join('') : row('No backups yet', 'A backup is written before every import and reset', '')));
   }
 
-  const RING_DIRS = ['Top', 'Top right', 'Right', 'Bottom right', 'Bottom', 'Bottom left', 'Left', 'Top left'];
   // The ring keeps several sets of eight actions (profiles); one is in use. Older settings had a
-  // single list of slots, which becomes the first profile.
-  const RING_NEXT_PROFILE = { type: 'ring_profile', label: 'Next ring profile' };
-  // the screen under the pointer, set by dragging like Volume (Linux: backlight or DDC/CI)
-  const RING_BRIGHTNESS = { type: 'brightness_dial', label: 'Brightness (drag to set)' };
-  // a slot saved by an earlier build with the ring's own key instead of its action
-  const fixSlot = sl => sl && sl.action === 'ring:profile' ? { action: RING_NEXT_PROFILE, label: 'Next ring profile', icon: 'fa-layer-group' } : sl;
-  const eight = a => Array.from({ length: 8 }, (_, i) => fixSlot((a || [])[i]) || null);
-  function ringState() {
-    const r = S.general.ring || {};
-    let profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map((p, i) => ({ id: p.id || 'p' + i, name: p.name || 'Profile', slots: eight(p.slots) })) : [{ id: 'p0', name: 'Default', slots: eight(r.slots) }];
-    const active = Math.max(0, Math.min(profiles.length - 1, Number(r.active) || 0));
-    const apps = r.apps && typeof r.apps === 'object' ? JSON.parse(JSON.stringify(r.apps)) : {};
-    return { profiles, active, apps, size: r.size || 'medium', travel: r.travel || 30, free_pointer: !!r.free_pointer };
-  }
+  // single list of slots, which becomes the first profile. The shapes live in shared/ring.mjs.
+  const ringState = () => Ring.ringState(S.general);
   // with an application picked in the profile bar the ring edited is that application's own (the
   // global one until something is changed); inside a folder, the folder's eight
   const ringApp = () => S.editProfile && S.editProfile !== 'default' ? S.editProfile : null;
   // what the ring view shows: the app hovered in the bar, else the one being edited
   const ringViewApp = () => S.previewProfile ? (S.previewProfile === 'default' ? null : S.previewProfile) : ringApp();
-  // Ring profiles are one list shared by everything: an application points at one of them (or follows
-  // the global one); an older build's own copy of slots still counts as the app's ring
-  const newRingId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  const appRing = (r, k) => {
-    const a = k && r.apps[k]; if (!a) return null;
-    if (a.profile) { const i = r.profiles.findIndex(p => p.id === a.profile); return i >= 0 ? { i } : null; }
-    return Array.isArray(a.slots) ? { legacy: true } : null;
-  };
-  const ringTop = (r, view) => {
-    const k = view ? ringViewApp() : ringApp(), ar = appRing(r, k);
-    return eight(ar ? (ar.legacy ? r.apps[k].slots : r.profiles[ar.i].slots) : r.profiles[r.active].slots);
-  };
-  const isFolderSlot = sl => !!(sl && sl.action && sl.action.type === 'folder');
-  const ringFolder = top => { const i = (S.ringPath || [])[0], f = i != null ? top[i] : null; return isFolderSlot(f) ? f : null; };
+  const appRing = Ring.appRing;
+  const ringTop = (r, view) => Ring.ringTop(r, view ? ringViewApp() : ringApp());
+  const ringFolder = top => Ring.folderAt(top, (S.ringPath || [])[0]);
   const ringSlots = view => { const top = ringTop(ringState(), view), f = ringFolder(top); return eight(f ? f.action.slots : top); };
   async function saveRing(patch) {
-    const r = Object.assign(ringState(), patch);
-    r.active = Math.max(0, Math.min(r.profiles.length - 1, r.active));
-    r.slots = r.profiles[r.active].slots;   // what the overlay of an older build reads
-    await setGeneral({ ring: r });
+    await setGeneral({ ring: Ring.finishRing(Object.assign(ringState(), patch)) });
   }
   function saveRingSlots(slots) {
-    const r = ringState(), k = ringApp();
-    let top = ringTop(r);
-    const f = ringFolder(top);
-    if (f) top[S.ringPath[0]] = Object.assign({}, f, { action: Object.assign({}, f.action, { slots: slots.filter(Boolean) }) }); else top = slots;
-    if (k) {
-      const ar = appRing(r, k);
-      if (ar && !ar.legacy) { r.profiles[ar.i].slots = top; return saveRing({ profiles: r.profiles }); }
-      if (ar) { r.apps[k].slots = top; return saveRing({ apps: r.apps }); }
-      // an app on the global ring that gets changed: its own profile, named after it, from the global one
-      const id = newRingId();
-      r.profiles.push({ id, name: ringAppName(k), slots: top });
-      r.apps[k] = { profile: id, match: ringAppMatch(k) };
-      return saveRing({ profiles: r.profiles, apps: r.apps });
-    }
-    r.profiles[r.active].slots = top;
-    return saveRing({ profiles: r.profiles });
+    const r = ringState();
+    return saveRing(Ring.withSlots(r, ringApp(), (S.ringPath || [])[0], slots, ringAppName, ringAppMatch));
   }
   const ringAppName = key => { const k = key || ringViewApp(), prof = k && deviceProfiles(dev()).find(x => x.key === k); return prof ? prof.name : k; };
   const ringAppMatch = k => { const prof = deviceProfiles(dev()).find(x => x.key === k); return prof && prof.match.length ? prof.match : [k]; };
   // which ring an app uses, in words
-  const ringUseName = (r, k) => { const ar = appRing(r, k); return !ar ? 'the global ring' : ar.legacy ? 'its own ring' : r.profiles[ar.i].name; };
+  const ringUseName = Ring.ringUseName;
   // Gestures & action ring in a device's view, laid out like the keyboard: the ring in the middle with
   // each slot's action beside it; a slot opens its actions in the panel on the right
   function ringStage() {
@@ -1211,19 +1172,12 @@
   // next ones continue clockwise from there (the real ring draws them at those same directions)
   // a folder's actions are an ordered list fanned out around the folder's direction: the first in
   // that direction, the next a little counter-clockwise, then a little clockwise, and outward
-  const ringNextFree = slots => slots.findIndex(x => !x);
   // folders saved by direction (gaps before their last action) become fan lists, once
   function ringTidyFolders() {
-    const r = ringState(); let changed = false;
-    const tidy = list => (list || []).forEach(sl => {
-      if (!isFolderSlot(sl)) return;
-      const items = (sl.action.slots || []).filter(Boolean), had = sl.action.slots || [];
-      if (had.length && had.slice(0, items.length).some(x => !x)) { sl.action.slots = items; changed = true; }
-    });
-    r.profiles.forEach(p => tidy(p.slots));
-    Object.values(r.apps).forEach(a => a && Array.isArray(a.slots) && tidy(a.slots));
-    if (changed) return saveRing({ profiles: r.profiles, apps: r.apps });
+    const r = ringState();
+    if (Ring.tidyFolders(r)) return saveRing({ profiles: r.profiles, apps: r.apps });
   }
+
   // the ring's profiles, from the panel head: switch, add one, or remove the one in use
   function ringProfileMenu() {
     const rs = ringState(), cur = rs.profiles[rs.active];
