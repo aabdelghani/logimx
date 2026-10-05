@@ -1,5 +1,5 @@
 [Unit]
-Description=LogiMX agent for MX Master and MX Keys devices
+Description=NotLogi agent for MX Master and MX Keys devices
 After=graphical-session.target
 PartOf=graphical-session.target
 

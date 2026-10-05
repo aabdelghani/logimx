@@ -1,4 +1,6 @@
-# LogiMX
+# NotLogi
+
+**Unofficial mouse & keyboard tools for Linux** (formerly LogiMX)
 
 [![Release build](https://github.com/aabdelghani/logimx/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/logimx/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/aabdelghani/logimx?color=2dd4bf&label=release)](https://github.com/aabdelghani/logimx/releases/latest)
@@ -7,13 +9,13 @@
 [![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
 [![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
 
-LogiMX configures MX mice and keyboards on Linux, Windows (beta) and macOS (beta), with full support for the **MX Master 4** and an
+NotLogi configures MX mice and keyboards on Linux, Windows (beta) and macOS (beta), with full support for the **MX Master 4** and an
 **action ring**: eight actions of your choice around the pointer, opened by a button and chosen
 with a flick of the mouse. It also covers button and key assignments, gestures, the thumb wheel,
 SmartShift, DPI, the keyboard backlight and more. On Linux it runs on GNOME, KDE and other
 desktops, on X11 and Wayland.
 
-LogiMX is an independent project. It is not affiliated with, endorsed by, or supported by the
+NotLogi is an independent project. It is not affiliated with, endorsed by, or supported by the
 manufacturer of these devices. The device pictures in the app belong to this repository and are
 covered by its license.
 
@@ -32,6 +34,10 @@ covered by its license.
   force of the wheel.
 - **Every button and key on a photo of the device**, with the actions for the one clicked in a
   panel beside it.
+- **App profiles that follow the window in front.** Back and Forward can be Undo and Redo in
+  LibreOffice Writer and stay that way through its dialogs; a live dot shows which profile is in use.
+- **Bluetooth pairing like Windows.** Put a mouse or keyboard in pairing mode and a pop-up offers to
+  connect it, driven entirely from the keyboard.
 
 ## Contents
 
@@ -41,6 +47,7 @@ covered by its license.
 - [How it works](#how-it-works)
 - [Requirements](#requirements)
 - [Build from source](#build-from-source)
+- [Connecting over Bluetooth](#connecting-over-bluetooth)
 - [Pairing to a Bolt receiver](#pairing-to-a-bolt-receiver)
 - [Command line](#command-line)
 - [Reporting a problem](#reporting-a-problem)
@@ -58,7 +65,7 @@ built by CI from the tagged source.
 ```
 sudo apt install ./logimx_0.7.0_amd64.deb
 systemctl --user enable --now logimx      # starts the agent now; it starts by itself after the next login
-logimx                                    # or open LogiMX from the app grid
+logimx                                    # or open NotLogi from the app grid
 ```
 
 **AppImage**: a single file with nothing to install. It starts its own agent, and the first-run
@@ -71,17 +78,17 @@ chmod +x LogiMX-0.7.0-x86_64.AppImage
 
 **Windows 10 and 11 (LogiMX-Setup-0.7.0.exe), beta**: a setup wizard. It shows the license, asks
 whether to install for you alone or for everyone on the computer, lets you choose the folder, and
-offers to start LogiMX at sign-in and to put a shortcut on the desktop. Nothing else is needed: no
+offers to start NotLogi at sign-in and to put a shortcut on the desktop. Nothing else is needed: no
 driver, no runtime. The setup is not signed yet, so SmartScreen asks once: choose **More info**,
-then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `%APPDATA%\LogiMX`.
+then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `%APPDATA%\NotLogi`.
 
 **macOS 11 or newer (LogiMX-0.7.0-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
-disk image, agree to the license and drag LogiMX to Applications. The app is not notarized yet, so
+disk image, agree to the license and drag NotLogi to Applications. The app is not notarized yet, so
 the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
-Security > Open Anyway**). LogiMX then asks for the **Accessibility** permission, which it needs to
+Security > Open Anyway**). NotLogi then asks for the **Accessibility** permission, which it needs to
 press keys and buttons for you.
 
-Quit Logi Options+ while LogiMX runs on Windows or macOS: both drive the same devices.
+Quit Logi Options+ while NotLogi runs on Windows or macOS: both drive the same devices.
 
 The Windows and macOS versions are in beta: they are built from the same code as the Linux
 version, but have not been through the same testing on real devices yet. If something does not
@@ -156,7 +163,27 @@ Choosing an action applies it at once.
 
 ![Mouse buttons](screenshots/mouse-buttons.png)
 
+### Application profiles
+
+Each device has its own application bar at the top of its view: Global settings, then one icon per
+application. **+** lists the installed applications with their icons; tick one or several and Add
+puts them in the bar. Click an application's icon to change what its buttons and keys do while it is
+in front; everything not changed follows Global settings.
+
+The profile follows the window in front:
+
+- Switching to an application with a profile switches every device to it at once.
+- That application's own dialogs and pop-ups keep its profile (LibreOffice's dialogs report a
+  different window class than the document), and so does a moment with nothing in front.
+- Opening NotLogi itself to look at the settings keeps the profile of the application you came from.
+- A green dot on the bar marks the profile in use right now.
+
+![LibreOffice Writer profile: Back is Undo](screenshots/app-profile.png)
+
 ### Point and scroll
+
+Over Bluetooth, Linux's own Logitech driver scales the wheel, so smooth scrolling stays on there
+(turning it off would make scrolling many times slower); the switch says so on that connection.
 
 DPI from 200 to 8000, desktop pointer speed, SmartShift with its sensitivity, smooth scrolling and
 natural scroll direction. The thumb wheel can scroll horizontally or vertically, zoom, or change
@@ -211,7 +238,7 @@ navigation. Enter pastes into the focused application.
 - Desktop notifications for low battery (threshold configurable) and for devices connecting and
   disconnecting
 - Global shortcuts: Super+Alt+1 to 3 switch host, Super+Alt+O turns overlays on or off,
-  Super+Alt+P pauses LogiMX
+  Super+Alt+P pauses NotLogi
 
 | Notifications | Tray |
 |---|---|
@@ -227,9 +254,8 @@ Light, Dark, Ubuntu and Ubuntu dark.
 
 ### More
 
-- Per-application profiles, from the menu: a button or key can do something else while a given
-  application is in front, and everything not changed follows the default profile
-- Bolt pairing with passkey confirmation
+- Bolt pairing with passkey confirmation, and Bluetooth pairing inside the app
+- Make a wish or Report an issue from the home screen or the menu
 - First-run wizard: permissions (udev rule installed through pkexec), devices, and GNOME, macOS-like
   or Windows-like presets
 - Backups on request, restore, export and import, reset, and reading settings back from the device
@@ -298,7 +324,7 @@ Windows (from Windows, or cross-compiled from Linux with [llvm-mingw](https://gi
 cmake -S agent -B agent/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=agent/cmake/mingw-w64-x86_64.cmake -DLLVM_MINGW=/path/to/llvm-mingw   # from Linux only
 cmake --build agent/build
-cd ui && npm run dist:win          # ui/dist/LogiMX-Setup-<version>.exe
+cd ui && npm run dist:win          # ui/dist/NotLogi-Setup-<version>.exe
 ```
 
 macOS (Xcode command line tools, cmake, Node.js):
@@ -306,10 +332,27 @@ macOS (Xcode command line tools, cmake, Node.js):
 ```
 cmake -S agent -B agent/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 cmake --build agent/build
-cd ui && npm run dist:mac          # ui/dist/LogiMX-<version>-arm64.dmg and -x64.dmg
+cd ui && npm run dist:mac          # ui/dist/NotLogi-<version>-arm64.dmg and -x64.dmg
 ```
 
 CI builds all three on every tag (`.github/workflows/release.yml`).
+
+## Connecting over Bluetooth
+
+On Linux, NotLogi notices an MX mouse or keyboard that is in pairing mode (hold its Easy-Switch button
+for 3 seconds until the light blinks fast) and opens a small pop-up, the way Windows does. The pop-up
+takes the keyboard, since the mouse being paired may be the only one: **Tab** moves between Connect,
+Not now and Don't show again, **Enter** chooses, **Esc** closes. A keyboard's passkey is shown in
+large digits; the pop-up closes by itself once the device is connected.
+
+The scan is Bluetooth Low Energy only and filtered to devices in pairing mode, in short bursts, so
+it leaves headphones and speakers alone. Settings, "Notice Bluetooth devices in pairing mode",
+turns it off. Add device, then Bluetooth, searches the same way inside the window and connects with
+one click.
+
+| Pairing pop-up | Add device over Bluetooth |
+|---|---|
+| ![Pairing pop-up](screenshots/bluetooth-popup.png) | ![Add device over Bluetooth](screenshots/bluetooth-pairing.png) |
 
 ## Pairing to a Bolt receiver
 
@@ -353,7 +396,7 @@ names beside it. Wishes are granted within 24 hours.
 About, Report a problem collects what is needed to reproduce an issue: versions, desktop, the
 devices and what they report, and the last lines of the agent's log. It opens a new GitHub issue in
 the browser with that text filled in, and the whole text is shown first. Serial numbers, host names
-and the user name are removed, and custom commands are reduced to their kind. LogiMX sends nothing
+and the user name are removed, and custom commands are reduced to their kind. NotLogi sends nothing
 itself; the issue is filed from your own account.
 
 ![Report a problem](screenshots/report-problem.png)

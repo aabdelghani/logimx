@@ -18,8 +18,8 @@ Var LogiMXDesktopBox
 !endif
 
 !macro customWelcomePage
-  !define MUI_WELCOMEPAGE_TITLE "Welcome to LogiMX"
-  !define MUI_WELCOMEPAGE_TEXT "LogiMX sets up MX Master mice and MX Keys keyboards: buttons, gestures, the action ring, backlight, Easy-Switch and Flow.$\r$\n$\r$\nIf Logi Options+ is installed, quit it before you use LogiMX. Both programs drive the same devices and only one of them can.$\r$\n$\r$\nClick Next to continue."
+  !define MUI_WELCOMEPAGE_TITLE "Welcome to NotLogi"
+  !define MUI_WELCOMEPAGE_TEXT "NotLogi sets up MX Master mice and MX Keys keyboards: buttons, gestures, the action ring, backlight, Easy-Switch and Flow.$\r$\n$\r$\nIf Logi Options+ is installed, quit it before you use NotLogi. Both programs drive the same devices and only one of them can.$\r$\n$\r$\nClick Next to continue."
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 
@@ -31,15 +31,15 @@ Function LogiMXOptionsPage
   ${if} ${isUpdated}
     Abort   ; an update keeps the choices made the first time
   ${endif}
-  !insertmacro MUI_HEADER_TEXT "Options" "Choose how LogiMX starts."
+  !insertmacro MUI_HEADER_TEXT "Options" "Choose how NotLogi starts."
   nsDialogs::Create 1018
   Pop $0
   ${if} $0 == error
     Abort
   ${endif}
-  ${NSD_CreateLabel} 0 0 100% 24u "LogiMX keeps your button and key settings working in the background. It sits in the notification area while it runs."
+  ${NSD_CreateLabel} 0 0 100% 24u "NotLogi keeps your button and key settings working in the background. It sits in the notification area while it runs."
   Pop $0
-  ${NSD_CreateCheckbox} 0 34u 100% 12u "&Start LogiMX when I sign in to Windows"
+  ${NSD_CreateCheckbox} 0 34u 100% 12u "&Start NotLogi when I sign in to Windows"
   Pop $LogiMXStartupBox
   ${NSD_CreateCheckbox} 0 52u 100% 12u "Create a &desktop shortcut"
   Pop $LogiMXDesktopBox
@@ -63,8 +63,11 @@ FunctionEnd
 ; Close LogiMX and its agent before files are replaced or removed: the agent runs on after the
 ; window closes and would keep logimx-agent.exe locked.
 !macro customCheckAppRunning
-  DetailPrint "Closing LogiMX..."
+  DetailPrint "Closing NotLogi..."
   nsExec::Exec `"$SYSDIR\cmd.exe" /c taskkill /im "${APP_EXECUTABLE_FILENAME}" /f /t`
+  Pop $0
+  ; versions before the rename ran as LogiMX.exe
+  nsExec::Exec `"$SYSDIR\cmd.exe" /c taskkill /im LogiMX.exe /f /t`
   Pop $0
   nsExec::Exec `"$SYSDIR\cmd.exe" /c taskkill /im logimx-agent.exe /f`
   Pop $0

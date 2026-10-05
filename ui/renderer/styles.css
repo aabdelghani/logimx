@@ -1029,3 +1029,6 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 /* the profile bar: the app profile in use right now (the app in front) carries a live dot */
 .pbar .pf { position: relative; }
 .pbar .pf.live::before { content: ""; position: absolute; z-index: 1; pointer-events: none; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%; background: #2ec27e; box-shadow: 0 0 0 2px var(--win); }
+/* About: the name with its tagline underneath */
+.about-hero .tagline { margin-top: -4px; font-size: 15px; color: var(--dim); }
+.about-hero .mark i { font-size: 30px !important; }

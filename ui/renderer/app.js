@@ -341,7 +341,7 @@
     const d = dev();
     const devPage = !S.appDetail && d && S.page !== 'home' && (devicePages(d).includes(S.page) || S.page === 'thumb');
     const mode = S.appDetail ? 'general' : S.page === 'home' ? 'home' : devPage ? 'device' : 'general';
-    const title = S.appDetail ? (S.appDetail.name || 'Application') : mode === 'device' ? d.name : (PAGES[S.page] ? PAGES[S.page][0] : 'LogiMX');
+    const title = S.appDetail ? (S.appDetail.name || 'Application') : mode === 'device' ? d.name : (PAGES[S.page] ? PAGES[S.page][0] : 'NotLogi');
     const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
     const cname = conflict ? S.conflicts[0].name : '';
     const left = mode === 'home'
@@ -415,7 +415,7 @@
     <button data-act="page" data-page="notif"><i class="fa-solid fa-bell"></i>Notifications</button>
     <button data-act="page" data-page="backup"><i class="fa-solid fa-cloud-arrow-down"></i>Backup & sync</button>
     <button data-act="page" data-page="settings"><i class="fa-solid fa-sliders"></i>Settings</button>
-    <button data-act="page" data-page="about"><i class="fa-solid fa-circle-info"></i>About LogiMX</button>
+    <button data-act="page" data-page="about"><i class="fa-solid fa-circle-info"></i>About NotLogi</button>
     <div class="sep"></div>
     <button data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish…</button>
     <button data-act="report"><i class="fa-solid fa-bug"></i>Report an issue…</button>
@@ -1082,14 +1082,14 @@
     const general = (typeof st.fn_swap === 'boolean' ? row('Use F1, F2, etc. keys as standard function keys', 'Hold Fn for the printed functions', sw(!(s.fn_swap ?? st.fn_swap), 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"')) : '') +
       (st.platform ? row('Always keep the keyboard layout', 'The keyboard stops switching its layout by itself', sw(!!s.keep_layout, 'data-act="setting" data-path="keep_layout"')) : '');
     const keys = dk ? DISABLE_KEYS.filter(([, bit]) => dk.supported & bit).map(([k, bit, l]) => row(l, '', chk(ks[k] ?? !!(dk.disabled & bit), `data-act="setting" data-path="disable_keys.${k}" title="Disable ${esc(l)}"`))).join('') : '';
-    const backup = row('Back up settings', 'Save LogiMX settings for all devices to a file', '<button class="btn sm" data-act="export"><i class="fa-solid fa-download"></i>Save…</button>') +
+    const backup = row('Back up settings', 'Save NotLogi settings for all devices to a file', '<button class="btn sm" data-act="export"><i class="fa-solid fa-download"></i>Save…</button>') +
       row('Restore settings', 'Load settings saved earlier', '<button class="btn sm" data-act="import"><i class="fa-solid fa-upload"></i>Restore…</button>') +
       row('Read from device', 'Settings kept in the device\'s memory', `<button class="btn sm" data-act="sync-device" data-key="${esc(d.id)}"><i class="fa-solid fa-arrows-rotate"></i>Sync</button>`);
     return (general ? sec('General', card(general)) : '') + (keys ? sec('Disabled keys', card(keys), 'switched off while on') : '') + sec('Device backup', card(backup));
   }
   function pageSettings(generalTitle = 'General') {
     const u = S.ui || {};
-    return sec('Startup', card(row(IS_LINUX() ? 'Start agent at login' : 'Start LogiMX at sign-in', IS_LINUX() ? 'systemd user service' : IS_WIN() ? 'Starts hidden in the notification area' : 'Login item, starts hidden in the menu bar', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
+    return sec('Startup', card(row(IS_LINUX() ? 'Start agent at login' : 'Start NotLogi at sign-in', IS_LINUX() ? 'systemd user service' : IS_WIN() ? 'Starts hidden in the notification area' : 'Login item, starts hidden in the menu bar', sw(!!u.autostart, 'data-act="ui" data-key="autostart"')) +
         row(IS_MAC() ? 'Show menu bar icon' : 'Show tray indicator', IS_WIN() ? 'Battery and Easy-Switch in the notification area' : IS_MAC() ? 'Battery and Easy-Switch in the menu bar' : 'Battery and Easy-Switch in the top bar', sw(u.tray !== false, 'data-act="ui" data-key="tray"')) +
         row('Keep running when window closes', 'Closing hides to the tray', sw(u.minimize !== false, 'data-act="ui" data-key="minimize"')) +
         row('Start hidden', 'Open in the tray only', sw(!!u.start_hidden, 'data-act="ui" data-key="start_hidden"')) +
@@ -1097,7 +1097,7 @@
       sec(generalTitle, card(`<div class="row"><span class="grow lbl">Appearance</span><select class="sel" data-act="theme-select">${THEMES.map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
         row('Language', '', '<span class="val">System (English)</span>') +
         `<div class="row"><div class="grow"><div class="lbl">Check for updates</div><div class="sub">Looks at the GitHub release feed</div></div><button class="btn sm" data-act="check-updates">Check now</button>${sw(u.updates !== false, 'data-act="ui" data-key="updates"')}</div>`)) +
-      sec('Privacy', card(row('Telemetry', 'Off. LogiMX never sends data anywhere.', '<span class="val">Not available</span>')));
+      sec('Privacy', card(row('Telemetry', 'Off. NotLogi never sends data anywhere.', '<span class="val">Not available</span>')));
   }
 
   // Flow: share the mouse, keyboard and clipboard with other computers on the LAN. LogiMX
@@ -1125,10 +1125,10 @@
     if (!f.installed) {
       const inst = S.flowStatus === 'installing';
       return sec('Flow', card(
-        row('Flow needs its sharing engine', 'LogiMX shares the mouse, keyboard and clipboard between computers using Deskflow, an open-source tool. Install it once to turn Flow on.',
+        row('Flow needs its sharing engine', 'NotLogi shares the mouse, keyboard and clipboard between computers using Deskflow, an open-source tool. Install it once to turn Flow on.',
           inst ? `<span class="val">Installing…</span>` : `<button class="btn primary" data-act="flow-install"><i class="fa-solid fa-download"></i>Install Flow support</button>`) +
         (inst && S.flowDetail ? `<div class="row sub" style="color:var(--dim)">${esc(S.flowDetail)}</div>` : ''))) +
-        sec('', `<div class="hint">Deskflow is the open-source Barrier / Synergy fork. LogiMX only sets it up and runs it; nothing is sent anywhere online. <a href="#" data-act="open" data-url="https://deskflow.org">deskflow.org</a></div>`);
+        sec('', `<div class="hint">Deskflow is the open-source Barrier / Synergy fork. NotLogi only sets it up and runs it; nothing is sent anywhere online. <a href="#" data-act="open" data-url="https://deskflow.org">deskflow.org</a></div>`);
     }
     const peers = f.peers || [];
     const st = S.flowStatus, on = f.running;
@@ -1166,7 +1166,7 @@
   function pageAbout() {
     const links = [['fa-book', 'Documentation', 'https://github.com/aabdelghani/logimx#readme'], ['fa-code-branch', 'Source code', 'https://github.com/aabdelghani/logimx'], ['fa-bug', 'Report an issue', 'https://github.com/aabdelghani/logimx/issues'], ['fa-heart', 'Contributors', 'https://github.com/aabdelghani/logimx/graphs/contributors']];
     const logs = S.logs.length ? S.logs : [{ t: `${new Date().toLocaleTimeString()} INFO  agent ${S.connected ? 'connected' : 'not running'} · ${S.devices.length} device(s) · tracker ${S.status.tracker || 'n/a'}`, c: 'dim' }];
-    return `<div class="card about-hero"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span><div class="name">LogiMX</div><div class="hint">Configuration for MX mice and keyboards on ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'}</div><div class="tags"><span>v${S.status.version || VERSION}</span><span>MIT</span><span>${S.appInfo.packaged ? 'Packaged' : 'Source'}</span>${IS_LINUX() ? '' : '<span>Beta</span>'}</div></div>` +
+    return `<div class="card about-hero"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span><div class="name">NotLogi</div><div class="tagline">Unofficial mouse &amp; keyboard tools for ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'}</div><div class="tags"><span>v${S.status.version || VERSION}</span><span>MIT</span><span>${S.appInfo.packaged ? 'Packaged' : 'Source'}</span>${IS_LINUX() ? '' : '<span>Beta</span>'}</div></div>` +
       card(links.map(([i, l, u]) => `<div class="row click" data-act="open" data-url="${u}"><i class="fa-solid ${i}" style="width:20px;text-align:center;color:var(--dim)"></i><span class="grow lbl">${l}</span><i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--dim);font-size:11px"></i></div>`).join('')) +
       sec('Diagnostics', card(`<div class="logs">${logs.map(l => `<span class="${l.c || 'dim'}">${esc(l.t)}</span>`).join('')}</div>`) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" data-act="report"><i class="fa-solid fa-bug"></i>Report a problem</button><button class="btn" data-act="export-diag"><i class="fa-solid fa-file-zipper"></i>Export diagnostics</button><button class="btn" data-act="copy-diag"><i class="fa-solid fa-copy"></i>Copy</button></div>`, `<button class="btn sm flat" data-act="refresh-logs">Refresh</button>`);
   }
@@ -1467,16 +1467,16 @@
   // A wish: a feature request in its own words, with only the version, system and devices beside it
   function wishBody(w) {
     const devs = S.devices.map(d => d.name).join(', ') || 'none connected';
-    return `### My wish\n\n${(w.what || '').trim()}\n\n### Setup\n\nLogiMX ${S.status.version || VERSION} on ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'} · devices: ${devs}\n`;
+    return `### My wish\n\n${(w.what || '').trim()}\n\n### Setup\n\nNotLogi ${S.status.version || VERSION} on ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'} · devices: ${devs}\n`;
   }
   function renderWish() {
     const w = S.wish || {};
     return `<div class="scrim" data-act="close-dlg"><div class="dlg" style="width:560px" data-stop>
       <div class="dlg-head">Make a wish<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="dlg-body">
-        <div class="wish-hero"><i class="fa-solid fa-wand-magic-sparkles"></i><div>Tell me what LogiMX should do for you. A button, a gesture, a device, anything: I read every wish.<div class="wish-pledge">My promise: your wish lands within 24 hours. Rub the lamp, I'm already coding.</div></div></div>
-        <label class="hint">Your wish<textarea class="text" data-field="wish" rows="5" style="display:block;width:100%;margin-top:4px;resize:vertical;font:inherit" placeholder="I wish LogiMX could…">${esc(w.what || '')}</textarea></label>
-        <div class="hint"><i class="fa-solid fa-circle-info"></i> Nothing is sent by LogiMX. Your browser opens a new issue on GitHub with your wish, the LogiMX version, the system and the device names; it becomes public when you press Submit there.</div>
+        <div class="wish-hero"><i class="fa-solid fa-wand-magic-sparkles"></i><div>Tell me what NotLogi should do for you. A button, a gesture, a device, anything: I read every wish.<div class="wish-pledge">My promise: your wish lands within 24 hours. Rub the lamp, I'm already coding.</div></div></div>
+        <label class="hint">Your wish<textarea class="text" data-field="wish" rows="5" style="display:block;width:100%;margin-top:4px;resize:vertical;font:inherit" placeholder="I wish NotLogi could…">${esc(w.what || '')}</textarea></label>
+        <div class="hint"><i class="fa-solid fa-circle-info"></i> Nothing is sent by NotLogi. Your browser opens a new issue on GitHub with your wish, the NotLogi version, the system and the device names; it becomes public when you press Submit there.</div>
       </div>
       <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="wish-open" ${(w.what || '').trim() ? '' : 'disabled'}><i class="fa-solid fa-arrow-up-right-from-square"></i>Send my wish on GitHub</button></div></div></div></div>`;
   }
@@ -1488,7 +1488,7 @@
         <label class="hint">What happened?<textarea class="text" data-field="what" rows="3" style="display:block;width:100%;margin-top:4px;resize:vertical;font:inherit" placeholder="What did you do, what did you expect, what happened instead?">${esc(r.what || '')}</textarea></label>
         <div class="hint">This is what will be in the issue. Serial numbers, host names and your user name are removed, and custom commands are reduced to their kind.</div>
         <pre class="report-pre">${esc(r.summary || 'Gathering…')}${r.log ? '\n\n--- agent log, last lines ---\n' + esc(r.log) : ''}</pre>
-        <div class="hint"><i class="fa-solid fa-circle-info"></i> Nothing is sent by LogiMX. Your browser opens a new issue on GitHub with this text filled in; it becomes public when you press Submit there.</div>
+        <div class="hint"><i class="fa-solid fa-circle-info"></i> Nothing is sent by NotLogi. Your browser opens a new issue on GitHub with this text filled in; it becomes public when you press Submit there.</div>
       </div>
       <div class="dlg-foot"><button class="btn flat" data-act="report-copy"><i class="fa-solid fa-copy"></i>Copy</button><div class="r"><button class="btn" data-act="close-dlg">Cancel</button><button class="btn primary" data-act="report-open" ${r.summary ? '' : 'disabled'}><i class="fa-solid fa-arrow-up-right-from-square"></i>Open issue on GitHub</button></div></div></div></div>`;
   }
@@ -1550,7 +1550,7 @@
     const c = S.conflicts[0], needsBuild = agentNeedsBuild();
     const booting = !S.ready || (S.connected && !S.loaded);
     return `<div class="window"><main class="main empty-wrap">
-      <header class="hb"><span class="title">LogiMX</span><div class="right"><div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
+      <header class="hb"><span class="title">NotLogi</span><div class="right"><div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
       ${c ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(c.name)} is running.</strong> Two programs diverting the same buttons will fight over the device.</span><button class="bact" data-act="stop-tool" data-tool="${esc(c.name)}">Stop ${esc(c.name)}</button></div>` : ''}
       <div class="empty"><div class="ring"><i class="${booting || S.agentBusy ? 'fa-solid fa-spinner fa-spin' : S.connected ? 'fa-brands fa-usb' : 'fa-solid fa-power-off'}"></i></div>
         <div class="t">${booting ? 'Looking for devices…' : S.connected ? 'No devices found' : S.agentBusy ? esc(S.buildStep || 'Starting the agent…') : 'Agent not running'}</div>
@@ -1569,10 +1569,10 @@
   function onboardPermissions() {
     const agentOk = S.connected, conf = S.conflicts.length, ax = S.ax || { trusted: true };
     const mark = (ok, n) => ok ? '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>' : `<span class="mark-n">${n}</span>`;
-    return `<div><h1>${IS_MAC() ? 'Permissions' : 'Getting ready'}</h1><div class="lead">${IS_MAC() ? 'LogiMX talks to your devices directly. To press keys and buttons for you, macOS asks you to allow it once.' : 'LogiMX talks to your devices directly. Nothing else needs to be installed.'}</div></div>
+    return `<div><h1>${IS_MAC() ? 'Permissions' : 'Getting ready'}</h1><div class="lead">${IS_MAC() ? 'NotLogi talks to your devices directly. To press keys and buttons for you, macOS asks you to allow it once.' : 'NotLogi talks to your devices directly. Nothing else needs to be installed.'}</div></div>
       ${card(`<div class="row">${mark(agentOk, 1)}<div class="grow"><div class="lbl">Background agent</div><div class="sub">${agentOk ? 'Running' : S.agentBusy ? 'Starting…' : esc(S.agentErr || 'Not running yet')}</div></div>${agentOk || S.agentBusy ? '' : '<button class="btn sm" data-act="start-agent">Start</button>'}</div>
-        ${IS_MAC() ? `<div class="row">${mark(ax.trusted, 2)}<div class="grow"><div class="lbl">Accessibility</div><div class="sub">${ax.trusted ? 'Allowed' : 'System Settings > Privacy & Security > Accessibility: switch on LogiMX'}</div></div>${ax.trusted ? '' : '<button class="btn sm" data-act="ax-open">Open settings</button>'}</div>` : ''}
-        <div class="row">${mark(!conf, IS_MAC() ? 3 : 2)}<div class="grow"><div class="lbl">Quit Logi Options+ while LogiMX runs</div>${conf ? `<div class="sub">${esc(S.conflicts.map(c => toolName(c.name)).join(', '))} is running</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">Stop</button>` : ''}</div>`)}`;
+        ${IS_MAC() ? `<div class="row">${mark(ax.trusted, 2)}<div class="grow"><div class="lbl">Accessibility</div><div class="sub">${ax.trusted ? 'Allowed' : 'System Settings > Privacy & Security > Accessibility: switch on NotLogi'}</div></div>${ax.trusted ? '' : '<button class="btn sm" data-act="ax-open">Open settings</button>'}</div>` : ''}
+        <div class="row">${mark(!conf, IS_MAC() ? 3 : 2)}<div class="grow"><div class="lbl">Quit Logi Options+ while NotLogi runs</div>${conf ? `<div class="sub">${esc(S.conflicts.map(c => toolName(c.name)).join(', '))} is running</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">Stop</button>` : ''}</div>`)}`;
   }
   function renderOnboard() {
     const o = S.ob;
@@ -1582,10 +1582,10 @@
     else if (o.step === 1) {
       const agentOk = S.connected, devOk = S.devices.length > 0;
       const conf = S.conflicts.length;
-      body = `<div><h1>Permissions</h1><div class="lead">LogiMX talks to devices over HID and emits keys through uinput. Both need a one-time udev rule.</div></div>
+      body = `<div><h1>Permissions</h1><div class="lead">NotLogi talks to devices over HID and emits keys through uinput. Both need a one-time udev rule.</div></div>
         ${card(`<div class="row">${agentOk ? '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>' : '<span class="mark-n">1</span>'}<div class="grow"><div class="lbl">Background agent</div><div class="sub">${agentOk ? 'Running' : S.agentBusy ? 'Starting…' : esc(S.agentErr || 'Not running yet')}</div></div>${agentOk || S.agentBusy ? '' : `<button class="btn sm" data-act="start-agent">${agentNeedsBuild() ? 'Build and start' : 'Start now'}</button>`}</div>
           <div class="row">${devOk ? '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>' : '<span class="mark-n">2</span>'}<div class="grow"><div class="lbl">Access to /dev/hidraw* and /dev/uinput</div>${devOk ? '' : '<code class="cmd">sudo cp udev/60-logimx.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger</code>'}</div></div>
-          <div class="row">${conf ? '<span class="mark-n">3</span>' : '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>'}<div class="grow"><div class="lbl">Stop Solaar or logid while LogiMX runs</div>${conf ? `<div class="sub">${esc(S.conflicts.map(c => c.name).join(', '))} is running</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">Stop</button>` : ''}</div>`)}
+          <div class="row">${conf ? '<span class="mark-n">3</span>' : '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>'}<div class="grow"><div class="lbl">Stop Solaar or logid while NotLogi runs</div>${conf ? `<div class="sub">${esc(S.conflicts.map(c => c.name).join(', '))} is running</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">Stop</button>` : ''}</div>`)}
         ${devOk ? '' : '<div><button class="btn primary" data-act="install-udev"><i class="fa-solid fa-shield-halved"></i>Install rule with pkexec</button></div>'}`;
     } else if (o.step === 2) {
       body = `<div><h1>Your devices</h1><div class="lead">${S.devices.length ? 'Found on the receiver.' : 'No devices yet. Switch a device on or plug in the receiver.'}</div></div>
@@ -1597,7 +1597,7 @@
       body = `<div><h1>Pick a preset</h1><div class="lead">A starting point for buttons, gestures and F-keys. Everything can be changed later.</div></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${presets.map(([k, i, n, d]) => `<button class="choice ${o.preset === k ? 'on' : ''}" style="flex-direction:column;align-items:flex-start;gap:8px" data-act="ob-preset" data-key="${k}"><i class="fa-brands ${i}" style="font-size:22px;color:${o.preset === k ? 'var(--acc)' : 'var(--dim)'}"></i><span style="font-weight:600">${n}</span><span class="sub">${d}</span></button>`).join('')}</div>`;
     }
-    return `<div class="window"><main class="main"><header class="hb"><span class="title">Welcome to LogiMX</span><div class="right"><button class="hbtn close" data-act="ob-close"><i class="fa-solid fa-xmark"></i></button></div></header>
+    return `<div class="window"><main class="main"><header class="hb"><span class="title">Welcome to NotLogi</span><div class="right"><button class="hbtn close" data-act="ob-close"><i class="fa-solid fa-xmark"></i></button></div></header>
       <div class="onboard"><div class="steps-col">${steps}<div class="hint" style="margin-top:auto">Step ${o.step} of 3</div></div>
       <div class="ob-body">${body}<div class="ob-foot"><button class="btn" data-act="ob-prev" ${o.step === 1 ? 'disabled' : ''}>Back</button><button class="btn primary" data-act="ob-next">${o.step === 3 ? 'Finish' : 'Continue'}</button></div></div></div></main></div>`;
   }
@@ -2067,7 +2067,7 @@
   async function addProfile(name, cls, here) {
     name = (name || '').trim(); cls = (cls || '').trim();
     if (!name || !cls) return toast('Pick an application', true);
-    if (/logimx/i.test(cls)) return toast('LogiMX itself cannot have a profile', true);
+    if (/logimx/i.test(cls)) return toast('NotLogi itself cannot have a profile', true);
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     for (const dd of here ? [dev()] : S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
     if (here === 'quiet') return;   // the add panel: in the bar, set up when clicked (it says so once for all)

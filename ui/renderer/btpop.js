@@ -40,7 +40,7 @@
     if (m.state === 'pairing') connecting();
     else if (m.state === 'passkey') show(`Type this on ${dev.name}`, `<div class="digits">${esc(m.passkey)}</div>Then press Enter on it.`, [['dismiss', 'Hide']], 'dismiss');
     else if (m.state === 'connected') {
-      show(`${dev.name} is connected`, '<i class="fa-solid fa-circle-check" style="color:var(--acc)"></i>&nbsp; It is ready to use. LogiMX picks it up in a moment.', [], null, false);
+      show(`${dev.name} is connected`, '<i class="fa-solid fa-circle-check" style="color:var(--acc)"></i>&nbsp; It is ready to use. NotLogi picks it up in a moment.', [], null, false);
       const done = dev.address; setTimeout(() => { if (dev && dev.address === done) window.btpop.act('dismiss', done); }, 2600);   // nothing left to choose: it goes away
     }
     else if (m.state === 'failed') show(`Could not connect ${dev.name}`, `<span class="err">${esc(m.why || 'Put it back in pairing mode and try again.')}</span>`, [['retry', 'Try again', 'primary'], ['dismiss', 'Close']], 'retry');

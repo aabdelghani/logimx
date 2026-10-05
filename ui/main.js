@@ -1,7 +1,9 @@
 // LogiMX UI: Electron main process. Talks to the C++ agent over a Unix socket (a named pipe on
 // Windows), keeps a tray indicator with battery levels and raises low battery notifications.
 const { app, BrowserWindow, ipcMain, nativeTheme, Tray, Menu, Notification, nativeImage, dialog, shell, clipboard, globalShortcut, screen } = require('electron');
-app.setName('LogiMX');
+// People see NotLogi; settings stay in the folder earlier versions used (LogiMX), so an update keeps them
+app.setName('NotLogi');
+app.setPath('userData', require('path').join(app.getPath('appData'), 'LogiMX'));
 const plat = require('./platform');
 // Windows ties notifications to the Start-menu shortcut through this id (the installer sets it)
 if (plat.IS_WIN) app.setAppUserModelId('io.github.aabdelghani.logimx');
@@ -177,7 +179,7 @@ function updateTray() {
     const b = d.battery;
     return `${d.name}: ${b ? b.percent + '%' + (b.charging ? ' charging' : '') : 'battery n/a'}`;
   });
-  tray.setToolTip(connected ? (lines.length ? lines.join('\n') + (paused ? '\nCustom buttons paused' : '') : 'LogiMX: no devices') : 'LogiMX: agent not running');
+  tray.setToolTip(connected ? (lines.length ? lines.join('\n') + (paused ? '\nCustom buttons paused' : '') : 'NotLogi: no devices') : 'NotLogi: agent not running');
   const items = [];
   if (!connected) items.push({ label: 'Agent not running', enabled: false });
   else if (!devices.length) items.push({ label: 'No devices', enabled: false });
@@ -197,7 +199,7 @@ function updateTray() {
     }
     items.push({ type: 'separator' });
   }
-  items.push({ label: 'Open LogiMX', icon: menuIcon('window'), click: showWindow });
+  items.push({ label: 'Open NotLogi', icon: menuIcon('window'), click: showWindow });
   items.push({ label: paused ? 'Resume custom buttons' : 'Pause custom buttons', icon: menuIcon(paused ? 'play' : 'pause'), enabled: connected, click: () => rpc(paused ? 'resume_diversion' : 'pause_diversion').then(() => refreshGeneral().then(updateTray)).catch(() => {}) });
   items.push({ label: 'Status panel', icon: menuIcon('panel'), click: () => showTrayPanel() });
   items.push({ label: 'Quit', icon: menuIcon('power'), click: () => { app.isQuitting = true; app.quit(); } });
@@ -782,7 +784,7 @@ function createWindow() {
     minWidth: 980,
     minHeight: 640,
     backgroundColor: '#0e1116',
-    title: 'LogiMX',
+    title: 'NotLogi',
     icon: path.join(__dirname, 'assets', 'icon.png'),
     autoHideMenuBar: true,
     frame: false,
@@ -862,7 +864,7 @@ function ensureBtPop() {
   if (btPopWin && !btPopWin.isDestroyed()) return btPopWin;
   btPopWin = new BrowserWindow({
     width: BTPOP_W, height: BTPOP_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false, focusable: true,
-    title: 'LogiMX: connect a device',
+    title: 'NotLogi: connect a device',
     webPreferences: { preload: path.join(__dirname, 'preload-btpop.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   btPopWin.setAlwaysOnTop(true, 'pop-up-menu');
@@ -973,7 +975,7 @@ function btPair(addr, name) {
     send('scan off'); send('quit'); setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
     if (ok) {
       btNotified.set(addr, Date.now() + 24 * 3600e3); btFound.delete(addr);
-      state('connected'); say(`${name} is connected`, 'LogiMX picks it up in a moment.');
+      state('connected'); say(`${name} is connected`, 'NotLogi picks it up in a moment.');
       if (btPopShown()) { clearTimeout(btPopTimer); btPopTimer = setTimeout(btPopHide, 2600); }
     } else {
       why = why || 'Put it back in pairing mode and try again.';
@@ -1122,7 +1124,7 @@ function setAutostart(on) {
   const unitPath = path.join(unitDir, 'logimx.service');
   const agentBin = on ? stableAgentBin() : null;
   if (agentBin) {
-    const unit = `[Unit]\nDescription=LogiMX agent for MX Master and MX Keys devices\nAfter=graphical-session.target\nPartOf=graphical-session.target\n\n[Service]\nType=simple\nExecStart=${agentBin}\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=graphical-session.target\n`;
+    const unit = `[Unit]\nDescription=NotLogi agent for MX Master and MX Keys devices\nAfter=graphical-session.target\nPartOf=graphical-session.target\n\n[Service]\nType=simple\nExecStart=${agentBin}\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=graphical-session.target\n`;
     try {
       fs.mkdirSync(unitDir, { recursive: true });
       fs.writeFileSync(unitPath, unit);
@@ -1135,7 +1137,7 @@ function setAutostart(on) {
     removeAgentUnit(unitPath);
   }
   const autostartDir = path.join(os.homedir(), '.config', 'autostart'), desktop = path.join(autostartDir, 'logimx.desktop');
-  if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=LogiMX\nIcon=logimx\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
+  if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=NotLogi\nIcon=logimx\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
   else { try { fs.unlinkSync(desktop); } catch (e) {} }
 }
 // An application's icon for the profile bar, as a data URL. Linux names icons by theme name
@@ -1199,7 +1201,7 @@ ipcMain.handle('diag-report', async () => {
   const kindOf = a => typeof a === 'string' ? a : a && a.type ? (a.preset || a.type) : 'native';
   const lines = [];
   lines.push('| | |', '|---|---|');
-  lines.push(`| LogiMX | ${app.getVersion()} (agent ${st.version || 'not running'}), ${install} |`);
+  lines.push(`| NotLogi | ${app.getVersion()} (agent ${st.version || 'not running'}), ${install} |`);
   lines.push(plat.IS_LINUX ? `| System | ${distro || os.type()}, kernel ${os.release()} |` : `| System | ${distro}, ${os.arch()} |`);
   if (plat.IS_LINUX) lines.push(`| Desktop | ${process.env.ORIGINAL_XDG_CURRENT_DESKTOP || process.env.XDG_CURRENT_DESKTOP || 'unknown'}, ${process.env.XDG_SESSION_TYPE || 'unknown session'} |`);
   lines.push(`| Electron | ${process.versions.electron} |`);
@@ -1232,7 +1234,7 @@ ipcMain.handle('diag-report', async () => {
   else lines.push('Ring openings: none since the app started');
   const summary = redact(lines.join('\n'));
   const log = redact((logs || []).slice(-40).join('\n'));
-  return { summary, log, title: `Problem report: ${devs.map(d => d.name).join(', ') || 'no device'} · LogiMX ${app.getVersion()}` };
+  return { summary, log, title: `Problem report: ${devs.map(d => d.name).join(', ') || 'no device'} · NotLogi ${app.getVersion()}` };
 });
 ipcMain.handle('open-json', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] });
@@ -1260,7 +1262,7 @@ if (!single) {
       fs.mkdirSync(iconDir, { recursive: true }); fs.mkdirSync(appDir, { recursive: true });
       const iconSrc = path.join(__dirname, 'assets', 'icon.png'), iconDst = path.join(iconDir, 'logimx.png');
       if (!fs.existsSync(iconDst) || fs.statSync(iconDst).size !== fs.statSync(iconSrc).size) fs.copyFileSync(iconSrc, iconDst);
-      const entry = `[Desktop Entry]\nType=Application\nName=LogiMX\nComment=Buttons, gestures, keys and Easy-Switch for MX mice and keyboards\nExec=${launchCmd()}\nIcon=logimx\nTerminal=false\nCategories=Settings;HardwareSettings;\nKeywords=mouse;keyboard;MX;Bolt;\nStartupWMClass=${WM_CLASS}\nStartupNotify=true\n`;
+      const entry = `[Desktop Entry]\nType=Application\nName=NotLogi\nComment=Unofficial mouse & keyboard tools for Linux\nExec=${launchCmd()}\nIcon=logimx\nTerminal=false\nCategories=Settings;HardwareSettings;\nKeywords=mouse;keyboard;MX;Bolt;\nStartupWMClass=${WM_CLASS}\nStartupNotify=true\n`;
       const dst = path.join(appDir, 'logimx.desktop');
       let cur = ''; try { cur = fs.readFileSync(dst, 'utf8'); } catch (e) {}
       if (cur !== entry) { fs.writeFileSync(dst, entry); execFile('update-desktop-database', [appDir], () => {}); execFile('gtk-update-icon-cache', ['-f', '-t', path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor')], () => {}); }

@@ -41,8 +41,8 @@ chmod 755 "$PKG/usr/bin/logimx"
 cat > "$PKG/usr/share/applications/logimx.desktop" <<'DESK'
 [Desktop Entry]
 Type=Application
-Name=LogiMX
-Comment=Buttons, gestures, keys and Easy-Switch for MX mice and keyboards
+Name=NotLogi
+Comment=Unofficial mouse & keyboard tools for Linux
 Exec=logimx %U
 Icon=logimx
 Terminal=false
@@ -64,7 +64,7 @@ Maintainer: aabdelghany <ahmedabdelghany15@gmail.com>
 Homepage: https://github.com/aabdelghani/logimx
 Depends: libc6, libstdc++6, libx11-6, libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0, libgbm1, libasound2 | libasound2t64, udev
 Recommends: xdotool, pulseaudio-utils, libfuse2 | libfuse2t64, ddcutil
-Description: Configuration app for MX Master and MX Keys devices
+Description: NotLogi, unofficial mouse and keyboard tools for Linux
  Button and key assignments, gestures, thumb wheel actions, SmartShift, DPI,
  smart backlighting, Easy-Switch and per-application profiles for the
  MX Master 3S and MX Keys S on Linux. A background agent talks HID++ to the
@@ -87,7 +87,7 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database -q /usr/share/applications || true
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
-echo "LogiMX installed. Start the agent for this session with:  systemctl --user enable --now logimx"
+echo "NotLogi installed. Start the agent for this session with:  systemctl --user enable --now logimx"
 exit 0
 POST
 cat > "$PKG/DEBIAN/prerm" <<'PRERM'

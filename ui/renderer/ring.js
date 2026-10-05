@@ -37,7 +37,7 @@
   const volIcon = (l, kind) => 'fa-solid ' + (kind === 'brightness' ? (l < 30 ? 'fa-moon' : 'fa-sun') : l === 0 ? 'fa-volume-xmark' : l < 40 ? 'fa-volume-low' : 'fa-volume-high');
   // a screen whose brightness cannot be read or set says so instead of a level
   const dialOff = () => dial && dial.ready && dial.level === null;
-  const DIAL_WHY = { ddcutil: 'Set up monitor brightness in LogiMX first', i2c: 'Set up monitor brightness in LogiMX first', none: 'cannot be changed from here', ddc: 'did not answer', platform: 'not available on this system yet' };
+  const DIAL_WHY = { ddcutil: 'Set up monitor brightness in NotLogi first', i2c: 'Set up monitor brightness in NotLogi first', none: 'cannot be changed from here', ddc: 'did not answer', platform: 'not available on this system yet' };
   const offText = () => { const w = DIAL_WHY[dial.reason] || 'cannot be changed from here'; return /^[A-Z]/.test(w) ? w : `${dial.name || 'This screen'} ${w}`; };
   function dialShow() {
     if (!dial) return;

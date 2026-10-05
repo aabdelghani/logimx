@@ -1,8 +1,8 @@
 {
   "name": "logimx-ui",
-  "productName": "LogiMX",
+  "productName": "NotLogi",
   "version": "0.7.0",
-  "description": "LogiMX: configuration app for MX Master and MX Keys devices on Linux, Windows and macOS",
+  "description": "NotLogi: unofficial mouse & keyboard tools for Linux, Windows and macOS",
   "homepage": "https://github.com/aabdelghani/logimx",
   "author": "Ahmed Abdelghany",
   "license": "MIT",
@@ -23,7 +23,7 @@
   },
   "build": {
     "appId": "io.github.aabdelghani.logimx",
-    "productName": "LogiMX",
+    "productName": "NotLogi",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -44,12 +44,12 @@
       ],
       "category": "Settings",
       "icon": "assets/icon.png",
-      "synopsis": "Buttons, gestures, keys and Easy-Switch for MX mice and keyboards",
+      "synopsis": "Unofficial mouse & keyboard tools for Linux",
       "desktop": {
         "StartupWMClass": "logimx",
         "Keywords": "mouse;keyboard;MX;Bolt;"
       },
-      "artifactName": "LogiMX-${version}-${arch}.${ext}",
+      "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extraResources": [
         {
           "from": "../agent/build/logimx-agent",
@@ -85,7 +85,7 @@
       ],
       "icon": "build/icon.ico",
       "publisherName": "Ahmed Abdelghany",
-      "legalTrademarks": "LogiMX is not affiliated with Logitech.",
+      "legalTrademarks": "NotLogi is not affiliated with Logitech.",
       "extraResources": [
         {
           "from": "../agent/build/logimx-agent.exe",
@@ -109,12 +109,12 @@
       "uninstallerSidebar": "build/uninstallerSidebar.bmp",
       "createDesktopShortcut": false,
       "createStartMenuShortcut": true,
-      "shortcutName": "LogiMX",
-      "uninstallDisplayName": "LogiMX",
+      "shortcutName": "NotLogi",
+      "uninstallDisplayName": "NotLogi",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
-      "artifactName": "LogiMX-Setup-${version}.${ext}"
+      "artifactName": "NotLogi-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
@@ -139,10 +139,10 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "darkModeSupport": true,
-      "artifactName": "LogiMX-${version}-${arch}.${ext}",
+      "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extendInfo": {
         "LSMinimumSystemVersion": "11.0",
-        "NSHumanReadableCopyright": "MIT License. LogiMX is not affiliated with Logitech."
+        "NSHumanReadableCopyright": "MIT License. NotLogi is not affiliated with Logitech."
       },
       "extraResources": [
         {
@@ -156,7 +156,7 @@
       ]
     },
     "dmg": {
-      "title": "LogiMX ${version}${arch}",
+      "title": "NotLogi ${version}${arch}",
       "contents": [
         {
           "x": 150,
