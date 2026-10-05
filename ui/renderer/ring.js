@@ -7,8 +7,9 @@
 // first in the folder's own direction, the next a little to one side then the other (the middle,
 // the folder again, or Esc closes it). The wheel over an adjustable slot (volume, brightness,
 // zoom, tracks) steps it without closing the ring.
+import * as G from './ring-geometry.js';
 (() => {
-  const N = 8;
+  const N = G.N;
   const BASE = { RW: 560, RH: 460, RR: 104, B: 28, NEAR: 38, FAR: 250 };
   let RW = BASE.RW, RH = BASE.RH;      // the ring's own extent; the window is the whole screen
   let CX = RW / 2, CY = RH / 2;       // where the ring is centred, set per show
@@ -93,13 +94,13 @@
     build();
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
+  const ang = G.ang;    // slot 0 at the top, clockwise
   // a folder's actions: an ordered row on a second circle around the same middle as the ring, twice
   // its radius and spaced like the ring's own buttons, centred on the folder's direction
   let fanOrder = [], fanN = 0;
-  function fanLayout() { fanOrder = []; fanN = 0; slots.forEach((x, i) => { if (x) fanOrder[i] = fanN++; }); }
-  const FAN_R = 2, FAN_STEP = 20;   // degrees between neighbours: a little closer than on the ring
-  const fanAng = i => ang(stack[0]) + ((fanOrder[i] ?? 0) - (fanN - 1) / 2) * FAN_STEP * Math.PI / 180;
+  function fanLayout() { ({ order: fanOrder, n: fanN } = G.fanOrder(slots)); }
+  const FAN_R = G.FAN_R;   // the folder's circle, its actions 20° apart: a little closer than on the ring
+  const fanAng = i => G.fanAngle(stack[0], fanOrder[i] ?? 0, fanN);
   // where a button of the level shown sits: on the ring, or on the outer circle of the open folder
   const posOf = i => {
     const a = stack.length ? fanAng(i) : ang(i), r = stack.length ? RR * FAN_R : RR;
@@ -170,15 +171,13 @@
     window.ring.pick(where(i));
   }
   function flash(i) { const lab = slotsEl.querySelector(`.lab[data-i="${i}"]`); if (!lab) return; lab.classList.remove('pulse'); void lab.offsetWidth; lab.classList.add('pulse'); }
-  const wedge = (dx, dy) => Math.floor(((Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360 + 22.5) % 360) / 45) % N;
+  const wedge = G.wedge;
   // pointer mode: which button is meant by (x, y); -1 on the middle button or outside
   function at(x, y) {
     const dx = x - CX, dy = y - CY, d = Math.hypot(dx, dy);
     if (d < NEAR) return -1;
     if (stack.length) {
-      let best = -1, bd = B * 1.7;
-      slots.forEach((s, i) => { if (!s) return; const p = posOf(i), dd = Math.hypot(x - p.x, y - p.y); if (dd < bd) { bd = dd; best = i; } });
-      return best;
+      return G.nearest(slots.map((s, i) => s ? posOf(i) : null), x, y, B * 1.7);
     }
     if (d > FAR) return -1;
     return wedge(dx, dy);
@@ -186,15 +185,11 @@
   // in a folder: a button of the ring under the pointer (another one closes the fan and is chosen)
   function parentAt(x, y) {
     if (!stack.length) return -1;
-    let best = -1, bd = B * 1.3;
-    root.forEach((s, i) => { if (!s) return; const px = CX + RR * Math.cos(ang(i)), py = CY + RR * Math.sin(ang(i)), dd = Math.hypot(x - px, y - py); if (dd < bd) { bd = dd; best = i; } });
-    return best;
+    return G.nearest(root.map((s, i) => s ? { x: CX + RR * Math.cos(ang(i)), y: CY + RR * Math.sin(ang(i)) } : null), x, y, B * 1.3);
   }
   // steering in a folder: the fan button whose direction is closest, within half a step of it
   function fanToward(dx, dy) {
-    const a = Math.atan2(dy, dx); let best = -1, bd = 22 * Math.PI / 180;
-    slots.forEach((s, i) => { if (!s) return; let diff = Math.abs(a - fanAng(i)) % (2 * Math.PI); if (diff > Math.PI) diff = 2 * Math.PI - diff; if (diff < bd) { bd = diff; best = i; } });
-    return best;
+    return G.closestByAngle(Math.atan2(dy, dx), slots.map((s, i) => s ? fanAng(i) : null));
   }
   document.addEventListener('mousemove', e => {
     if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); settleUntil = performance.now() + SETTLE_MS; settled = 0; return; }   // first sight of the pointer: the ring goes there
