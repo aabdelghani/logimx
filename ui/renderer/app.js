@@ -1119,22 +1119,29 @@
     const top = ringTop(ringState(), true), f = ringFolder(top);
     // a folder's own page: only the actions it has around it, and one Add at the next free place
     const addAt = f ? ringNextFree(slots, S.ringPath[0]) : -1;   // starting at the folder's own direction
+    // into a folder: the page grows out of the folder's place and its actions pop in one by one;
+    // back out: the ring settles in and the folder's place gives a pulse
+    const anim = S.ringAnim; S.ringAnim = null;
+    const at = anim ? (() => { const a = (anim.from * 45 - 90) * Math.PI / 180; return { x: 30 * Math.cos(a), y: 30 * Math.sin(a) }; })() : null;
+    let order = 0;
     const parts = slots.map((sl, i) => {
       if (f && !sl && i !== addAt) return '';
+      const k = order++;
       const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
       // the ⋯ on a slot: make it a folder, open it, or clear it (inside a folder: clear only)
       const dots = !f || sl ? `<span class="rs-dots" data-act="rs-menu" data-key="${i}" title="More"><i class="fa-solid fa-ellipsis"></i></span>` : '';
       const label = sl ? sl.label : f ? 'Add' : 'Add action';
-      return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i>${dots}</button>` +
-        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(label)}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>` +
+      return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''} ${anim && anim.kind === 'out' && i === anim.from ? 'just-closed' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i>${dots}</button>` +
+        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty});--k:${k}">${esc(label)}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>` +
         (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, !!f) : '');
     }).join('');
     // in a folder the middle is the folder itself; its name and the way back are top-left
     const hub = f ? `<div class="rs-hub folder-hub" title="${esc(f.label || 'Folder')}"><i class="fa-solid fa-folder-open"></i></div>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
     const where = !f && ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
-    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''}">${parts}${hub}</div></div>`;
+    const animCls = anim ? (anim.kind === 'in' ? 'anim-in' : 'anim-out') : '', animVars = at ? `style="--fx:${at.x.toFixed(1)}%;--fy:${at.y.toFixed(1)}%"` : '';
+    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${parts}${hub}</div></div>`;
   }
   // the ⋯ menu of a slot, beside it
   function ringSlotMenu(sl, i, x, y, inFolder) {
@@ -1929,7 +1936,7 @@
     switch (act) {
       case 'page': go(b.dataset.page); return;
       case 'go-home':
-        if (S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; ringSelect(i); render(); return; }
+        if (S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; S.ringAnim = { kind: 'out', from: i }; ringSelect(i); render(); return; }
         // opened from a button's Configure: back to the mouse's Buttons, panel and all
         // with that button's actions open again on the right (the panel changes in place)
         if (S.cfgFrom && S.page === 'gestures') {
@@ -2101,11 +2108,11 @@
         // the slot becomes a folder; an action already there moves inside as its first one
         slots[i] = { action: { type: 'folder', label: 'New folder', slots: had && !isFolderSlot(had) ? Object.assign(Array(8).fill(null), { [i]: had }) : [] }, label: 'New folder', icon: 'fa-folder' };
         await saveRingSlots(slots);
-        S.ringPath = [i]; ringSelect(ringFirstFree()); render();
+        S.ringPath = [i]; S.ringAnim = { kind: 'in', from: i }; ringSelect(ringFirstFree()); render();
         setTimeout(() => { const n = root.querySelector('.folder-name'); if (n) { n.focus(); n.select(); } }, 180);
         return;
       }
-      case 'rs-open': S.menu = null; S.ringPath = [Number(key)]; ringSelect(ringFirstFree()); render(); return;
+      case 'rs-open': S.menu = null; S.ringPath = [Number(key)]; S.ringAnim = { kind: 'in', from: Number(key) }; ringSelect(ringFirstFree()); render(); return;
       case 'rs-clear': { S.menu = null; const slots = ringSlots(); slots[Number(key)] = null; await saveRingSlots(slots); ringSelect(Number(key)); render(); return; }
       case 'rp-use': {
         const r = ringState(), k = ringApp(); S.ringPath = [];
@@ -2169,8 +2176,8 @@
         toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? 'Monitor brightness is ready' : 'Set up; this monitor does not answer brightness requests') : (r && r.error) || 'Failed', !(r && r.ok));
         render(); return;
       }
-      case 'ring-open-folder': S.ringPath = [S.picker.cid]; S.picker.cid = 0; S.picker.label = RING_DIRS[0]; S.picker.current = (ringSlots()[0] || {}).action || null; render(); return;
-      case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
+      case 'ring-open-folder': S.ringAnim = { kind: 'in', from: S.picker.cid }; S.ringPath = [S.picker.cid]; ringSelect(ringFirstFree()); render(); return;
+      case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; S.ringAnim = { kind: 'out', from: i }; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
       case 'ring-app-drop': { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); render(); return; }
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
       case 'ring-free': await saveRing({ free_pointer: !b.classList.contains('on') }); render(); return;
@@ -2422,7 +2429,9 @@
     }
     else if (event === 'battery') { const d = S.devices.find(x => x.id === data.id); if (d) { d.battery = data.battery; render(); } }
     else if (event === 'app') { S.status.app = data.app || ''; }
-    else if (event === 'general') { S.general = data || {}; render(); }
+    // settings changed elsewhere (the ring's Next profile, another window); our own save's echo is
+    // identical and is not redrawn, so an animation that just started is not cut short
+    else if (event === 'general') { if (JSON.stringify(data || {}) !== JSON.stringify(S.general || {})) { S.general = data || {}; render(); } }
     else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) { d.profile = data.profile; if (S.dev === d.id && S.page !== 'home') render(); } }
     else if (event === 'backlight') { const d = S.devices.find(x => x.id === data.id); if (d && d.state && d.state.backlight) { d.state.backlight.current_level = data.level; if (S.page === 'backlight') render(); } }
     else if (event === 'record') {

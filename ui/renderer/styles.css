@@ -1069,3 +1069,21 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .devview2 .cfg-back .folder-name { opacity: 1 !important; pointer-events: auto; font: 700 20px var(--font); color: var(--fg); background: transparent; border: 2px solid transparent; border-radius: 8px; padding: 2px 8px; width: 260px; outline: none; -webkit-app-region: no-drag; }
 .devview2 .cfg-back .folder-name:hover { border-color: var(--brd); }
 .devview2 .cfg-back .folder-name:focus { border-color: var(--accbg); background: var(--card); }
+/* into a folder: its page grows out of the folder's place on the ring, its actions pop in one by one */
+@keyframes rs-zoom-in { from { transform: translate(var(--fx, 0), var(--fy, 0)) scale(.22); opacity: 0; } 60% { opacity: 1; } to { transform: none; opacity: 1; } }
+@keyframes rs-pop-in { from { opacity: 0; scale: .35; } to { opacity: 1; scale: 1; } }
+@keyframes rs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.rs-disc.anim-in { animation: rs-zoom-in .46s cubic-bezier(.2, .85, .25, 1) both; }
+.rs-disc.anim-in .rs-chip { animation: rs-pop-in .34s cubic-bezier(.2, .9, .3, 1.35) both; animation-delay: calc(.22s + var(--k, 0) * 55ms); }
+.rs-disc.anim-in .rs-lab { animation: rs-fade-in .25s ease-out both; animation-delay: calc(.3s + var(--k, 0) * 55ms); }
+.rs-disc.anim-in .folder-hub { animation: rs-pop-in .38s cubic-bezier(.2, .9, .3, 1.35) both; animation-delay: .1s; }
+.rs-disc.anim-in::before { animation: rs-fade-in .5s ease-out both; }
+/* back out: the ring settles in from slightly closer, the folder's place pulses */
+@keyframes rs-zoom-out { from { transform: scale(1.18); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rs-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 60%, transparent); } 100% { box-shadow: 0 0 0 22px transparent; } }
+.rs-disc.anim-out { animation: rs-zoom-out .36s cubic-bezier(.2, .8, .25, 1) both; }
+.rs-chip.just-closed { animation: rs-pulse .7s ease-out .25s 2; }
+/* the folder's name slides in beside the back arrow */
+@keyframes rs-name-in { from { opacity: 0; translate: -14px 0; } to { opacity: 1; translate: 0 0; } }
+.devview2 .cfg-back .folder-name { animation: rs-name-in .35s ease-out .15s both; }
+@media (prefers-reduced-motion: reduce) { .rs-disc.anim-in, .rs-disc.anim-out, .rs-disc.anim-in .rs-chip, .rs-disc.anim-in .rs-lab, .rs-disc.anim-in .folder-hub, .rs-chip.just-closed, .devview2 .cfg-back .folder-name { animation: none; } }
