@@ -25,6 +25,22 @@ std::string Config::key(uint16_t pid) {
     return b;
 }
 
+// A new install starts with a filled action ring instead of eight empty slots, clockwise from the top.
+static json defaultRing() {
+    auto slot = [](const char* a, const char* label, const char* icon) { return json{{"action", a}, {"label", label}, {"icon", icon}}; };
+    json slots = json::array({
+        slot("overview", "Activities / Overview", "fa-table-cells-large"),
+        slot("volume_dial", "Volume (drag to set)", "fa-volume-high"),
+        slot("play_pause", "Play / Pause", "fa-play"),
+        slot("screenshot_area", "Screenshot area", "fa-crop-simple"),
+        slot("show_desktop", "Show desktop", "fa-desktop"),
+        slot("emoji_picker", "Emoji picker", "fa-face-smile"),
+        slot("lock", "Lock screen", "fa-lock"),
+        slot("calculator", "Calculator", "fa-calculator"),
+    });
+    return {{"profiles", json::array({{{"id", "p0"}, {"name", "Default"}, {"slots", slots}}})}, {"active", 0}};
+}
+
 Config::Config() {
     path_ = platform::configDir() + "/config.json";
     data_ = {{"devices", json::object()}, {"general", {{"desktop", "gnome"}}}};
@@ -44,6 +60,7 @@ void Config::load() {
     if (!data_.is_object()) data_ = json::object();
     if (!data_.contains("devices") || !data_["devices"].is_object()) data_["devices"] = json::object();
     if (!data_.contains("general") || !data_["general"].is_object()) data_["general"] = {{"desktop", "gnome"}};
+    if (!data_["general"].contains("ring")) data_["general"]["ring"] = defaultRing();
     for (auto it = data_["devices"].begin(); it != data_["devices"].end();) {
         json& d = it.value();
         bool ok = d.is_object() && d.value("settings", json::object()).is_object() && d.value("profiles", json::object()).is_object();
