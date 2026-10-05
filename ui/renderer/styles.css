@@ -464,14 +464,17 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .content.landing .dev-state { font-size: 18px; gap: 10px; }
 .content.landing .dev-link { width: 29px; height: 29px; font-size: 15px; }
 .content.landing .bat-ring .bolt { width: 26px; height: 26px; font-size: 14px; }
-/* every device in one row, sharing the width: a mouse 220 to 360 px, a keyboard (wider photo) 380 to
-   560 px; when they cannot all fit the row scrolls sideways, a card at a time, with the arrows or
-   the arrow keys */
-.home-strip { flex: 1; min-width: 0; display: flex; align-items: center; gap: 40px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 8px 4px 40px; }
+/* every device in one row across the whole window, each in a column of its own like Options+ (a
+   keyboard's wider, for its photo): at least 260 px for a mouse, 520 px for a keyboard; when they
+   cannot all fit the row scrolls sideways, a card at a time, with the arrows or the arrow keys */
+.content.landing > .page:has(.home-pager) { max-width: none; }
+.home-strip { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 24px 0 40px; }
 .home-strip::-webkit-scrollbar { display: none; }
-.home-strip > .dev-card { flex: 1 1 0; min-width: 220px; max-width: 360px; scroll-snap-align: center; }
-.home-strip > .dev-card.kbd { flex-grow: 1.8; min-width: 380px; max-width: 560px; }
-.home-strip .dev-photo img { max-width: 100%; object-fit: contain; }
+.home-strip > .dev-card { flex: 1 1 0; min-width: 260px; scroll-snap-align: center; overflow: visible; }
+.home-strip > .dev-card.kbd { flex-grow: 1.7; min-width: 520px; }
+/* the photo grows a little on hover: it keeps room for that inside its column */
+.home-strip .dev-photo { overflow: visible; }
+.home-strip .dev-photo img { max-width: 90%; object-fit: contain; }
 .home-pager.fits .home-strip { justify-content: center; }
 .home-pager.fits .home-arrow { visibility: hidden; }
 /* the arrows: big accent circles over the row's edges, only where there is more to see */
