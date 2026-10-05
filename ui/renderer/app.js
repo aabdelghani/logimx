@@ -84,18 +84,18 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
 
   // the screens (view models in vm/, views in view/): each module gets what it uses from the others
   // a view model changed what is on screen: draw it again
-  const changed = () => render();
+  const changed = () => schedule();
   // every button's command, by its data-act name, from the view models
   const commands = Object.assign({}, ...MODULES.map(m => m.commands || {}));
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles } = ctx;
-  document.addEventListener('click', () => { if (S.menu) { S.menu = null; render(); } });
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule } = ctx;
+  document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
   }, true);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recording()) { S.dlg = S.dlg === 'prompt' && S.prompt && S.prompt.back ? S.prompt.back : null; render(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recording()) { S.dlg = S.dlg === 'prompt' && S.prompt && S.prompt.back ? S.prompt.back : null; changed(); } });
   // on Home the arrow keys page through the devices when there are more than fit
   document.addEventListener('keydown', e => {
     if (S.page !== 'home' || S.dlg || recording() || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || /input|textarea|select/i.test((e.target || {}).tagName || '')) return;
@@ -105,11 +105,11 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   api.host.onStatus(st => {
     S.connected = !!st.connected;
     if (st.connected) { S.agentBusy = false; S.agentErr = null; refresh(); }
-    else { S.devices = []; S.loaded = false; if (st.starting) S.agentBusy = true; render(); }
+    else { S.devices = []; S.loaded = false; if (st.starting) S.agentBusy = true; changed(); }
   });
-  api.host.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
+  api.host.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; changed(); } });
   api.host.onFlowEvent(m => { if (!m) return; store.applyFlow(m); if (S.page === 'flow') { flowRefresh(); } });
-  api.host.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') render(); });
+  api.host.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') changed(); });
   api.host.onBt(m => {
     const p = S.pair, b = p && p.bt;
     if (!b || S.dlg !== 'pair') return;
@@ -123,16 +123,16 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   api.host.onEvent(msg => {
     const { event, data } = msg;
     // the Model takes the event; what is on screen decides whether it needs redrawing
-    const changed = store.applyEvent(event, data);
-    if (changed) {
-      if (event === 'device' || event === 'device_added') { if (!S.dev) S.dev = data.id; render(); }
-      else if (event === 'device_removed') { if (S.dev === data.id && S.page !== 'home') go('home'); render(); }
-      else if (event === 'battery' || event === 'general') render();
-      else if (event === 'profile') { if (S.dev === data.id && S.page !== 'home') render(); }
-      else if (event === 'backlight') { if (S.page === 'backlight') render(); }
+    const hit = store.applyEvent(event, data);
+    if (hit) {
+      if (event === 'device' || event === 'device_added') { if (!S.dev) S.dev = data.id; changed(); }
+      else if (event === 'device_removed') { if (S.dev === data.id && S.page !== 'home') go('home'); changed(); }
+      else if (event === 'battery' || event === 'general') changed();
+      else if (event === 'profile') { if (S.dev === data.id && S.page !== 'home') changed(); }
+      else if (event === 'backlight') { if (S.page === 'backlight') changed(); }
     }
     if (event === 'record') onRecordEvent(data);
-    else if (event === 'pair') { if (S.dlg === 'pair') { if (data.status === 'discovering' || data.status === 'found') S.pair.passkey = null; if (data.found) S.pair.found = data.found; if (data.error) S.pair.error = data.error; if (data.passkey) S.pair.passkey = data.passkey; if (data.done) { S.pair.step = 3; S.pair.done = data.done; } if (data.timeout !== undefined) S.pair.timeout = data.timeout; if (data.status === 'cancelled') S.pair.error = S.pair.error || 'Cancelled'; render(); } }
+    else if (event === 'pair') { if (S.dlg === 'pair') { if (data.status === 'discovering' || data.status === 'found') S.pair.passkey = null; if (data.found) S.pair.found = data.found; if (data.error) S.pair.error = data.error; if (data.passkey) S.pair.passkey = data.passkey; if (data.done) { S.pair.step = 3; S.pair.done = data.done; } if (data.timeout !== undefined) S.pair.timeout = data.timeout; if (data.status === 'cancelled') S.pair.error = S.pair.error || 'Cancelled'; changed(); } }
   });
   render();
   (async () => {
@@ -147,9 +147,9 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     let onboarded = false; try { onboarded = localStorage.getItem('onboarded') === '1'; } catch (e) {}
     if (!onboarded) S.mode = 'onboard';
     const c = await api.host.connected();
-    if (c) { S.connected = true; await refresh(); S.ready = true; render(); return; }
+    if (c) { S.connected = true; await refresh(); S.ready = true; changed(); return; }
     // the main process starts the agent on launch; show that rather than a bare "not running"
-    S.ready = true; S.agentBusy = true; render();
-    setTimeout(() => { if (!S.connected) { S.agentBusy = false; render(); } }, 9000);
+    S.ready = true; S.agentBusy = true; changed();
+    setTimeout(() => { if (!S.connected) { S.agentBusy = false; changed(); } }, 9000);
   })();
 })();

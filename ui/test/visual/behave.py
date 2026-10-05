@@ -59,6 +59,21 @@ def main():
             time.sleep(1.2)
             check('rename a ring folder', 'Window check' in json.dumps(general().get('ring', {})))
             check('the name field shows it', p.js("(document.querySelector('.folder-name')||{}).value") == 'Window check')
+            # typing survives the redraws background events cause (battery, device state, ...)
+            p.js("(()=>{const n=document.querySelector('.folder-name');n.focus();window.__redraws=0;new MutationObserver(()=>window.__redraws++).observe(document.querySelector('#root'),{childList:true})})()")
+            time.sleep(.3)   # focusing selects the name (to type over it); type at its end instead
+            p.js("(()=>{const n=document.querySelector('.folder-name');n.setSelectionRange(n.value.length,n.value.length)})()")
+            p.call('Input.insertText', text=' typed')
+            # device events from the agent redraw the window: the middle button saved again as it
+            # is sends one, twice
+            mid = ((mouse().get('config') or {}).get('profiles', {}).get('default', {}).get('buttons') or {}).get('82', 'native')
+            for _ in range(2):
+                agent('set_assignment', {'id': MOUSE, 'profile': 'default', 'section': 'buttons', 'control': '82', 'action': mid})
+                time.sleep(1.2)
+            st = p.js("({v:(document.querySelector('.folder-name')||{}).value, f:document.activeElement&&document.activeElement.classList.contains('folder-name'), r:window.__redraws})")
+            check('typing survives redraws', st and st['v'] == 'Window check typed' and st['f'], st)
+            check('the window was redrawn meanwhile', st and st['r'] >= 1, st)
+            p.js("document.querySelector('.folder-name').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))"); time.sleep(.5)
             # back to the ring with the arrow in the middle
             p.click('.rs-hub.back', 1.0)
             check('back from the folder', not p.js("!!document.querySelector('.folder-name')"))

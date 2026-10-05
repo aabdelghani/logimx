@@ -12,7 +12,30 @@ export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armReco
 // Animations run when something new appears, not on every refresh: the page when it is
 // navigated to, the dialog when it opens. A refresh of the same page redraws it in place.
 let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
+// A field being typed into survives a redraw (a battery tick, the focused app changing): the same
+// text, the same caret, still focused. Fields are known by their data-field or as the folder's name.
+function typingIn() {
+  const ae = document.activeElement;
+  if (!ae || !root.contains(ae) || !/^(INPUT|TEXTAREA)$/.test(ae.tagName) || ae.type === 'range') return null;
+  const sel = ae.classList.contains('folder-name') ? '.folder-name' : ae.dataset.field ? `[data-field="${ae.dataset.field}"]` : null;
+  return sel && { sel, v: ae.value, a: ae.selectionStart, b: ae.selectionEnd };
+}
+function keepTyping(t) {
+  if (!t || (document.activeElement && root.contains(document.activeElement) && document.activeElement !== document.body)) return;
+  const n = root.querySelector(t.sel); if (!n) return;
+  n.value = t.v; n.dataset.keep = '1'; n.focus();
+  try { n.setSelectionRange(t.a, t.b); } catch (e) {}
+}
+// what the view models ask for: one redraw at the next frame, however many changes came first
+let dirty = false, queued = false;
+function schedule() {
+  dirty = true;
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => { queued = false; if (dirty) render(); });
+}
 function render() {
+  dirty = false;
   stopRecorder();
   pageGuard();
   document.documentElement.setAttribute('data-theme', S.theme);
@@ -31,7 +54,7 @@ function render() {
   const moving = drawerWill !== lastDrawer ? root.querySelector('.dev-config .content > .page > :first-child') : null;
   const from = moving ? moving.getBoundingClientRect() : null;
   // the folder's name being typed survives a redraw (a battery or focus update): same text, same caret
-  const ae = document.activeElement, typing = ae && ae.classList && ae.classList.contains('folder-name') ? { v: ae.value, a: ae.selectionStart, b: ae.selectionEnd } : null;
+  const typing = typingIn();
   root.innerHTML = html;
   if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
   if (dlgOpened) { const sc = root.querySelector(S.dlg === 'picker' ? '.scrim, .drawer-wrap' : '.scrim'); if (sc) sc.classList.add('enter'); }
@@ -60,7 +83,6 @@ function render() {
     fname.onfocus = () => { if (fname.dataset.keep) { delete fname.dataset.keep; return; } setTimeout(() => fname.select(), 0); };
     fname.addEventListener('input', () => { fname.size = Math.max(8, Math.min(24, fname.value.length + 1)); });
     fname.onchange = async () => { if (fname.value.trim() !== was) { await saveFolderName(fname.value); render(); } };
-    if (typing) { fname.value = typing.v; fname.dataset.keep = '1'; fname.focus(); fname.setSelectionRange(typing.a, typing.b); }
   }
   // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
   const mid = root.querySelector('.devview2.drawer-open:not(.panel-open) .dev-config');
@@ -69,6 +91,7 @@ function render() {
   // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
   const blMid = root.querySelector('.devview2.panel-open .dev-config');
   if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(sidePanelClosed); });
+  keepTyping(typing);
 }
 // The keyboard moves and resizes when the panel opens or closes: draw it where it was and let it
 // glide to its new place, instead of snapping.
@@ -310,7 +333,7 @@ function bind() {
       if (redraw === 'page') render();
       else if (redraw === 'apps') renderAppList();
       else if (redraw === 'list') { if (root.querySelector('.acts')) renderPickerList(); }
-      else if (redraw === 'wish') { const go = root.querySelector('[data-act=wish-open]'); if (go) go.disabled = !i.value.trim(); }
+      else if (redraw === 'wish') { const btn = root.querySelector('[data-act=wish-open]'); if (btn) btn.disabled = !i.value.trim(); }
     };
     i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } if (e.key === 'Enter' && S.dlg === 'picker' && S.picker && S.picker.drawer && ['cmd', 'text', 'open'].includes(i.dataset.field)) { e.preventDefault(); S.picker.cat = 'cmd'; onAction('pick-assign'); } };
   });
@@ -332,11 +355,13 @@ function bind() {
   // start, so anything typed next lands in front of what is already there.
   const q = root.querySelector('[data-field="q"]');
   if (q && S.dlg === 'picker' && (S.picker.cat !== 'key' || S.picker.drawer) && !S.picker.recording) setTimeout(() => {
-    if (document.activeElement === q) return;
+    // not when another field has the caret (the folder's name being typed, a field just put back)
+    const ae = document.activeElement;
+    if (ae === q || (ae && ae !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return;
     q.focus();
     const n = q.value.length;
     try { q.setSelectionRange(n, n); } catch (e) {}
   }, 20);
 }
 
-export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, devicePanel, THEMES, themeMenu, mainMenu, renderPage, renderDialog, bind };
+export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, devicePanel, THEMES, themeMenu, mainMenu, renderPage, renderDialog, bind, schedule };
