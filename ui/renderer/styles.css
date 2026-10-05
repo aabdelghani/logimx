@@ -1066,7 +1066,13 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .rs-menu { position: absolute; z-index: 5; translate: 34px -10px; min-width: 170px; }
 .rs-hub.folder-hub { background: var(--accbg); color: #fff; width: 64px; height: 64px; margin: -32px 0 0 -32px; }
 .rs-hub.folder-hub i { font-size: 26px !important; color: #fff; }
-.devview2 .cfg-back .folder-name { opacity: 1 !important; pointer-events: auto; font: 700 20px var(--font); color: var(--fg); background: transparent; border: 2px solid transparent; border-radius: 8px; padding: 2px 8px; width: 260px; outline: none; -webkit-app-region: no-drag; }
+.devview2 .cfg-back .folder-name { opacity: 1 !important; pointer-events: auto; font: 700 20px var(--font); color: var(--fg); background: transparent; border: 2px solid transparent; border-radius: 8px; padding: 2px 8px; width: auto; max-width: 340px; outline: none; cursor: text; -webkit-app-region: no-drag; }
+/* the folder's name is never clipped by the folded side column, and its pencil sits right after it */
+.devview2 .dnav:has(.folder-name) { overflow: visible; }
+.devview2 .cfg-back:has(.folder-name) { overflow: visible; z-index: 4; }
+.devview2 .cfg-back .folder-rename { opacity: 1 !important; pointer-events: auto; -webkit-app-region: no-drag; }
+.devview2 .cfg-back .folder-rename i { font-size: 14px !important; color: var(--dim); }
+.devview2 .cfg-back .folder-rename:hover i { color: var(--accbg); }
 .devview2 .cfg-back .folder-name:hover { border-color: var(--brd); }
 .devview2 .cfg-back .folder-name:focus { border-color: var(--accbg); background: var(--card); }
 /* into a folder: the folder glides from its place on the ring to the middle of its page, easing in
@@ -1086,3 +1092,4 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 @keyframes rs-name-in { from { opacity: 0; translate: -14px 0; } to { opacity: 1; translate: 0 0; } }
 .devview2 .cfg-back .folder-name { animation: rs-name-in .35s ease-out .15s both; }
 @media (prefers-reduced-motion: reduce) { .rs-disc.anim-in .rs-chip, .rs-disc.anim-in .rs-lab, .rs-disc.anim-in .folder-hub, .rs-disc.anim-in::before, .rs-disc.anim-out .rs-chip, .rs-disc.anim-out .rs-lab, .rs-disc.anim-out .rs-hub, .devview2 .cfg-back .folder-name { animation: none; } }
+.devview2 .cfg-back .folder-name { field-sizing: content; min-width: 4ch; }   /* the box hugs the name, so the pencil sits right after it */
