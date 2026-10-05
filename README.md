@@ -140,6 +140,11 @@ Several ring profiles can be kept and switched from the panel.
 - How hard the haptic panel has to be pressed
 - The ratchet force of the scroll wheel
 - Sixteen haptic patterns to try
+- Easy-Switch on a photo of its underside: each channel's computer beside its light; switch, pair or rename
+
+| Buttons and the haptic panel | Easy-Switch |
+|---|---|
+| ![MX Master 4 buttons](screenshots/mx4-buttons.png) | ![MX Master 4 Easy-Switch](screenshots/mx4-easy-switch.png) |
 
 ### Welcome screen
 
