@@ -310,12 +310,13 @@
       el.ondragend = () => { document.body.classList.remove('dragging-act'); root.querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); };
     });
     slotsEls.forEach(t => {
-      const i = Number(t.dataset.cid), pair = () => root.querySelectorAll(`.rs-chip[data-cid="${i}"], .rs-lab[data-cid="${i}"]`);
+      const i = Number(t.dataset.cid), pair = () => root.querySelectorAll(`.rs-chip[data-cid="${t.dataset.cid}"], .rs-lab[data-cid="${t.dataset.cid}"]`);
       t.ondragover = e => { if (!e.dataTransfer.types.includes('application/x-logimx-action')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; pair().forEach(x => x.classList.add('drop')); };
       t.ondragleave = () => pair().forEach(x => x.classList.remove('drop'));
       t.ondrop = async e => {
         e.preventDefault();
         let a; try { a = JSON.parse(e.dataTransfer.getData('application/x-logimx-action')); } catch (x) { return; }
+        if (t.dataset.ins) { document.body.classList.remove('dragging-act'); S.picker.insert = t.dataset.ins; await assignPicked(a); return; }
         const slots = ringSlots();
         slots[i] = { action: a, label: presetLabel(a), icon: actionIcon(a) };
         await saveRingSlots(slots);
@@ -1097,7 +1098,7 @@
     const r = ringState(), k = ringApp();
     let top = ringTop(r);
     const f = ringFolder(top);
-    if (f) top[S.ringPath[0]] = Object.assign({}, f, { action: Object.assign({}, f.action, { slots }) }); else top = slots;
+    if (f) top[S.ringPath[0]] = Object.assign({}, f, { action: Object.assign({}, f.action, { slots: slots.filter(Boolean) }) }); else top = slots;
     if (k) {
       const ar = appRing(r, k);
       if (ar && !ar.legacy) { r.profiles[ar.i].slots = top; return saveRing({ profiles: r.profiles }); }
@@ -1120,17 +1121,14 @@
   function ringStage() {
     const slots = ringSlots(true);   // the hovered app's ring, else the one being edited
     const top = ringTop(ringState(), true), f = ringFolder(top);
-    // a folder's own page: only the actions it has around it, and one Add at the next free place
-    const addAt = f ? ringNextFree(slots) : -1;   // the next place of the folder's fan
     // into a folder: the page grows out of the folder's place and its actions pop in one by one;
     // back out: the ring settles in and the folder's place gives a pulse
     const anim = S.ringAnim; S.ringAnim = null;
     const at = anim ? (() => { const a = (anim.from * 45 - 90) * Math.PI / 180; return { x: 30 * Math.cos(a), y: 30 * Math.sin(a) }; })() : null;
     let order = 0;
-    const parts = slots.map((sl, i) => {
-      if (f && !sl && i !== addAt) return '';
+    const parts = f ? ringFolderRow(slots) : slots.map((sl, i) => {
       const k = order++;
-      const a = (f ? ringFanDeg(S.ringPath[0], i) : i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+      const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
       // the ⋯ on a slot: make it a folder, open it, or clear it (inside a folder: clear only)
@@ -1143,19 +1141,37 @@
     // in a folder the middle is the folder itself; its name and the way back are top-left
     const hub = f ? `<div class="rs-hub folder-hub" title="${esc(f.label || 'Folder')}"><i class="fa-solid fa-folder-open"></i></div>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
     const where = !f && ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
-    // a folder's page: a dashed crescent through its actions and Add instead of a full circle
-    let crescent = '';
-    if (f) {
-      const used = slots.map((x, i) => x || i === addAt ? RING_FAN[i] : null).filter(v => v !== null);
-      if (used.length) {
-        const base = S.ringPath[0] * 45 - 90, a1 = (base + Math.min(...used) - 17) * Math.PI / 180, a2 = (base + Math.max(...used) + 17) * Math.PI / 180;
-        const pt = a => `${(50 + 30 * Math.cos(a)).toFixed(2)} ${(50 + 30 * Math.sin(a)).toFixed(2)}`;
-        crescent = `<svg class="rs-crescent" viewBox="0 0 100 100"><path d="M${pt(a1)} A30 30 0 ${(a2 - a1) > Math.PI ? 1 : 0} 1 ${pt(a2)}"/></svg>`;
-      }
-    }
     const animCls = anim ? (anim.kind === 'in' ? 'anim-in' : 'anim-out') : '', animVars = at ? `style="--fx:${at.x.toFixed(1)}%;--fy:${at.y.toFixed(1)}%"` : '';
-    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${crescent}${parts}${hub}</div></div>`;
+    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${parts}${hub}</div></div>`;
   }
+  // A folder's page: its actions in order along a crescent around the folder, centred on the folder's
+  // direction, with an Add at each end (the start puts the new action first, the end last); with
+  // more of them the crescent grows into a bigger circle so they stay apart
+  function ringFolderRow(slots) {
+    const items = []; slots.forEach((sl, i) => { if (sl) items.push(i); });
+    const full = items.length >= 8;
+    const row = full ? items.map(i => ({ i })) : items.length ? [{ add: 'start' }].concat(items.map(i => ({ i })), [{ add: 'end' }]) : [{ add: 'end' }];
+    const m = row.length; let step = 34; if ((m - 1) * step > 170) step = 170 / (m - 1);
+    const r = Math.min(46, Math.max(30, 30 * 34 / step)), base = S.ringPath[0] * 45 - 90;
+    return row.map((it, k) => {
+      const a = (base + (k - (m - 1) / 2) * step) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+      const x = 50 + r * c, y = 50 + r * sn, lx = 50 + (r + 11) * c, ly = 50 + (r + 11) * sn;
+      const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
+      const pos = `left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}`, lpos = `left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty});--k:${k}`;
+      if (it.add) {
+        const on = ringInserting(it.add), tip = it.add === 'start' ? 'Add at the start' : 'Add at the end';
+        return `<button class="rs-chip empty add ${on ? 'selected' : ''}" style="${pos}" data-act="pick" data-section="ring" data-ins="${it.add}" data-cid="${it.add}" data-label="New action" title="${tip}"><i class="fa-solid fa-plus"></i></button>` +
+          `<div class="rs-lab empty ${on ? 'on' : ''}" data-act="pick" data-section="ring" data-ins="${it.add}" data-cid="${it.add}" data-label="New action" style="${lpos}">Add</div>`;
+      }
+      const i = it.i, sl = slots[i];
+      return `<button class="rs-chip ${ringEditing(i) ? 'selected' : ''}" style="${pos}" data-act="pick" data-section="ring" data-cid="${i}" data-label="Action ${i + 1}" title="${esc(sl.label)}"><i class="fa-solid ${esc(sl.icon || 'fa-circle-dot')}"></i><span class="rs-dots" data-act="rs-menu" data-key="${i}" title="More"><i class="fa-solid fa-ellipsis"></i></span></button>` +
+        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''}" data-act="pick" data-section="ring" data-cid="${i}" data-label="Action ${i + 1}" style="${lpos}">${esc(sl.label)}</div>` +
+        (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, true) : '');
+    }).join('');
+  }
+  const ringInserting = ins => drawerUp() && S.picker.section === 'ring' && S.picker.insert === ins;
+  // the panel waits to add a new action at one end of the open folder's row
+  const ringSelectAdd = (ins = 'end') => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = ins; p.cid = null; p.label = 'New action'; p.current = null; p.sel = null; p.selKey = null; };
   // the ⋯ menu of a slot, beside it
   function ringSlotMenu(sl, i, x, y, inFolder) {
     const it = (act, icon, label, cls) => `<button data-act="${act}" data-key="${i}" class="${cls || ''}"><i class="fa-solid ${icon}"></i>${label}</button>`;
@@ -1174,15 +1190,12 @@
     S.ringPath = path;
   }
   // the panel turns to a place in the open ring or folder
-  const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.cid = i; p.label = (S.ringPath || []).length ? `Action ${i + 1}` : RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
+  const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = null; p.cid = i; p.label = (S.ringPath || []).length ? `Action ${i + 1}` : RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
   // a folder keeps the direction it sits in on the ring: its first action goes the same way, the
   // next ones continue clockwise from there (the real ring draws them at those same directions)
   // a folder's actions are an ordered list fanned out around the folder's direction: the first in
   // that direction, the next a little counter-clockwise, then a little clockwise, and outward
-  const RING_FAN = [0, -34, 34, -68, 68, -102, 102, -136];
-  const ringFanDeg = (folderAt, k) => folderAt * 45 - 90 + RING_FAN[k];
   const ringNextFree = slots => slots.findIndex(x => !x);
-  const ringFirstFree = () => { const k = ringNextFree(ringSlots()); return k < 0 ? 0 : k; };
   // folders saved by direction (gaps before their last action) become fan lists, once
   function ringTidyFolders() {
     const r = ringState(); let changed = false;
@@ -1219,7 +1232,7 @@
     const size = `<div class="row"><span class="grow lbl">Ring size</span><span class="seg">${sz('small', 'Small')}${sz('medium', 'Medium')}${sz('large', 'Large')}</span></div>`;
     return `<div class="ring-behaviour">${sec('Ring behaviour', card(size + free + feel))}</div>`;
   }
-  const ringEditing = i => drawerUp() && S.picker.section === 'ring' && S.picker.cid === i;
+  const ringEditing = i => drawerUp() && S.picker.section === 'ring' && !S.picker.insert && S.picker.cid === i;
   function pageRing() {
     const rs = ringState(), slots = ringSlots();
     const filled = slots.filter(Boolean).length;
@@ -1940,9 +1953,18 @@
   async function assignPicked(action) {
     const p = S.picker; const d = S.devices.find(x => x.id === p.dev);
     if (p.section === 'ring') {
-      const slots = ringSlots();
-      slots[p.cid] = { action, label: easyLabel(action) || presetLabel(action), icon: actionIcon(action) };
-      await saveRingSlots(slots);
+      const entry = { action, label: easyLabel(action) || presetLabel(action), icon: actionIcon(action) };
+      if (p.insert) {
+        const list = ringSlots().filter(Boolean);
+        if (list.length >= 8) { toast('A folder holds 8 actions', true); return; }
+        if (p.insert === 'start') list.unshift(entry); else list.push(entry);
+        await saveRingSlots(list);
+        p.cid = p.insert === 'start' ? 0 : list.length - 1; p.insert = null; p.label = `Action ${p.cid + 1}`;
+      } else {
+        const slots = ringSlots();
+        slots[p.cid] = entry;
+        await saveRingSlots(slots);
+      }
       if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; render(); toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); return; }
       S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
     }
@@ -2060,9 +2082,10 @@
       case 'dir': S.dir = key; render(); return;
       case 'pick': {
         // a folder on the ring opens straight away (its ⋯ menu removes it)
+        if (b.dataset.ins && S.picker && S.picker.section === 'ring') { ringSelectAdd(b.dataset.ins); render(); return; }
         const fc = Number(b.dataset.cid);
         if (b.dataset.section === 'ring' && S.page === 'gestures' && S.cfgKind === 'ring' && !(S.ringPath || []).length && isFolderSlot(ringSlots()[fc])) {
-          S.menu = null; S.ringPath = [fc]; S.ringAnim = { kind: 'in', from: fc }; ringSelect(ringFirstFree()); render(); return;
+          S.menu = null; S.ringPath = [fc]; S.ringAnim = { kind: 'in', from: fc }; ringSelectAdd(); render(); return;
         }
       }
         openPicker({ drawer: S.page === 'gestures' && (b.dataset.section === 'ring' || b.dataset.section === 'gesture'), dev: b.dataset.dev ? S.devices.find(x => x.id === b.dataset.dev) : d, section: b.dataset.section, cid: b.dataset.cid === 'thumb' ? 'thumb' : Number(b.dataset.cid), label: b.dataset.label, cat: b.dataset.cat, profile: b.dataset.profile }); return;
@@ -2146,11 +2169,11 @@
         // the slot becomes a folder; an action already there moves inside as its first one
         slots[i] = { action: { type: 'folder', label: 'New folder', slots: had && !isFolderSlot(had) ? [had] : [] }, label: 'New folder', icon: 'fa-folder' };
         await saveRingSlots(slots);
-        S.ringPath = [i]; S.ringAnim = { kind: 'in', from: i }; ringSelect(ringFirstFree()); render();
+        S.ringPath = [i]; S.ringAnim = { kind: 'in', from: i }; ringSelectAdd(); render();
         setTimeout(() => { const n = root.querySelector('.folder-name'); if (n) { n.focus(); n.select(); } }, 180);
         return;
       }
-      case 'rs-open': S.menu = null; S.ringPath = [Number(key)]; S.ringAnim = { kind: 'in', from: Number(key) }; ringSelect(ringFirstFree()); render(); return;
+      case 'rs-open': S.menu = null; S.ringPath = [Number(key)]; S.ringAnim = { kind: 'in', from: Number(key) }; ringSelectAdd(); render(); return;
       case 'rs-clear': { S.menu = null; const slots = ringSlots(); slots[Number(key)] = null; await saveRingSlots(slots); ringSelect(Number(key)); render(); return; }
       case 'rp-use': {
         const r = ringState(), k = ringApp(); S.ringPath = [];
@@ -2214,7 +2237,7 @@
         toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? 'Monitor brightness is ready' : 'Set up; this monitor does not answer brightness requests') : (r && r.error) || 'Failed', !(r && r.ok));
         render(); return;
       }
-      case 'ring-open-folder': S.ringAnim = { kind: 'in', from: S.picker.cid }; S.ringPath = [S.picker.cid]; ringSelect(ringFirstFree()); render(); return;
+      case 'ring-open-folder': S.ringAnim = { kind: 'in', from: S.picker.cid }; S.ringPath = [S.picker.cid]; ringSelectAdd(); render(); return;
       case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; S.ringAnim = { kind: 'out', from: i }; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
       case 'ring-app-drop': { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); render(); return; }
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;

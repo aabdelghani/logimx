@@ -94,16 +94,18 @@
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
-  // a folder's actions: an ordered list fanned out around the folder's direction on a bigger circle
-  const FAN = [0, -34, 34, -68, 68, -102, 102, -136];   // degrees from the folder's direction, counter-clockwise first
-  const FAN_R = 1.0;                                     // the crescent's radius around the folder, times the ring's radius
-  const fanAng = j => ang(stack[0]) + FAN[j] * Math.PI / 180;
+  // a folder's actions: an ordered row along a crescent around the folder, centred on the folder's
+  // direction; with more of them the crescent grows into a bigger circle so they stay apart
+  let fanOrder = [], fanN = 0;
+  function fanLayout() { fanOrder = []; fanN = 0; slots.forEach((x, i) => { if (x) fanOrder[i] = fanN++; }); }
+  const fanGeom = () => { const n = Math.max(1, fanN); let step = 34; if ((n - 1) * step > 170) step = 170 / (n - 1); return { step, r: Math.min(RR * 1.8, Math.max(RR, RR * 34 / step)) }; };
+  const fanAng = i => ang(stack[0]) + ((fanOrder[i] ?? 0) - (fanN - 1) / 2) * fanGeom().step * Math.PI / 180;
   // the open folder's own place: the middle of its crescent
   const folderAt = () => ({ x: CX + RR * Math.cos(ang(stack[0])), y: CY + RR * Math.sin(ang(stack[0])) });
   // where a button of the level shown sits: on the ring, or on the crescent around the open folder
   const posOf = i => {
     if (!stack.length) { const a = ang(i); return { a, r: RR, cx: CX, cy: CY, x: CX + RR * Math.cos(a), y: CY + RR * Math.sin(a) }; }
-    const a = fanAng(i), r = RR * FAN_R, f = folderAt();
+    const a = fanAng(i), r = fanGeom().r, f = folderAt();
     return { a, r, cx: f.x, cy: f.y, x: f.x + r * Math.cos(a), y: f.y + r * Math.sin(a) };
   };
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
@@ -132,16 +134,6 @@
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
       return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(s.label)}${folder ? ' <i class="fa-solid fa-chevron-right lab-more"></i>' : ''}</div>`;
     }).join('');
-    if (stack.length) {
-      const used = slots.map((x, i) => x ? FAN[i] : null).filter(v => v !== null);
-      if (used.length) {
-        const f = folderAt(), r = RR * FAN_R, base = ang(stack[0]) * 180 / Math.PI, pad = 17;
-        const a1 = (base + Math.min(...used) - pad) * Math.PI / 180, a2 = (base + Math.max(...used) + pad) * Math.PI / 180;
-        const p1 = [f.x + r * Math.cos(a1), f.y + r * Math.sin(a1)], p2 = [f.x + r * Math.cos(a2), f.y + r * Math.sin(a2)];
-        const large = (a2 - a1) > Math.PI ? 1 : 0;
-        html = `<svg class="crescent"><path d="M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 ${large} 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}"/></svg>` + html;
-      }
-    }
     slotsEl.innerHTML = html;
     setHover(-1);
   }
@@ -154,13 +146,23 @@
   function hubIcon() { hub.querySelector('i').className = 'fa-solid ' + (stack.length ? 'fa-arrow-left' : 'fa-xmark'); }
   // a folder: its actions fan out beside it on the outer circle; the ring stays where it is
   function enter(i) {
-    stack = [i]; slots = pad(slots[i].action.slots); dial = null; vx = vy = 0;
+    dwellOff();
+    stack = [i]; slots = pad(slots[i].action.slots); fanLayout(); dial = null; vx = vy = 0;
     build(); hub.classList.remove('on');
   }
   function up() {
+    dwellOff();
     stack = []; slots = root; dial = null; vx = vy = 0;
     build(true); hub.classList.remove('on');
   }
+  // hovering a folder opens it after a moment; resting on the middle closes it again
+  let dwell = null;
+  function dwellOn(kind, i) {
+    if (dwell && dwell.kind === kind && dwell.i === i) return;
+    dwellOff();
+    dwell = { kind, i, t: setTimeout(() => { const d = dwell; dwell = null; if (!d) return; if (d.kind === 'open' && !stack.length && isFolder(d.i)) enter(d.i); if (d.kind === 'close' && stack.length) up(); }, kind === 'open' ? 160 : 260) };
+  }
+  function dwellOff() { if (dwell) { clearTimeout(dwell.t); dwell = null; } }
   // run what is chosen, or open it when it is a folder
   function choose(i) {
     if (i < 0 || !slots[i]) return;
@@ -208,8 +210,16 @@
       }
     }
     last = [e.clientX, e.clientY];
-    hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
+    const dc = Math.hypot(e.clientX - CX, e.clientY - CY);
+    hub.classList.toggle('on', dc < NEAR);
+    if (stack.length) {
+      const p = parentAt(e.clientX, e.clientY);
+      if (p >= 0 && p !== stack[0]) up();          // onto another ring button: the folder closes
+      else if (dc < NEAR) dwellOn('close', -1);     // resting on the middle closes it too
+      else if (dwell && dwell.kind === 'close') dwellOff();
+    }
     const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i);
+    if (!stack.length) { if (isFolder(i)) dwellOn('open', i); else dwellOff(); }
   });
   // the wheel: sets a volume slot (shown out of 100), steps brightness, zoom or tracks
   document.addEventListener('wheel', async e => {
@@ -264,7 +274,7 @@
     const s = Math.max(0.6, Math.min(1.6, Number(msg.scale) || 1));
     rootEl.style.setProperty('--s', s);
     RW = BASE.RW * s; RH = BASE.RH * s; RR = BASE.RR * s; B = BASE.B * s; NEAR = BASE.NEAR * s; FAR = BASE.FAR * s;
-    root = pad(msg.slots); stack = []; slots = root;
+    root = pad(msg.slots); stack = []; slots = root; dwellOff();
     shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on'); note.classList.remove('show'); document.body.classList.remove('vol-focus');
@@ -288,6 +298,8 @@
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
     const i = Math.hypot(vx, vy) < DEAD ? -1 : stack.length ? fanToward(vx, vy) : wedge(vx, vy);
     hub.classList.toggle('on', i < 0);
+    if (!stack.length) { if (isFolder(i)) dwellOn('open', i); else dwellOff(); }
+    else if (Math.hypot(vx, vy) < DEAD) dwellOn('close', -1); else if (dwell && dwell.kind === 'close') dwellOff();
     if (i !== hover) setHover(i);
   });
   // the button that opened the ring was released: run what is chosen; a quick tap with nothing
