@@ -40,7 +40,7 @@ class Page:
 
 def home(p):
     p.js("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))"); time.sleep(.3)
-    p.js("document.body.click()"); time.sleep(.3)   # closes an open menu
+    p.js("document.body.click()"); time.sleep(.5)   # closes an open menu (and lets the redraw land)
     for _ in range(4):
         if not p.click('[data-act=go-home]', .6): break
 

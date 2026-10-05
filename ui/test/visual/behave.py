@@ -97,6 +97,7 @@ def main():
     finally:
         if backup:
             agent('restore_backup', {'file': backup})
+            p.js('window.agent.generalChanged()')   # the main process reads the restored settings too
             print('restored', backup)
         p.js('location.reload()')
     sys.exit(0 if ok else 1)
