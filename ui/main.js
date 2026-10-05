@@ -35,7 +35,9 @@ const os = require('os');
 const flow = require('./flow');
 
 const SOCKET = plat.agentEndpoint();
-const LOW = 20, CRITICAL = 10;
+// the logic shared with the windows (ES modules in shared/, loaded before the app starts)
+let Ring = null, Battery = null;
+const sharedReady = Promise.all([import('./shared/ring.mjs'), import('./shared/battery.mjs')]).then(([r, b]) => { Ring = r; Battery = b; });
 
 let win = null;
 let tray = null;
@@ -137,7 +139,7 @@ function checkBattery(d) {
     return;
   }
   if (general.notify_low === false) return;
-  const low = general.notify_low_threshold || LOW;
+  const low = general.notify_low_threshold || Battery.LOW;
   const prev = alerted.get(d.id);
   if (b.charging || b.percent > low) { lowStreak.delete(d.id); dropLowNotice(d.id); if (prev) alerted.delete(d.id); return; }
   // A device waking from sleep can report the level it stored before it slept, and on the first
@@ -147,7 +149,7 @@ function checkBattery(d) {
   const streak = (lowStreak.get(d.id) || 0) + 1;
   lowStreak.set(d.id, streak);
   if (streak < 2) return;
-  const level = b.percent <= CRITICAL ? 'critical' : 'low';
+  const level = b.percent <= Battery.CRITICAL ? 'critical' : 'low';
   if (prev === level || (prev === 'critical' && level === 'low')) return;
   alerted.set(d.id, level);
   if (Notification.isSupported()) {
@@ -174,7 +176,7 @@ const menuIcon = n => nativeImage.createFromPath(path.join(__dirname, 'assets', 
 const batteryBar = pct => { const n = Math.round(Math.max(0, Math.min(100, pct)) / 10); return '▰'.repeat(n) + '▱'.repeat(10 - n); };
 function updateTray() {
   if (!tray) return;
-  const warn = devices.some(d => d.battery && !d.battery.charging && d.battery.percent <= LOW);
+  const warn = devices.some(d => d.battery && !d.battery.charging && d.battery.percent <= Battery.LOW);
   tray.setImage(trayIcon(warn));
   const lines = devices.map(d => {
     const b = d.battery;
@@ -188,7 +190,7 @@ function updateTray() {
     const b = d.battery;
     // not connected: its name only, nothing to switch or read until it is back
     if (d.online === false) { items.push({ label: `${d.name}   not connected`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false }, { type: 'separator' }); continue; }
-    const bat = b ? `${b.percent}%${b.charging ? ' · charging' : b.percent <= LOW ? ' · charge soon' : ''}` : 'battery n/a';
+    const bat = Battery.batteryText(b);
     items.push({ label: `${d.name}   ${bat}`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false });
     if (b) items.push({ label: `      ${batteryBar(b.percent)}`, enabled: false });
     if (d.state && d.state.hosts) {
@@ -462,10 +464,7 @@ ipcMain.handle('emoji-show', () => showEmoji('Preview'));
 // reports the picked slot, and the action runs through the agent like any assignment would.
 let ringRawMode = false;
 let currentApp = '';       // window class of the focused application (the agent's 'app' event)
-// the ring's settings read the same way as in the settings window (shared/ring.mjs, an ES module,
-// loaded before anything opens the ring)
-let Ring = null;
-const ringModel = import('./shared/ring.mjs').then(m => { Ring = m; });
+// the ring's settings are read the same way as in the settings window (shared/ring.mjs)
 // the ring for the application in front: one set up for it, else the ring profile in use
 const ringFor = rs => Ring.ringForApp(rs, currentApp);
 const RING_SCALE = { small: 0.85, medium: 1, large: 1.2 };
@@ -1367,7 +1366,7 @@ if (!single) {
     return startAgent();
   });
   app.whenReady().then(async () => {
-    await ringModel;
+    await sharedReady;
     ensureDesktopEntry();
     ensureAutostart();
     setTimeout(() => { startAgent().catch(() => {}); }, 600);

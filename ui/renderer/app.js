@@ -1,5 +1,10 @@
 /* LogiMX renderer. One state object, full re-render on change, Adwaita-style layout. */
 import * as Ring from '../shared/ring.mjs';
+import * as Act from '../shared/actions.mjs';
+import { batIcon, batClass } from '../shared/battery.mjs';
+import * as Prof from '../shared/profiles.mjs';
+import { isMouse, isNative } from '../shared/profiles.mjs';
+const { ICON, PRESET_ICON, MODS, codeToKey, toolName } = Act;
 const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newRingId } = Ring;
 (() => {
   const $ = s => document.querySelector(s);
@@ -31,80 +36,29 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
     if (i >= 0) S.devices[i] = summary; else S.devices.push(summary);
   }
   const dev = () => S.devices.find(d => d.id === S.dev) || null;
-  const isMouse = d => d && d.kind !== 'keyboard';
-  const isNative = a => !a || a === 'native';
-  const profileOf = (d, key) => (((d.config || {}).profiles || {})[key || 'default']) || {};
+  const profileOf = Prof.profileOf;
   // The profile the device view shows: one being previewed (hover in the profile bar), else the one
   // picked for editing, else the global one. An app profile only holds what it changes; anything
   // it leaves alone comes from the global profile, the same way the agent applies it.
   const shownProfile = () => S.previewProfile || S.editProfile || 'default';
-  const ownAssignment = (d, section, cid, prof) => section === 'thumbwheel' ? profileOf(d, prof).thumbwheel : ((profileOf(d, prof)[section] || {})[String(cid)]);
-  const assignment = (d, section, cid, prof) => { const p = prof || shownProfile(); const v = ownAssignment(d, section, cid, p); return v === undefined && p !== 'default' ? ownAssignment(d, section, cid, 'default') : v; };
+  const ownAssignment = Prof.ownAssignment;
+  const assignment = (d, section, cid, prof) => Prof.assignment(d, section, cid, prof || shownProfile());
   // set in the shown profile (not the global one) on a control: marked on the photo
-  const overridden = (d, section, cid) => shownProfile() !== 'default' && ownAssignment(d, section, cid, shownProfile()) !== undefined;
-  // Icon for an assignment: the preset's own icon, else its type's, and the key's printed
-  // function only while the key is left to the device.
-  const assignIcon = (a, native) => {
-    if (!a || a === 'native') return native;
-    if (typeof a === 'string') return PRESET_ICON[a] || ICON[(S.presets && S.presets.all[a] || {}).type] || native;
-    return ICON[a.type] || native;
-  };
-  const presetLabel = a => {
-    if (!a || a === 'native') return 'Default';
-    if (typeof a === 'string') return (S.presets && S.presets.all[a] || {}).label || a;
-    if (a.type === 'keystroke') return a.label || (a.keys || []).map(keyName).join(' + ');
-    if (a.type === 'command') return 'Run: ' + (a.cmd || '');
-    if (a.type === 'gesture') return a.label || 'Custom gestures';
-    if (a.type === 'launch') return 'Launch ' + (a.label || a.app);
-    if (a.type === 'type_text') return 'Type: ' + (a.text || '').slice(0, 24);
-    if (a.type === 'open') return a.label || 'Open ' + (a.target || '');
-    if (a.type === 'scroll') return a.label || (a.axis === 'x' ? 'Horizontal scroll' : 'Vertical scroll');
-    if (a.type === 'button') return a.label || a.button.replace('BTN_', '') + ' click';
-    if (a.type === 'nothing') return 'Disabled';
-    return a.label || a.type;
-  };
-  const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor', folder: 'fa-folder', ring_profile: 'fa-layer-group', brightness_dial: 'fa-sun' };
-  const PRESET_ICON = { action_ring: 'fa-circle-notch', volume_dial: 'fa-volume-high', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
-    copy: 'fa-copy', paste: 'fa-paste', undo: 'fa-rotate-left', redo: 'fa-rotate-right', zoom_in: 'fa-magnifying-glass-plus', zoom_out: 'fa-magnifying-glass-minus', volume_up: 'fa-volume-high', volume_down: 'fa-volume-low', mute: 'fa-volume-xmark',
-    mic_mute: 'fa-microphone-slash', play_pause: 'fa-play', next_track: 'fa-forward-step', prev_track: 'fa-backward-step', brightness_up: 'fa-sun', brightness_down: 'fa-sun', screenshot: 'fa-camera', screenshot_area: 'fa-crop-simple', lock: 'fa-lock',
-    calculator: 'fa-calculator', emoji: 'fa-face-smile', emoji_picker: 'fa-face-smile', context_menu: 'fa-bars', dictation: 'fa-microphone', terminal: 'fa-terminal', close_window: 'fa-xmark', maximize: 'fa-window-maximize', minimize: 'fa-window-minimize', tile_left: 'fa-table-columns', tile_right: 'fa-table-columns',
-    hscroll: 'fa-arrows-left-right', vscroll: 'fa-arrows-up-down', zoom_wheel: 'fa-magnifying-glass-plus', volume_wheel: 'fa-volume-high', tabs_wheel: 'fa-window-restore', workspaces_wheel: 'fa-table-cells-large', brightness_wheel: 'fa-sun',
-    easy_switch_1: 'fa-right-left', easy_switch_2: 'fa-right-left', easy_switch_3: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', smartshift_toggle: 'fa-gear', open_home: 'fa-folder-open', middle_click: 'fa-computer-mouse', back: 'fa-arrow-left', forward: 'fa-arrow-right', native: 'fa-circle-dot', nothing: 'fa-ban',
-    gesture_navigation: 'fa-hand-pointer', gesture_windows: 'fa-hand-pointer', gesture_volume: 'fa-hand-pointer', gesture_pan: 'fa-hand-pointer' };
-  const actionIcon = a => typeof a === 'string' ? (PRESET_ICON[a] || ICON[(S.presets && S.presets.all[a] || {}).type] || 'fa-circle-dot') : ICON[(a || {}).type] || 'fa-circle-dot';
+  const overridden = (d, section, cid) => Prof.overridden(d, section, cid, shownProfile());
+  // names and icons of actions (shared/actions.mjs), with the agent's presets and this OS
+  const assignIcon = (a, native) => Act.assignIcon(a, native, S.presets);
+  const presetLabel = a => Act.presetLabel(a, S.presets, OS());
+  const actionIcon = a => Act.actionIcon(a, S.presets);
   // which OS the app runs on: names of keys and settings follow it
   const OS = () => (S.appInfo && S.appInfo.platform) || 'linux';
   const IS_WIN = () => OS() === 'win32', IS_MAC = () => OS() === 'darwin', IS_LINUX = () => !IS_WIN() && !IS_MAC();
   const META = () => IS_WIN() ? 'Win' : IS_MAC() ? 'Cmd' : 'Super';
   const ALT = () => IS_MAC() ? 'Option' : 'Alt';
-  const keyName = k => k.replace(/^KEY_/, '').replace(/^LEFT(CTRL|SHIFT|ALT|META)$/, '$1').replace(/^RIGHT(CTRL|SHIFT|ALT|META)$/, '$1').replace('META', META()).replace(/^ALT$/, ALT()).replace('CTRL', 'Ctrl').replace('SHIFT', 'Shift').replace('ALT', 'Alt').replace(/^([A-Z])$/, '$1').replace(/^([A-Z][A-Z]+)$/, m => m.charAt(0) + m.slice(1).toLowerCase());
-  // what the agent calls another tool, as people know it
-  const toolName = n => ({ solaar: 'Solaar', logid: 'logid', logioptionsplus_agent: 'Logi Options+', 'Logi Options+': 'Logi Options+', LogiOptions: 'Logitech Options', LogiOptionsMgr: 'Logitech Options',
-    LogiMgrDaemon: 'Logitech Options', SetPoint: 'SetPoint', 'LGHUB Agent': 'G HUB', lghub_agent: 'G HUB' })[n] || n;
+  const keyName = k => Act.keyName(k, OS());
   const agentNeedsBuild = () => !S.connected && !!S.agentInfo && !S.agentInfo.binary && !!S.agentInfo.canBuild;
-  const batIcon = b => !b ? 'fa-battery-empty' : b.percent > 80 ? 'fa-battery-full' : b.percent > 55 ? 'fa-battery-three-quarters' : b.percent > 30 ? 'fa-battery-half' : b.percent > 10 ? 'fa-battery-quarter' : 'fa-battery-empty';
-  const batClass = b => !b ? '' : b.charging ? 'ok' : b.percent <= 10 ? 'err' : b.percent <= 20 ? 'warn' : 'ok';
   const CID = { middle: 82, back: 83, forward: 86, gesture: 195, mode: 196 };
 
   // ------------------------------------------------------------ recorder
-  const CODE_MAP = { ControlLeft: 'KEY_LEFTCTRL', ControlRight: 'KEY_RIGHTCTRL', ShiftLeft: 'KEY_LEFTSHIFT', ShiftRight: 'KEY_RIGHTSHIFT',
-    AltLeft: 'KEY_LEFTALT', AltRight: 'KEY_RIGHTALT', MetaLeft: 'KEY_LEFTMETA', MetaRight: 'KEY_RIGHTMETA', OSLeft: 'KEY_LEFTMETA', OSRight: 'KEY_RIGHTMETA',
-    Space: 'KEY_SPACE', Enter: 'KEY_ENTER', Tab: 'KEY_TAB', Backspace: 'KEY_BACKSPACE', Delete: 'KEY_DELETE', Insert: 'KEY_INSERT',
-    Home: 'KEY_HOME', End: 'KEY_END', PageUp: 'KEY_PAGEUP', PageDown: 'KEY_PAGEDOWN', ArrowUp: 'KEY_UP', ArrowDown: 'KEY_DOWN', ArrowLeft: 'KEY_LEFT', ArrowRight: 'KEY_RIGHT',
-    Minus: 'KEY_MINUS', Equal: 'KEY_EQUAL', BracketLeft: 'KEY_LEFTBRACE', BracketRight: 'KEY_RIGHTBRACE', Backslash: 'KEY_BACKSLASH', Semicolon: 'KEY_SEMICOLON',
-    Quote: 'KEY_APOSTROPHE', Backquote: 'KEY_GRAVE', Comma: 'KEY_COMMA', Period: 'KEY_DOT', Slash: 'KEY_SLASH', CapsLock: 'KEY_CAPSLOCK', PrintScreen: 'KEY_SYSRQ',
-    ScrollLock: 'KEY_SCROLLLOCK', Pause: 'KEY_PAUSE', ContextMenu: 'KEY_COMPOSE', NumLock: 'KEY_NUMLOCK', NumpadAdd: 'KEY_KPPLUS', NumpadSubtract: 'KEY_KPMINUS',
-    NumpadMultiply: 'KEY_KPASTERISK', NumpadDivide: 'KEY_KPSLASH', NumpadEnter: 'KEY_KPENTER', NumpadDecimal: 'KEY_KPDOT', AudioVolumeUp: 'KEY_VOLUMEUP',
-    AudioVolumeDown: 'KEY_VOLUMEDOWN', AudioVolumeMute: 'KEY_MUTE', MediaPlayPause: 'KEY_PLAYPAUSE', MediaTrackNext: 'KEY_NEXTSONG', MediaTrackPrevious: 'KEY_PREVIOUSSONG', IntlBackslash: 'KEY_102ND' };
-  const MODS = new Set(['KEY_LEFTCTRL', 'KEY_RIGHTCTRL', 'KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT', 'KEY_LEFTALT', 'KEY_RIGHTALT', 'KEY_LEFTMETA', 'KEY_RIGHTMETA']);
-  function codeToKey(code) {
-    let m;
-    if ((m = /^Key([A-Z])$/.exec(code))) return 'KEY_' + m[1];
-    if ((m = /^Digit(\d)$/.exec(code))) return 'KEY_' + m[1];
-    if ((m = /^F(\d{1,2})$/.exec(code))) return 'KEY_F' + m[1];
-    if ((m = /^Numpad(\d)$/.exec(code))) return 'KEY_KP' + m[1];
-    return CODE_MAP[code] || null;
-  }
   let recorder = null;
   let agentGrab = false, recordDone = null, recordPartial = null;
   let recGen = 0, armPending = false;   // an arm that is still asking the agent for the grab
@@ -2099,7 +2053,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
       case 'pick-item':
         if (key.startsWith('app:')) return assignPicked(JSON.parse(JSON.stringify(APP_ACTIONS[key.slice(4)])));
         if (key === 'wheel:keys') {
-          const typedKeys = t => t.trim() ? t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) : null;
+          const typedKeys = Act.typedKeys;
           prompt('Two keystrokes', [{ key: 'up', label: 'Turning one way', placeholder: 'ctrl+tab' }, { key: 'down', label: 'Turning the other way', placeholder: 'ctrl+shift+tab' }], async v => {
             const plus = typedKeys(v.up || ''), minus = typedKeys(v.down || '');
             if (!plus || !minus) { toast('Type a keystroke for each way', true); return render(); }
@@ -2234,7 +2188,7 @@ const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newR
         const p = S.picker;
         if (p.cat === 'key') {
           const t = (p.typed || '').trim();
-          if (t) { stopRecorder(); return assignPicked({ type: 'keystroke', keys: t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) }); }
+          if (t) { stopRecorder(); return assignPicked({ type: 'keystroke', keys: Act.typedKeys(t) }); }
           // whatever the box shows is what the user wants, whether or not the recorder saw a release
           if ((p.chord || []).length) { stopRecorder(); p.recording = false; return assignPicked({ type: 'keystroke', keys: p.chord.slice() }); }
           return toast('Record or type a keystroke first', true);

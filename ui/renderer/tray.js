@@ -1,4 +1,5 @@
 // Tray status panel: device battery, Easy-Switch, and the three tray actions.
+import { batteryText, batteryColor } from '../shared/battery.mjs';
 (() => {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function render(st) {
@@ -7,8 +8,7 @@
       // not connected: greyed, no battery or Easy-Switch to act on
       if (d.online === false) return `<div class="dev off"><div class="top"><span class="name"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i>${esc(d.name)}</span><span class="bat" style="color:var(--dim)">not connected</span></div></div>`;
       const b = d.battery; const pct = b ? b.percent : null;
-      const color = pct === null ? 'var(--dim)' : pct <= 10 ? 'var(--err)' : pct <= 20 ? 'var(--warn)' : 'var(--ok)';
-      const label = pct === null ? 'battery n/a' : `${pct}%${b.charging ? ' · charging' : pct <= 20 ? ' · charge soon' : ''}`;
+      const color = batteryColor(b), label = batteryText(b);
       const hosts = d.state && d.state.hosts ? d.state.hosts.names.filter(h => h.paired).map(h => `<button class="${h.index === d.state.hosts.current ? 'on' : ''}" data-dev="${d.id}" data-host="${h.index}" title="${esc(h.name || 'host ' + (h.index + 1))}">${h.index + 1}</button>`).join('') : '';
       return `<div class="dev"><div class="top"><span class="name"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i>${esc(d.name)}</span><span class="bat" style="color:${color}">${label}</span></div>` +
         `<div class="bar"><div style="width:${pct === null ? 0 : pct}%;background:${color}"></div></div>` +
