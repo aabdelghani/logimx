@@ -1026,3 +1026,6 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 .devview2.drawer-open.drawer-closing .cfg-top .pbar { transform: none; transition-duration: .18s; transition-timing-function: cubic-bezier(.4, 0, 1, 1); }
 @media (prefers-reduced-motion: reduce) { .devview2 .cfg-top .pbar { transition: none; } }
 .switch[disabled] { opacity: .55; cursor: not-allowed; pointer-events: none; }
+/* the profile bar: the app profile in use right now (the app in front) carries a live dot */
+.pbar .pf { position: relative; }
+.pbar .pf.live::before { content: ""; position: absolute; z-index: 1; pointer-events: none; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%; background: #2ec27e; box-shadow: 0 0 0 2px var(--win); }

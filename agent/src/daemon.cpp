@@ -349,6 +349,8 @@ void ManagedDevice::releaseAll() {
     }
 }
 
+bool ManagedDevice::hasAppProfile(const std::string& appClass) { return daemon_.config().profileFor(pid_, appClass).first != "default"; }
+
 void ManagedDevice::setProfile(const std::string& appClass) {
     auto [name, prof] = daemon_.config().profileFor(pid_, appClass);
     if (name != profileName_) {
@@ -1033,10 +1035,28 @@ static json batteryHistory(const std::string& id) {
     return out;
 }
 
+// The app in front picks each device's profile. A dialog or pop-up of the program whose window had
+// the profile keeps it (LibreOffice's dialogs report "Soffice", its document window
+// "libreoffice-writer"), and so does a moment with nothing in front, so the buttons do not flip
+// back and forth while working in one program. Only dialogs: every LibreOffice app shares one
+// process, so a Calc window must not inherit Writer's profile.
 void Daemon::onApp(const std::string& cls) {
     appClass_ = cls;
-    for (auto& md : snapshot()) md->setProfile(cls);
-    broadcast("app", {{"app", cls}});
+    int pid = tracker_ ? tracker_->pid() : 0;
+    auto devs = snapshot();
+    bool matches = false;
+    for (auto& md : devs) if (!cls.empty() && md->hasAppProfile(cls)) matches = true;
+    // LogiMX's own windows are neutral: looking at its settings keeps the app you came from
+    std::string lc = cls;
+    for (auto& ch : lc) ch = static_cast<char>(tolower(static_cast<unsigned char>(ch)));
+    const bool ours = lc == "logimx";
+    std::string eff = cls;
+    if (matches) { profileApp_ = cls; profilePid_ = pid; }
+    else if (ours) eff = profileApp_;
+    else if (!profileApp_.empty() && (cls.empty() || (pid && pid == profilePid_ && tracker_->transient()))) eff = profileApp_;
+    else { profileApp_.clear(); profilePid_ = 0; }
+    for (auto& md : devs) md->setProfile(eff);
+    broadcast("app", {{"app", cls}, {"profile_app", eff}});
 }
 
 json Daemon::rpc(const std::string& method, const json& p) {

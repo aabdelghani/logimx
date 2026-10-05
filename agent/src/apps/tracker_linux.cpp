@@ -112,6 +112,7 @@ void Tracker::x11Loop() {
     XSetErrorHandler(silentHandler);
     Window root = DefaultRootWindow(dpy);
     Atom netActive = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+    Atom netPid = XInternAtom(dpy, "_NET_WM_PID", False);
     XSelectInput(dpy, root, PropertyChangeMask);
 
     auto readActive = [&]() -> std::string {
@@ -124,6 +125,16 @@ void Tracker::x11Loop() {
             Window w = *reinterpret_cast<Window*>(data);
             XFree(data);
             if (w) {
+                // the owning process, so a program's dialogs and pop-ups count as that program
+                unsigned char* pd = nullptr;
+                int owner = 0;
+                if (XGetWindowProperty(dpy, w, netPid, 0, 1, False, XA_CARDINAL, &type, &fmt, &n, &after, &pd) == Success && pd) {
+                    if (n) owner = static_cast<int>(*reinterpret_cast<unsigned long*>(pd));
+                    XFree(pd);
+                }
+                pid_ = owner;
+                Window parent = 0;
+                transient_ = XGetTransientForHint(dpy, w, &parent) && parent;
                 XClassHint hint{};
                 if (XGetClassHint(dpy, w, &hint)) {
                     cls = hint.res_class ? hint.res_class : (hint.res_name ? hint.res_name : "");

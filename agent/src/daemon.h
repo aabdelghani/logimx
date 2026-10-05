@@ -38,6 +38,8 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     json readState(bool full = true);
     void applySettings(const std::string& only = "");
     void applyAssignments();
+    // an app profile of this device matches this window class
+    bool hasAppProfile(const std::string& appClass);
     bool isDiverted(int cid) const { return diverted_.count(cid) > 0; }
     void releaseAll();
     void setProfile(const std::string& appClass);
@@ -128,6 +130,9 @@ class Daemon {
     apps::Recorder recorder_;
     std::atomic<bool> pairing_{false};
     std::string appClass_;
+    // the window whose app profile is in use, kept while its own dialogs and pop-ups are in front
+    std::string profileApp_;
+    int profilePid_ = 0;
     std::atomic<bool> stop_{false};
     std::atomic<bool> paused_{false};
     PairingSession pair_;

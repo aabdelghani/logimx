@@ -27,6 +27,10 @@ class Tracker {
     void stop();
     const std::string& backend() const { return backend_; }
     const std::string& current() const { return current_; }
+    // the process that owns the focused window, 0 when the backend cannot tell (set before the callback)
+    int pid() const { return pid_; }
+    // the focused window is a dialog or pop-up of another window (X11 WM_TRANSIENT_FOR)
+    bool transient() const { return transient_; }
 
   private:
     void x11Loop();
@@ -35,6 +39,8 @@ class Tracker {
     void set(const std::string& cls);
     Callback cb_;
     std::string backend_ = "none", current_;
+    std::atomic<int> pid_{0};
+    std::atomic<bool> transient_{false};
     std::atomic<bool> stop_{false};
     std::thread thread_;
 };

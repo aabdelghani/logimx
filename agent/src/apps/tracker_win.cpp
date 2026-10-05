@@ -41,7 +41,7 @@ void Tracker::start() {
                 if (w) GetWindowThreadProcessId(w, &pid);
                 std::string stem = pid ? platform::processStem(pid) : "";
                 // a moment with no foreground window (switching, the desktop) keeps the profile
-                if (!stem.empty()) set(stem);
+                if (!stem.empty()) { pid_ = static_cast<int>(pid); set(stem); }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }

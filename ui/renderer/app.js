@@ -860,10 +860,12 @@
   const deviceProfiles = d => Object.entries(((d && d.config) || {}).profiles || {}).filter(([k]) => k !== 'default').map(([key, p]) => ({ key, name: p.name || key, match: p.match || [] }));
   function profileBar() {
     const cur = S.editProfile || 'default';
-    const apps = deviceProfiles(dev()).map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+    // the profile in use right now, from the app in front: a live dot on its icon
+    const live = (dev() || {}).profile || 'default';
+    const apps = deviceProfiles(dev()).map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''} ${live === p.key ? 'live' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}${live === p.key ? ' · in use now' : ''}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
     // ticked in the add panel and not added yet: shown faded until Add, gone if the panel is closed
     const pending = (S.addPanel ? S.addSel || [] : []).map(id => (S.apps || []).find(a => a.id === id)).filter(Boolean).map(a => { const u = (S.appIconById || {})[a.id]; return `<div class="pf-wrap"><span class="pf pending" data-tip="${esc(a.name)} (not added yet)">${u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`}</span></div>`; }).join('');
-    return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings"><i class="fa-solid fa-globe"></i></button>${apps}${pending}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
+    return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''} ${live === 'default' ? 'live' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings${live === 'default' ? ' · in use now' : ''}"><i class="fa-solid fa-globe"></i></button>${apps}${pending}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
   }
   function allProfiles() {
     const map = {};
@@ -2166,7 +2168,7 @@
     else if (event === 'battery') { const d = S.devices.find(x => x.id === data.id); if (d) { d.battery = data.battery; render(); } }
     else if (event === 'app') { S.status.app = data.app || ''; }
     else if (event === 'general') { S.general = data || {}; render(); }
-    else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) d.profile = data.profile; }
+    else if (event === 'profile') { const d = S.devices.find(x => x.id === data.id); if (d) { d.profile = data.profile; if (S.dev === d.id && S.page !== 'home') render(); } }
     else if (event === 'backlight') { const d = S.devices.find(x => x.id === data.id); if (d && d.state && d.state.backlight) { d.state.backlight.current_level = data.level; if (S.page === 'backlight') render(); } }
     else if (event === 'record') {
       if (!agentGrab || !S.picker) return;
