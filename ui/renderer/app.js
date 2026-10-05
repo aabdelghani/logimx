@@ -1118,7 +1118,7 @@
     const slots = ringSlots(true);   // the hovered app's ring, else the one being edited
     const top = ringTop(ringState(), true), f = ringFolder(top);
     // a folder's own page: only the actions it has around it, and one Add at the next free place
-    const addAt = f ? slots.findIndex(x => !x) : -1;
+    const addAt = f ? ringNextFree(slots, S.ringPath[0]) : -1;   // starting at the folder's own direction
     const parts = slots.map((sl, i) => {
       if (f && !sl && i !== addAt) return '';
       const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
@@ -1155,7 +1155,10 @@
   }
   // the panel turns to a place in the open ring or folder
   const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.cid = i; p.label = RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
-  const ringFirstFree = () => { const sl = ringSlots(); const k = sl.findIndex(x => !x); return k < 0 ? 0 : k; };
+  // a folder keeps the direction it sits in on the ring: its first action goes the same way, the
+  // next ones continue clockwise from there (the real ring draws them at those same directions)
+  const ringNextFree = (slots, from) => { for (let k = 0; k < 8; k++) { const i = ((from || 0) + k) % 8; if (!slots[i]) return i; } return -1; };
+  const ringFirstFree = () => { const k = ringNextFree(ringSlots(), (S.ringPath || [])[0]); return k < 0 ? (S.ringPath || [0])[0] : k; };
   // the ring's profiles, from the panel head: switch, add one, or remove the one in use
   function ringProfileMenu() {
     const rs = ringState(), cur = rs.profiles[rs.active];
@@ -2096,7 +2099,7 @@
         const i = Number(key); S.menu = null;
         const slots = ringSlots(), had = slots[i];
         // the slot becomes a folder; an action already there moves inside as its first one
-        slots[i] = { action: { type: 'folder', label: 'New folder', slots: had && !isFolderSlot(had) ? [had] : [] }, label: 'New folder', icon: 'fa-folder' };
+        slots[i] = { action: { type: 'folder', label: 'New folder', slots: had && !isFolderSlot(had) ? Object.assign(Array(8).fill(null), { [i]: had }) : [] }, label: 'New folder', icon: 'fa-folder' };
         await saveRingSlots(slots);
         S.ringPath = [i]; ringSelect(ringFirstFree()); render();
         setTimeout(() => { const n = root.querySelector('.folder-name'); if (n) { n.focus(); n.select(); } }, 180);
