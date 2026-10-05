@@ -3,8 +3,10 @@
 // or a click outside closes. Held on a button that steers it (raw mode), the pointer is hidden
 // and frozen and the mouse picks by direction: a nudge past DEAD chooses the button that way,
 // the highlight is the only indicator, and letting go runs it.
-// A folder slot opens its own ring in place (the middle, or Esc, goes back up). The wheel over
-// an adjustable slot (volume, brightness, zoom, tracks) steps it without closing the ring.
+// A folder slot keeps the ring in view and fans its actions out on a bigger circle beside it, the
+// first in the folder's own direction, the next a little to one side then the other (the middle,
+// the folder again, or Esc closes it). The wheel over an adjustable slot (volume, brightness,
+// zoom, tracks) steps it without closing the ring.
 (() => {
   const N = 8;
   const BASE = { RW: 560, RH: 460, RR: 104, B: 28, NEAR: 38, FAR: 250 };
@@ -92,22 +94,39 @@
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
+  // a folder's actions: an ordered list fanned out around the folder's direction on a bigger circle
+  const FAN = [0, -30, 30, -60, 60, -90, 90, -120];   // degrees from the folder's direction, counter-clockwise first
+  const FAN_R = 1.95;                                  // the outer circle, times the ring's radius
+  const fanAng = j => ang(stack[0]) + FAN[j] * Math.PI / 180;
+  // where a button of the level shown sits: on the ring, or on the open folder's fan
+  const posOf = i => { const a = stack.length ? fanAng(i) : ang(i), r = stack.length ? RR * FAN_R : RR; return { a, r, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) }; };
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
   function build(still) {
     slotsEl.classList.toggle('moved', !!still);
     hubIcon();
-    slotsEl.innerHTML = slots.map((s, i) => {
+    let html = '';
+    if (stack.length) {
+      // the ring the folder belongs to stays in view, dimmed, the open folder lit
+      const f = stack[0];
+      html += root.map((s, i) => {
+        if (!s) return '';
+        const c = Math.cos(ang(i)), sn = Math.sin(ang(i)), folder = s.action && s.action.type === 'folder';
+        return `<div class="bub parent ${i === f ? 'open' : ''} ${folder ? 'folder' : ''}" data-p="${i}" style="left:${(CX + RR * c).toFixed(1)}px;top:${(CY + RR * sn).toFixed(1)}px;--a:${i * 45 - 90}deg;--i:0;--dx:0px;--dy:0px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
+      }).join('');
+    }
+    const fx = stack.length ? CX + RR * Math.cos(ang(stack[0])) : CX, fy = stack.length ? CY + RR * Math.sin(ang(stack[0])) : CY;
+    html += slots.map((s, i) => {
       if (!s) return '';   // an empty slot is not drawn at all
-      const c = Math.cos(ang(i)), sn = Math.sin(ang(i));
-      const bx = CX + RR * c, by = CY + RR * sn;
+      const { a, r, x: bx, y: by } = posOf(i), c = Math.cos(a), sn = Math.sin(a);
       const folder = s.action && s.action.type === 'folder';
-      // each button springs out from the middle, one after another around the ring
-      const bub = `<div class="bub ${folder ? 'folder' : ''}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${i * 45 - 90}deg;--i:${i};--dx:${(-RR * c).toFixed(0)}px;--dy:${(-RR * sn).toFixed(0)}px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
+      // each button springs out from the middle (or, in a folder, from the folder), one after another
+      const bub = `<div class="bub ${folder ? 'folder' : ''} ${stack.length ? 'fan' : ''}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${(a * 180 / Math.PI).toFixed(1)}deg;--i:${i};--dx:${(fx - bx).toFixed(0)}px;--dy:${(fy - by).toFixed(0)}px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
       // the label sits outside the bubble, growing away from the ring
-      const lx = CX + (RR + B + 16) * c, ly = CY + (RR + B + 16) * sn;
+      const lx = CX + (r + B + 16) * c, ly = CY + (r + B + 16) * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
       return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(s.label)}${folder ? ' <i class="fa-solid fa-chevron-right lab-more"></i>' : ''}</div>`;
     }).join('');
+    slotsEl.innerHTML = html;
     setHover(-1);
   }
   function setHover(i) {
@@ -115,43 +134,16 @@
     hover = i;
     slotsEl.querySelectorAll('.bub, .lab').forEach(w => w.classList.toggle('on', Number(w.dataset.i) === i));
   }
-  // the middle: close on the top ring; inside a folder it is the folder, and pointing at it shows the way back
-  function hubIcon() {
-    hub.classList.toggle('folder', stack.length > 0);
-    hub.querySelector('i').className = 'fa-solid ' + (!stack.length ? 'fa-xmark' : hub.classList.contains('on') ? 'fa-arrow-left' : 'fa-folder-open');
-  }
-  // the ring's middle moves (into a folder and back), kept fully on screen
-  function moveCentre(x, y) {
-    CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
-    hub.style.left = CX + 'px'; hub.style.top = CY + 'px';
-    note.style.left = CX + 'px'; note.style.top = (CY - NEAR - 14) + 'px';
-  }
-  // into a folder: the folder stays where it is and becomes the middle, everything else fades away,
-  // and its actions spring out around it; back up: the ring it came from, around its own middle
-  const centres = [];
-  let moving = false;
+  // the middle: close on the top ring, back out of an open folder
+  function hubIcon() { hub.querySelector('i').className = 'fa-solid ' + (stack.length ? 'fa-arrow-left' : 'fa-xmark'); }
+  // a folder: its actions fan out beside it on the outer circle; the ring stays where it is
   function enter(i) {
-    if (moving) return;
-    const a = ang(i), fx = CX + RR * Math.cos(a), fy = CY + RR * Math.sin(a), label = slots[i].label;
-    const next = pad(slots[i].action.slots);
-    slotsEl.querySelectorAll('.bub, .lab').forEach(el => el.classList.add(Number(el.dataset.i) === i && el.classList.contains('bub') ? 'to-centre' : 'leaving'));
-    hub.classList.add('leaving');
-    centres.push([CX, CY]); stack.push(i);
-    dial = null; vx = vy = 0; hover = -1; moving = true;
-    setTimeout(() => {
-      moving = false; slots = next;
-      hub.classList.add('instant'); moveCentre(fx, fy); hub.classList.remove('on');
-      build(); void hub.offsetWidth; hub.classList.remove('leaving', 'instant');
-      if (label) { note.textContent = label; note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }
-    }, 170);
+    stack = [i]; slots = pad(slots[i].action.slots); dial = null; vx = vy = 0;
+    build(); hub.classList.remove('on');
   }
   function up() {
-    if (moving) return;
-    stack.pop(); const c = centres.pop() || [CX, CY];
-    let list = root; for (const k of stack) list = pad(list[k].action.slots);
-    slots = list; dial = null; vx = vy = 0;
-    hub.classList.add('instant'); moveCentre(c[0], c[1]); hub.classList.remove('on');
-    build(); void hub.offsetWidth; hub.classList.remove('instant');
+    stack = []; slots = root; dial = null; vx = vy = 0;
+    build(true); hub.classList.remove('on');
   }
   // run what is chosen, or open it when it is a folder
   function choose(i) {
@@ -164,8 +156,27 @@
   // pointer mode: which button is meant by (x, y); -1 on the middle button or outside
   function at(x, y) {
     const dx = x - CX, dy = y - CY, d = Math.hypot(dx, dy);
-    if (d < NEAR || d > FAR) return -1;
+    if (d < NEAR) return -1;
+    if (stack.length) {
+      let best = -1, bd = B * 1.7;
+      slots.forEach((s, i) => { if (!s) return; const p = posOf(i), dd = Math.hypot(x - p.x, y - p.y); if (dd < bd) { bd = dd; best = i; } });
+      return best;
+    }
+    if (d > FAR) return -1;
     return wedge(dx, dy);
+  }
+  // in a folder: a button of the ring under the pointer (another one closes the fan and is chosen)
+  function parentAt(x, y) {
+    if (!stack.length) return -1;
+    let best = -1, bd = B * 1.3;
+    root.forEach((s, i) => { if (!s) return; const px = CX + RR * Math.cos(ang(i)), py = CY + RR * Math.sin(ang(i)), dd = Math.hypot(x - px, y - py); if (dd < bd) { bd = dd; best = i; } });
+    return best;
+  }
+  // steering in a folder: the fan button whose direction is closest, within half a step of it
+  function fanToward(dx, dy) {
+    const a = Math.atan2(dy, dx); let best = -1, bd = 22 * Math.PI / 180;
+    slots.forEach((s, i) => { if (!s) return; let diff = Math.abs(a - fanAng(i)) % (2 * Math.PI); if (diff > Math.PI) diff = 2 * Math.PI - diff; if (diff < bd) { bd = diff; best = i; } });
+    return best;
   }
   document.addEventListener('mousemove', e => {
     if (waiting) { tell('pointer event', e.clientX, e.clientY); centreAt(e.clientX, e.clientY); settleUntil = performance.now() + SETTLE_MS; settled = 0; return; }   // first sight of the pointer: the ring goes there
@@ -181,7 +192,7 @@
       }
     }
     last = [e.clientX, e.clientY];
-    hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR); if (stack.length) hubIcon();
+    hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
     const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i);
   });
   // the wheel: sets a volume slot (shown out of 100), steps brightness, zoom or tracks
@@ -201,8 +212,13 @@
     if (raw) { if (hover >= 0 && slots[hover]) choose(hover); else if (stack.length) up(); return; }   // a click while steering picks the highlighted button
     const i = at(e.clientX, e.clientY);
     if (i >= 0 && slots[i]) { choose(i); return; }
-    // the middle button goes back up out of a folder; elsewhere it (or outside) closes
-    if (stack.length && Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR) { up(); return; }
+    // in a folder: the middle or the folder itself closes the fan; another ring button is chosen
+    if (stack.length) {
+      if (Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR) { up(); return; }
+      const p = parentAt(e.clientX, e.clientY);
+      if (p === stack[0]) { up(); return; }
+      if (p >= 0) { up(); choose(p); return; }
+    }
     window.ring.close();
   });
   // letting go of the click keeps the level and brings the ring back
@@ -218,7 +234,7 @@
   });
   // Next ring profile: the same ring, the next profile's actions, its name shown for a moment
   window.ring.onSlots(({ slots: next, name }) => {
-    root = pad(next); stack = []; centres.length = 0; slots = root; dial = null; vx = vy = 0;
+    root = pad(next); stack = []; slots = root; dial = null; vx = vy = 0;
     build();
     if (name) { note.textContent = name; note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }
   });
@@ -232,7 +248,7 @@
     const s = Math.max(0.6, Math.min(1.6, Number(msg.scale) || 1));
     rootEl.style.setProperty('--s', s);
     RW = BASE.RW * s; RH = BASE.RH * s; RR = BASE.RR * s; B = BASE.B * s; NEAR = BASE.NEAR * s; FAR = BASE.FAR * s;
-    root = pad(msg.slots); stack = []; centres.length = 0; slots = root;
+    root = pad(msg.slots); stack = []; slots = root;
     shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on'); note.classList.remove('show'); document.body.classList.remove('vol-focus');
@@ -254,8 +270,8 @@
     vx += dx * GAIN; vy += dy * GAIN;
     const d = Math.hypot(vx, vy);
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
-    const i = Math.hypot(vx, vy) < DEAD ? -1 : wedge(vx, vy);
-    hub.classList.toggle('on', i < 0); if (stack.length) hubIcon();
+    const i = Math.hypot(vx, vy) < DEAD ? -1 : stack.length ? fanToward(vx, vy) : wedge(vx, vy);
+    hub.classList.toggle('on', i < 0);
     if (i !== hover) setHover(i);
   });
   // the button that opened the ring was released: run what is chosen; a quick tap with nothing
