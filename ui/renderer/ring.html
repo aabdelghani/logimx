@@ -38,6 +38,13 @@
     .lab.on { opacity: 1; box-shadow: 0 0 0 2px var(--acc), 0 6px 18px rgba(0,0,0,.28); }
     #hub { position: absolute; left: 50%; top: 50%; width: calc(40px * var(--s, 1)); height: calc(40px * var(--s, 1)); margin: calc(-20px * var(--s, 1)) 0 0 calc(-20px * var(--s, 1)); display: none; border-radius: 50%; background: var(--hub); color: var(--hub-fg); display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.2); transition: transform .09s; }
     #hub.on { transform: scale(1.12); }
+    /* into a folder: everything but the folder fades away; the folder stays put and becomes the middle */
+    .bub.leaving, .lab.leaving { opacity: 0 !important; scale: .6; transition: opacity .15s ease-out, scale .15s ease-out; pointer-events: none; }
+    .bub.to-centre { background: var(--acc); color: var(--acc-fg); }
+    #hub { transition: transform .09s, opacity .15s ease-out; }
+    #hub.leaving { opacity: 0; }
+    #hub.instant { transition: none; }
+    #hub.folder { width: calc(56px * var(--s, 1)); height: calc(56px * var(--s, 1)); margin: calc(-28px * var(--s, 1)) 0 0 calc(-28px * var(--s, 1)); background: var(--acc); color: var(--acc-fg); font-size: calc(21px * var(--s, 1)); box-shadow: 0 6px 18px rgba(0,0,0,.28); animation: none; }
     /* a folder: a small folder mark on its bubble, a chevron after its name */
     .bub.folder { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 3px var(--card), 0 0 0 5px var(--acc); }
     .lab .lab-more { font-size: 11px; opacity: .6; margin-left: 4px; }

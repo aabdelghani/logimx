@@ -95,7 +95,7 @@
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
   function build(still) {
     slotsEl.classList.toggle('moved', !!still);
-    hub.querySelector('i').className = 'fa-solid ' + (stack.length ? 'fa-arrow-left' : 'fa-xmark');
+    hubIcon();
     slotsEl.innerHTML = slots.map((s, i) => {
       if (!s) return '';   // an empty slot is not drawn at all
       const c = Math.cos(ang(i)), sn = Math.sin(ang(i));
@@ -115,16 +115,43 @@
     hover = i;
     slotsEl.querySelectorAll('.bub, .lab').forEach(w => w.classList.toggle('on', Number(w.dataset.i) === i));
   }
-  // into a folder: its own ring in the same place; back up: the ring it came from
+  // the middle: close on the top ring; inside a folder it is the folder, and pointing at it shows the way back
+  function hubIcon() {
+    hub.classList.toggle('folder', stack.length > 0);
+    hub.querySelector('i').className = 'fa-solid ' + (!stack.length ? 'fa-xmark' : hub.classList.contains('on') ? 'fa-arrow-left' : 'fa-folder-open');
+  }
+  // the ring's middle moves (into a folder and back), kept fully on screen
+  function moveCentre(x, y) {
+    CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
+    hub.style.left = CX + 'px'; hub.style.top = CY + 'px';
+    note.style.left = CX + 'px'; note.style.top = (CY - NEAR - 14) + 'px';
+  }
+  // into a folder: the folder stays where it is and becomes the middle, everything else fades away,
+  // and its actions spring out around it; back up: the ring it came from, around its own middle
+  const centres = [];
+  let moving = false;
   function enter(i) {
-    stack.push(i); slots = pad(slots[i].action.slots); dial = null; vx = vy = 0;
-    build(); hub.classList.remove('on');
+    if (moving) return;
+    const a = ang(i), fx = CX + RR * Math.cos(a), fy = CY + RR * Math.sin(a), label = slots[i].label;
+    const next = pad(slots[i].action.slots);
+    slotsEl.querySelectorAll('.bub, .lab').forEach(el => el.classList.add(Number(el.dataset.i) === i && el.classList.contains('bub') ? 'to-centre' : 'leaving'));
+    hub.classList.add('leaving');
+    centres.push([CX, CY]); stack.push(i);
+    dial = null; vx = vy = 0; hover = -1; moving = true;
+    setTimeout(() => {
+      moving = false; slots = next;
+      hub.classList.add('instant'); moveCentre(fx, fy); hub.classList.remove('on');
+      build(); void hub.offsetWidth; hub.classList.remove('leaving', 'instant');
+      if (label) { note.textContent = label; note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }
+    }, 170);
   }
   function up() {
-    stack.pop();
+    if (moving) return;
+    stack.pop(); const c = centres.pop() || [CX, CY];
     let list = root; for (const k of stack) list = pad(list[k].action.slots);
     slots = list; dial = null; vx = vy = 0;
-    build(); hub.classList.remove('on');
+    hub.classList.add('instant'); moveCentre(c[0], c[1]); hub.classList.remove('on');
+    build(); void hub.offsetWidth; hub.classList.remove('instant');
   }
   // run what is chosen, or open it when it is a folder
   function choose(i) {
@@ -154,7 +181,7 @@
       }
     }
     last = [e.clientX, e.clientY];
-    hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR);
+    hub.classList.toggle('on', Math.hypot(e.clientX - CX, e.clientY - CY) < NEAR); if (stack.length) hubIcon();
     const i = at(e.clientX, e.clientY); if (i !== hover) setHover(i);
   });
   // the wheel: sets a volume slot (shown out of 100), steps brightness, zoom or tracks
@@ -191,7 +218,7 @@
   });
   // Next ring profile: the same ring, the next profile's actions, its name shown for a moment
   window.ring.onSlots(({ slots: next, name }) => {
-    root = pad(next); stack = []; slots = root; dial = null; vx = vy = 0;
+    root = pad(next); stack = []; centres.length = 0; slots = root; dial = null; vx = vy = 0;
     build();
     if (name) { note.textContent = name; note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }
   });
@@ -205,7 +232,7 @@
     const s = Math.max(0.6, Math.min(1.6, Number(msg.scale) || 1));
     rootEl.style.setProperty('--s', s);
     RW = BASE.RW * s; RH = BASE.RH * s; RR = BASE.RR * s; B = BASE.B * s; NEAR = BASE.NEAR * s; FAR = BASE.FAR * s;
-    root = pad(msg.slots); stack = []; slots = root;
+    root = pad(msg.slots); stack = []; centres.length = 0; slots = root;
     shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on'); note.classList.remove('show'); document.body.classList.remove('vol-focus');
@@ -228,7 +255,7 @@
     const d = Math.hypot(vx, vy);
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
     const i = Math.hypot(vx, vy) < DEAD ? -1 : wedge(vx, vy);
-    hub.classList.toggle('on', i < 0);
+    hub.classList.toggle('on', i < 0); if (stack.length) hubIcon();
     if (i !== hover) setHover(i);
   });
   // the button that opened the ring was released: run what is chosen; a quick tap with nothing
