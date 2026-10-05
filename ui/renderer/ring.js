@@ -94,19 +94,16 @@
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
-  // a folder's actions: an ordered row along a crescent around the folder, centred on the folder's
-  // direction; with more of them the crescent grows into a bigger circle so they stay apart
+  // a folder's actions: an ordered row on a second circle around the same middle as the ring, twice
+  // its radius and spaced like the ring's own buttons, centred on the folder's direction
   let fanOrder = [], fanN = 0;
   function fanLayout() { fanOrder = []; fanN = 0; slots.forEach((x, i) => { if (x) fanOrder[i] = fanN++; }); }
-  const fanGeom = () => { const n = Math.max(1, fanN); let step = 34; if ((n - 1) * step > 170) step = 170 / (n - 1); return { step, r: Math.min(RR * 1.8, Math.max(RR, RR * 34 / step)) }; };
-  const fanAng = i => ang(stack[0]) + ((fanOrder[i] ?? 0) - (fanN - 1) / 2) * fanGeom().step * Math.PI / 180;
-  // the open folder's own place: the middle of its crescent
-  const folderAt = () => ({ x: CX + RR * Math.cos(ang(stack[0])), y: CY + RR * Math.sin(ang(stack[0])) });
-  // where a button of the level shown sits: on the ring, or on the crescent around the open folder
+  const FAN_R = 2, FAN_STEP = 45 / FAN_R;   // same distance between neighbours as on the ring
+  const fanAng = i => ang(stack[0]) + ((fanOrder[i] ?? 0) - (fanN - 1) / 2) * FAN_STEP * Math.PI / 180;
+  // where a button of the level shown sits: on the ring, or on the outer circle of the open folder
   const posOf = i => {
-    if (!stack.length) { const a = ang(i); return { a, r: RR, cx: CX, cy: CY, x: CX + RR * Math.cos(a), y: CY + RR * Math.sin(a) }; }
-    const a = fanAng(i), r = fanGeom().r, f = folderAt();
-    return { a, r, cx: f.x, cy: f.y, x: f.x + r * Math.cos(a), y: f.y + r * Math.sin(a) };
+    const a = stack.length ? fanAng(i) : ang(i), r = stack.length ? RR * FAN_R : RR;
+    return { a, r, cx: CX, cy: CY, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
   };
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
   function build(still) {

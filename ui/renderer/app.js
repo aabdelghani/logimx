@@ -1126,7 +1126,7 @@
     const anim = S.ringAnim; S.ringAnim = null;
     const at = anim ? (() => { const a = (anim.from * 45 - 90) * Math.PI / 180; return { x: 30 * Math.cos(a), y: 30 * Math.sin(a) }; })() : null;
     let order = 0;
-    const parts = f ? ringFolderRow(slots) : slots.map((sl, i) => {
+    const parts = f ? ringParentRing(top) + ringFolderRow(slots) : slots.map((sl, i) => {
       const k = order++;
       const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
@@ -1139,7 +1139,7 @@
         (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, !!f) : '');
     }).join('');
     // in a folder the middle is the folder itself; its name and the way back are top-left
-    const hub = f ? `<div class="rs-hub folder-hub" title="${esc(f.label || 'Folder')}"><i class="fa-solid fa-folder-open"></i></div>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
+    const hub = f ? `<button class="rs-hub back" data-act="ring-up" title="Back to the ring"><i class="fa-solid fa-arrow-left"></i></button>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
     const where = !f && ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
     const animCls = anim ? (anim.kind === 'in' ? 'anim-in' : 'anim-out') : '', animVars = at ? `style="--fx:${at.x.toFixed(1)}%;--fy:${at.y.toFixed(1)}%"` : '';
     return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${parts}${hub}</div></div>`;
@@ -1147,15 +1147,27 @@
   // A folder's page: its actions in order along a crescent around the folder, centred on the folder's
   // direction, with an Add at each end (the start puts the new action first, the end last); with
   // more of them the crescent grows into a bigger circle so they stay apart
+  // In a folder's page the ring is drawn as the real ring shows it: the inner ring smaller and dimmed
+  // with the folder lit, the folder's actions on a second circle around the same middle (twice the
+  // radius, spaced like the ring's buttons), in a row centred on the folder's direction with an Add
+  // at each end (the start puts a new action first, the end last)
+  const RING_IN = 20, RING_OUT = 40;   // radii in % of the drawing, the outer twice the inner
+  function ringParentRing(top) {
+    const open = S.ringPath[0];
+    return top.map((sl, i) => {
+      if (!sl && i !== open) return '';
+      const a = (i * 45 - 90) * Math.PI / 180, x = 50 + RING_IN * Math.cos(a), y = 50 + RING_IN * Math.sin(a);
+      return `<button class="rs-chip parent ${i === open ? 'open' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="rs-parent" data-key="${i}" title="${esc(sl ? sl.label : RING_DIRS[i])}"><i class="fa-solid ${esc((sl && sl.icon) || 'fa-folder')}"></i></button>`;
+    }).join('');
+  }
   function ringFolderRow(slots) {
     const items = []; slots.forEach((sl, i) => { if (sl) items.push(i); });
     const full = items.length >= 8;
     const row = full ? items.map(i => ({ i })) : items.length ? [{ add: 'start' }].concat(items.map(i => ({ i })), [{ add: 'end' }]) : [{ add: 'end' }];
-    const m = row.length; let step = 34; if ((m - 1) * step > 170) step = 170 / (m - 1);
-    const r = Math.min(46, Math.max(30, 30 * 34 / step)), base = S.ringPath[0] * 45 - 90;
+    const m = row.length, step = 45 * RING_IN / RING_OUT, r = RING_OUT, base = S.ringPath[0] * 45 - 90;
     return row.map((it, k) => {
       const a = (base + (k - (m - 1) / 2) * step) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
-      const x = 50 + r * c, y = 50 + r * sn, lx = 50 + (r + 11) * c, ly = 50 + (r + 11) * sn;
+      const x = 50 + r * c, y = 50 + r * sn, lx = 50 + (r + 10) * c, ly = 50 + (r + 10) * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
       const pos = `left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}`, lpos = `left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty});--k:${k}`;
       if (it.add) {
@@ -1987,7 +1999,7 @@
     switch (act) {
       case 'page': go(b.dataset.page); return;
       case 'go-home':
-        if (S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; S.ringAnim = { kind: 'out', from: i }; ringSelect(i); render(); return; }
+        if (S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; ringSelect(i); render(); return; }
         // opened from a button's Configure: back to the mouse's Buttons, panel and all
         // with that button's actions open again on the right (the panel changes in place)
         if (S.cfgFrom && S.page === 'gestures') {
@@ -2162,6 +2174,13 @@
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-size': await saveRing({ size: key }); render(); return;
       case 'folder-rename': { const n = root.querySelector('.folder-name'); if (n) { n.focus(); n.select(); } return; }
+      case 'rs-parent': {
+        const i = Number(key), open = (S.ringPath || [])[0];
+        S.ringPath = []; S.menu = null;
+        if (i !== open && isFolderSlot(ringSlots()[i])) { S.ringPath = [i]; S.ringAnim = { kind: 'in', from: i }; ringSelectAdd(); }
+        else ringSelect(i);
+        render(); return;
+      }
       case 'rs-menu': S.menu = S.menu === 'rs:' + key ? null : 'rs:' + key; render(); return;
       case 'rs-folder': {
         const i = Number(key); S.menu = null;
@@ -2238,7 +2257,7 @@
         render(); return;
       }
       case 'ring-open-folder': S.ringAnim = { kind: 'in', from: S.picker.cid }; S.ringPath = [S.picker.cid]; ringSelectAdd(); render(); return;
-      case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; S.ringAnim = { kind: 'out', from: i }; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
+      case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
       case 'ring-app-drop': { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); render(); return; }
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;
       case 'ring-free': await saveRing({ free_pointer: !b.classList.contains('on') }); render(); return;

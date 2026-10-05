@@ -1081,8 +1081,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 @keyframes rs-pop-in { from { opacity: 0; scale: .35; } to { opacity: 1; scale: 1; } }
 @keyframes rs-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .rs-disc.anim-in .folder-hub { animation: rs-hub-glide .5s cubic-bezier(.65, 0, .35, 1) both; }
-.rs-disc.anim-in .rs-chip { animation: rs-pop-in .32s cubic-bezier(.2, .9, .3, 1.3) both; animation-delay: calc(.45s + var(--k, 0) * 55ms); }
-.rs-disc.anim-in .rs-lab { animation: rs-fade-in .25s ease-out both; animation-delay: calc(.52s + var(--k, 0) * 55ms); }
+.rs-disc.anim-in .rs-chip:not(.parent) { animation: rs-pop-in .32s cubic-bezier(.2, .9, .3, 1.3) both; animation-delay: calc(.08s + var(--k, 0) * 50ms); }
+.rs-disc.anim-in .rs-lab { animation: rs-fade-in .25s ease-out both; animation-delay: calc(.16s + var(--k, 0) * 50ms); }
 .rs-disc.anim-in::before { animation: rs-fade-in .4s ease-out .3s both; }
 /* back out: the folder glides from the middle back to its place, the rest of the ring fades in */
 @keyframes rs-back-home { from { left: 50%; top: 50%; } }
@@ -1095,3 +1095,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .devview2 .cfg-back .folder-name { field-sizing: content; min-width: 4ch; }   /* the box hugs the name, so the pencil sits right after it */
 /* a folder's page: its actions on a dashed crescent around the folder, not a full circle */
 .rs-disc.in-folder::before { display: none; }
+/* a folder's page: the inner ring as the real ring shows it, smaller and dimmed, the folder lit */
+.rs-chip.parent { scale: .78; opacity: .42; box-shadow: none; }
+.rs-chip.parent:hover { opacity: .8; }
+.rs-chip.parent.open { opacity: 1; background: var(--accbg); color: #fff; }
