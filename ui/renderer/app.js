@@ -2141,6 +2141,7 @@
   });
   window.agent.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; render(); } });
   window.agent.onFlowEvent(m => { if (!m) return; S.flowStatus = m.status; S.flowDetail = m.detail || ''; if (S.flow) { S.flow.status = m.status; S.flow.peer = !!m.peer; S.flow.running = !(m.status === 'stopped' || m.status === 'error' || m.status === 'installing'); if (m.status === 'stopped' && m.detail && /installed/i.test(m.detail)) S.flow.installed = true; } if (S.page === 'flow') { flowRefresh(); } });
+  window.agent.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') render(); });
   window.agent.onBt(m => {
     const p = S.pair, b = p && p.bt;
     if (!b || S.dlg !== 'pair') return;

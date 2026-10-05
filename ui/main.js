@@ -816,7 +816,7 @@ const btFound = new Map();        // address -> { address, name, kind }, what th
 let btScan = null, btTimer = null, btPairing = null, btMode = null, btPairOpen = false;
 const stripAnsi = t => t.replace(/\x1b\[[0-9;]*m/g, '');
 const isLogiName = n => /^(MX[ -]|Logi|Logitech|Signature|Lift|ERGO|Pebble|POP |[KM]\d{3}\b)/i.test(n || '');
-const btEmit = data => notify('bt-event', data);
+const btEmit = data => { notify('bt-event', data); if (btPopWin && !btPopWin.isDestroyed()) btPopWin.webContents.send('bt-event', data); };
 function btInfo(addr) {
   return new Promise(res => execFile('bluetoothctl', ['info', addr], { timeout: 4000 }, (err, out) => {
     if (err) return res(null);
@@ -843,17 +843,66 @@ async function btCandidate(addr, nameHint) {
   if (btMode !== 'watch') return;
   const seen = btNotified.get(addr);
   if (seen && Date.now() - seen < BT_RENOTIFY_MS) return;
+  if (btPopShown()) return;   // one device at a time; the next is offered when this one is done
   btNotified.set(addr, Date.now());
-  if (!Notification.isSupported()) return;
-  const n = new Notification({
-    title: `${name} is ready to connect`,
-    body: `It is in pairing mode. Click to connect it to this computer.`,
-    icon: path.join(__dirname, 'assets', dev.kind === 'keyboard' ? 'full-keyboard.png' : 'full-mouse.png'),
-    urgency: 'normal',
-  });
-  n.on('click', () => btPair(addr, name));
-  n.show();
+  btPopShow(dev);
 }
+// The pop-up for a device in pairing mode. It takes the keyboard, since the mouse being paired may
+// be the only one: Tab between Connect, Not now and Turn off, Enter to choose, Esc to close.
+const BTPOP_W = 540, BTPOP_H = 250;
+let btPopWin = null, btPopDev = null, btPopTimer = null;
+const btPopShown = () => !!(btPopWin && !btPopWin.isDestroyed() && btPopWin.isVisible());
+// a photo of the model when its name says which one it is
+function btPhoto(name) {
+  const n = name || '';
+  const f = /Master 4/i.test(n) ? 'b042.png' : /Master/i.test(n) ? 'b034.png' : /Keys/i.test(n) ? 'b378.png' : null;
+  return f && fs.existsSync(path.join(__dirname, 'assets', 'devices', f)) ? '../assets/devices/' + f : null;
+}
+function ensureBtPop() {
+  if (btPopWin && !btPopWin.isDestroyed()) return btPopWin;
+  btPopWin = new BrowserWindow({
+    width: BTPOP_W, height: BTPOP_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false, focusable: true,
+    title: 'LogiMX: connect a device',
+    webPreferences: { preload: path.join(__dirname, 'preload-btpop.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  btPopWin.setAlwaysOnTop(true, 'pop-up-menu');
+  btPopWin.loadFile(path.join(__dirname, 'renderer', 'btpop.html'));
+  btPopWin.on('closed', () => { btPopWin = null; });
+  return btPopWin;
+}
+async function btPopShow(dev) {
+  const w = ensureBtPop();
+  btPopDev = dev;
+  // centred on the screen with the pointer, a little above the middle
+  const at = await cursorPoint().catch(() => screen.getCursorScreenPoint());
+  const area = screen.getDisplayNearestPoint(at).workArea;
+  w.setBounds({ x: Math.round(area.x + (area.width - BTPOP_W) / 2), y: Math.round(area.y + area.height * 0.38 - BTPOP_H / 2), width: BTPOP_W, height: BTPOP_H });
+  const look = await systemLook().catch(() => ({}));
+  const send = () => w.webContents.send('btpop-show', { device: dev, look, photo: btPhoto(dev.name) });
+  if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
+  w.show(); w.moveTop(); w.focus();
+  clearTimeout(btPopTimer);
+  btPopTimer = setTimeout(() => { if (!btPairing) btPopHide(); }, 60000);   // left alone for a minute: it goes away
+}
+function btPopHide() {
+  clearTimeout(btPopTimer); btPopTimer = null; btPopDev = null;
+  if (btPopWin && !btPopWin.isDestroyed()) btPopWin.hide();
+}
+// preview, like the overlay test: a pretend device, and its states on request
+ipcMain.handle('btpop-test', (_e, stage) => {
+  const dev = { address: '00:00:00:00:00:00', name: stage && stage.name || 'MX Master 3S', kind: stage && stage.kind || 'mouse' };
+  if (!stage || stage.state === 'show') return btPopShow(dev);
+  btEmit(Object.assign({ type: 'pair', address: dev.address, name: dev.name }, stage));
+});
+ipcMain.on('btpop-act', (_e, { action, address }) => {
+  if (action === 'connect' && address) { const d = btFound.get(address) || btPopDev; if (d) btPair(address, d.name); return; }
+  if (action === 'off') {
+    uiSettings = uiSettings || loadUi(); uiSettings.bt_watch = false; saveUi(uiSettings);
+    notify('ui-changed', uiSettings);
+    btSetMode();
+  }
+  btPopHide();
+});
 // one bluetoothctl session: LE only, discoverable devices only. Devices BlueZ already knows are
 // listed when it starts; only what arrives after "Discovery started" is a device seen now.
 function btStartScan() {
@@ -911,8 +960,8 @@ function btPair(addr, name) {
   const dev = btFound.get(addr) || { address: addr, name };
   btPairing = addr;
   clearTimeout(btTimer); btTimer = null; btStopScan(); btMode = null;
-  const quiet = btPairOpen && win && !win.isDestroyed() && win.isVisible();   // the dialog shows progress itself
-  const say = (title, body) => { if (!quiet && Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); };
+  const quiet = () => (btPairOpen && win && !win.isDestroyed() && win.isVisible()) || btPopShown();   // the dialog or the pop-up shows progress itself
+  const say = (title, body) => { if (!quiet() && Notification.isSupported()) new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png') }).show(); };
   const state = (s, extra) => btEmit(Object.assign({ type: 'pair', address: addr, name, state: s }, extra || {}));
   state('pairing'); say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
   let p;
@@ -925,6 +974,7 @@ function btPair(addr, name) {
     if (ok) {
       btNotified.set(addr, Date.now() + 24 * 3600e3); btFound.delete(addr);
       state('connected'); say(`${name} is connected`, 'LogiMX picks it up in a moment.');
+      if (btPopShown()) { clearTimeout(btPopTimer); btPopTimer = setTimeout(btPopHide, 2600); }
     } else {
       why = why || 'Put it back in pairing mode and try again.';
       state('failed', { why }); say(`Could not connect ${name}`, why);

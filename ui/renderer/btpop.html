@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self';">
+  <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+  <style>
+    :root, [data-theme="light"] { --bg: #ffffff; --fg: #1b1c1f; --dim: rgba(0,0,0,.6); --brd: rgba(0,0,0,.1); --btn: rgba(0,0,0,.07); --btn-h: rgba(0,0,0,.12); --acc: #3584e4; --acc-fg: #fff; --err: #c01c28; }
+    [data-theme="dark"] { --bg: #2b2c31; --fg: #fff; --dim: rgba(255,255,255,.65); --brd: rgba(255,255,255,.12); --btn: rgba(255,255,255,.1); --btn-h: rgba(255,255,255,.16); --acc: #3584e4; --acc-fg: #fff; --err: #ff7b72; }
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+    body { font: 500 15px system-ui, Cantarell, "Ubuntu", "Noto Sans", sans-serif; color: var(--fg); user-select: none; -webkit-user-select: none; }
+    .card { position: absolute; inset: 10px; background: var(--bg); border: 1px solid var(--brd); border-radius: 16px; box-shadow: 0 12px 34px rgba(0,0,0,.32); display: flex; gap: 18px; padding: 20px 22px; box-sizing: border-box; animation: in .22s cubic-bezier(.2,.9,.3,1.2) both; }
+    @keyframes in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+    .photo { flex: none; width: 112px; display: flex; align-items: center; justify-content: center; }
+    .photo img { max-width: 112px; max-height: 120px; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,.25)); }
+    .photo i { font-size: 54px; color: var(--acc); }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--acc); }
+    .tag i { font-size: 12px; }
+    h1 { font-size: 19px; margin: 6px 0 4px; line-height: 1.25; }
+    p { margin: 0; color: var(--dim); font-size: 14px; line-height: 1.4; }
+    .digits { font-size: 34px; font-weight: 700; letter-spacing: .22em; font-variant-numeric: tabular-nums; margin: 6px 0 2px; color: var(--fg); }
+    .err { color: var(--err); }
+    .row { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 14px; }
+    button { white-space: nowrap; font: 600 14px inherit; font-family: inherit; border: 0; border-radius: 9px; padding: 9px 16px; cursor: pointer; background: var(--btn); color: var(--fg); outline: none; }
+    button:hover { background: var(--btn-h); }
+    button.primary { background: var(--acc); color: var(--acc-fg); }
+    button.primary:hover { filter: brightness(1.08); }
+    button.link { background: transparent; color: var(--dim); font-weight: 500; padding: 9px 8px; margin-left: auto; }
+    /* keyboard first: whatever Tab reaches is unmistakable */
+    button:focus-visible { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--acc); }
+    .keys { font-size: 12px; color: var(--dim); margin-top: 8px; }
+    .keys kbd { font: 600 11px inherit; font-family: inherit; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--brd); background: var(--btn); }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .card, .spin { animation: none; } }
+  </style>
+</head>
+<body>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="title" aria-describedby="text">
+    <div class="photo" id="photo"></div>
+    <div class="main">
+      <span class="tag" id="tag"><i class="fa-brands fa-bluetooth-b"></i>Bluetooth</span>
+      <h1 id="title"></h1>
+      <p id="text"></p>
+      <div class="row" id="row"></div>
+      <div class="keys" id="keys"><kbd>Tab</kbd> to move &nbsp; <kbd>Enter</kbd> to choose &nbsp; <kbd>Esc</kbd> to close</div>
+    </div>
+  </div>
+  <script src="btpop.js"></script>
+</body>
+</html>
