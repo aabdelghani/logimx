@@ -278,7 +278,7 @@ works the same on X11 and Wayland.
 agent/          C++20 agent: HID++ 1.0 and 2.0, actions, focus tracking, JSON RPC. One codebase:
                 Linux uses hidraw, uinput and a UNIX socket; Windows uses hidapi, SendInput and a
                 named pipe; macOS uses hidapi, Quartz events and a UNIX socket (src/platform/).
-ui/             Electron app in plain HTML, CSS and JavaScript.
+ui/             Electron app in plain HTML, CSS and JavaScript, built as MVVM (docs/ARCHITECTURE.md).
 logimx/         Python version of the agent with the same RPC and settings format, kept as a
                 reference and for scripting.
 udev/           Access rule for hidraw and uinput.
@@ -317,6 +317,8 @@ sudo cp udev/60-logimx.rules /etc/udev/rules.d/ && sudo udevadm control --reload
 ```
 
 Packages: `packaging/deb/build.sh` for the .deb, `cd ui && npm run dist:appimage` for the AppImage.
+
+Tests for the app: `cd ui && npm test` (shared logic, ring geometry and the MVVM layer rules).
 
 Windows (from Windows, or cross-compiled from Linux with [llvm-mingw](https://github.com/mstorsjo/llvm-mingw)):
 
