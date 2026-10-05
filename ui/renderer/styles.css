@@ -1037,3 +1037,6 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg) 60%, transparent); outline-offset: 3px; }
 .gs-cell.drop-on { background: var(--accbg) !important; color: #fff !important; transform: scale(1.06); }
 .gs-cell.drop-on .gs-d, .gs-cell.drop-on .gs-k { color: #fff !important; }
+/* a selected label on the photo: its text white on the accent box, whatever colours a changed or
+   app-specific action uses when it is not selected */
+.ms-lab.on .k, .ms-lab.on .d, .ms-lab.on .k::after { color: #fff !important; }
