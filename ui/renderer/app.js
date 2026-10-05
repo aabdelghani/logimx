@@ -183,6 +183,12 @@
   let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
   function render() {
     stopRecorder();
+    // the gestures and action ring page exists only as a mouse button's Configure view; reached any
+    // other way (another device, a lost way back) it gives way to the device's own first page
+    if (S.page === 'gestures') {
+      const gd = dev();
+      if (!gd || !isMouse(gd) || !S.cfgFrom) { S.cfgFrom = null; S.page = gd ? devicePages(gd)[0] : 'home'; }
+    }
     document.documentElement.setAttribute('data-theme', S.theme);
     const pageKey = `${S.mode}|${S.page}|${S.dev}|${S.appDetail ? S.appDetail.key : ''}|${S.devices.length ? 1 : 0}`;
     const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
