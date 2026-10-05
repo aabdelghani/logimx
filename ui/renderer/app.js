@@ -50,7 +50,7 @@
   const presetLabel = a => {
     if (!a || a === 'native') return 'Default';
     if (typeof a === 'string') return (S.presets && S.presets.all[a] || {}).label || a;
-    if (a.type === 'keystroke') return (a.keys || []).map(keyName).join(' + ');
+    if (a.type === 'keystroke') return a.label || (a.keys || []).map(keyName).join(' + ');
     if (a.type === 'command') return 'Run: ' + (a.cmd || '');
     if (a.type === 'gesture') return a.label || 'Custom gestures';
     if (a.type === 'launch') return 'Launch ' + (a.label || a.app);
@@ -1274,9 +1274,49 @@
   const RECOMMEND = { 10: ['Calculator'], 110: ['Show desktop'], 111: ['Lock screen'], 191: ['Screen capture', 'win_print_screen'], 199: ['Brightness down'], 200: ['Brightness up'], 212: ['Search'], 224: ['Task view'], 225: ['Notifications'], 226: ['Backlight down'], 227: ['Backlight up'], 228: ['Previous track'], 229: ['Play / Pause'], 230: ['Next track'], 231: ['Mute'], 232: ['Volume down'], 233: ['Volume up'], 234: ['Context menu'], 259: ['Dictation'], 264: ['Emoji menu', 'win_emoji'], 266: ['Screen snip'], 284: ['Mute microphone'] };
   // a mouse's buttons and thumb wheel: what Options+ recommends for each (recommendations_slot_win.json,
   // MX Master 3S), as LogiMX presets; its own function comes first as Default
-  const MOUSE_RECOMMEND = { 82: ['smartshift_toggle', 'overview', 'show_desktop', 'gesture_navigation', 'action_ring'], 83: ['copy', 'volume_down', 'undo', 'smartshift_toggle', 'action_ring'], 86: ['paste', 'volume_up', 'redo', 'smartshift_toggle', 'action_ring'],
-    195: ['gesture_navigation', 'overview', 'show_desktop', 'screenshot', 'app_switcher', 'smartshift_toggle', 'action_ring'], 196: ['overview', 'middle_click', 'gesture_navigation', 'screenshot', 'action_ring'], 416: ['action_ring', 'smartshift_toggle', 'overview', 'screenshot'],
+  const MOUSE_RECOMMEND = { 82: ['smartshift_toggle', 'overview', 'show_desktop', 'gesture_navigation', 'action_ring'], 83: ['copy', 'volume_down', 'undo', 'action_ring'], 86: ['paste', 'volume_up', 'redo', 'action_ring'],
+    195: ['gesture_navigation', 'overview', 'show_desktop', 'screenshot_area', 'screenshot', 'app_switcher', 'action_ring'], 196: ['overview', 'middle_click', 'gesture_navigation', 'screenshot_area', 'screenshot', 'action_ring'], 416: ['action_ring', 'smartshift_toggle', 'overview', 'screenshot'],
     thumb: ['zoom_wheel', 'volume_wheel', 'tabs_wheel'] };
+  // Options+ tailors the recommended list to the application being edited (Chrome, Word, Zoom, ...);
+  // these are the Linux equivalents. 'app:' items are ready-made keystrokes, the rest are presets.
+  const AK = (keys, label, icon) => ({ type: 'keystroke', keys, label, icon });
+  const AW = (plus, minus, label) => ({ type: 'adapter', step: 120, label, plus: { type: 'keystroke', keys: plus }, minus: { type: 'keystroke', keys: minus } });
+  const APP_ACTIONS = {
+    new_tab: AK(['KEY_LEFTCTRL', 'KEY_T'], 'New tab'), close_tab: AK(['KEY_LEFTCTRL', 'KEY_W'], 'Close tab'), reopen_tab: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_T'], 'Reopen closed tab'),
+    refresh: AK(['KEY_F5'], 'Refresh page'), save: AK(['KEY_LEFTCTRL', 'KEY_S'], 'Save'), find: AK(['KEY_LEFTCTRL', 'KEY_F'], 'Find'),
+    paste_special: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_V'], 'Paste special'), page_up: AK(['KEY_PAGEUP'], 'Page up'), page_down: AK(['KEY_PAGEDOWN'], 'Page down'),
+    slide_prev: AK(['KEY_PAGEUP'], 'Previous slide'), slide_next: AK(['KEY_PAGEDOWN'], 'Next slide'), start_show: AK(['KEY_F5'], 'Start slide show'),
+    zoom_mic: AK(['KEY_LEFTALT', 'KEY_A'], 'Mute / unmute microphone'), zoom_cam: AK(['KEY_LEFTALT', 'KEY_V'], 'Camera on / off'),
+    teams_mic: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_M'], 'Mute / unmute microphone'), teams_cam: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_O'], 'Camera on / off'),
+    back_forward_wheel: AW(['KEY_LEFTALT', 'KEY_RIGHT'], ['KEY_LEFTALT', 'KEY_LEFT'], 'Back / forward'), page_wheel: AW(['KEY_PAGEDOWN'], ['KEY_PAGEUP'], 'Page down / up'),
+    slide_wheel: AW(['KEY_PAGEDOWN'], ['KEY_PAGEUP'], 'Next / previous slide'), undo_redo_wheel: AW(['KEY_LEFTCTRL', 'KEY_Y'], ['KEY_LEFTCTRL', 'KEY_Z'], 'Redo / undo'),
+    text_size_wheel: AW(['KEY_LEFTCTRL', 'KEY_RIGHTBRACE'], ['KEY_LEFTCTRL', 'KEY_LEFTBRACE'], 'Text size'),
+  };
+  for (const [k, a] of Object.entries(APP_ACTIONS)) a.preset = 'app:' + k;   // so the list can tell which one is in use
+  const BROWSER = { name: 'browser', match: /chrom|firefox|edge|brave|vivaldi|opera|librewolf|zen/i,
+    thumb: ['tabs_wheel', 'zoom_wheel', 'app:back_forward_wheel', 'volume_wheel'], 82: ['app:refresh', 'app:new_tab', 'smartshift_toggle', 'action_ring'],
+    83: ['back', 'undo', 'copy', 'app:close_tab', 'app:new_tab'], 86: ['forward', 'redo', 'paste', 'app:reopen_tab', 'app:refresh', 'app:new_tab'],
+    195: ['gesture_navigation', 'app:refresh', 'app:close_tab', 'app:reopen_tab', 'app:new_tab', 'action_ring'], 196: ['middle_click', 'gesture_navigation', 'app:refresh', 'app:new_tab'] };
+  const OFFICE = { thumb: ['zoom_wheel', 'app:text_size_wheel', 'app:page_wheel', 'app:undo_redo_wheel'], 82: ['smartshift_toggle', 'app:paste_special', 'app:save', 'action_ring'],
+    83: ['undo', 'copy', 'paste', 'app:page_up', 'app:page_down'], 86: ['redo', 'paste', 'copy', 'app:page_down', 'app:page_up'],
+    195: ['gesture_navigation', 'app:save', 'app:find', 'app:paste_special', 'action_ring'], 196: ['middle_click', 'gesture_navigation', 'app:paste_special', 'app:save'] };
+  const CALL = (mic, cam) => ({ thumb: ['volume_wheel', 'brightness_wheel'], 82: [mic, cam, 'action_ring'], 83: [mic, cam], 86: [cam, mic], 195: ['gesture_navigation', mic, cam, 'action_ring'], 196: [mic, cam] });
+  const APP_SETS = [BROWSER,
+    Object.assign({ name: 'Writer', match: /libreoffice-writer|soffice.*writer/i }, OFFICE),
+    Object.assign({ name: 'Calc', match: /libreoffice-calc/i }, OFFICE),
+    { name: 'Impress', match: /libreoffice-impress/i, thumb: ['app:slide_wheel', 'zoom_wheel'], 82: ['app:start_show', 'action_ring'], 83: ['app:slide_prev', 'undo'], 86: ['app:slide_next', 'redo'], 195: ['gesture_navigation', 'app:start_show', 'action_ring'], 196: ['app:start_show', 'middle_click'] },
+    Object.assign({ name: 'Zoom', match: /zoom/i }, CALL('app:zoom_mic', 'app:zoom_cam')),
+    Object.assign({ name: 'Teams', match: /teams/i }, CALL('app:teams_mic', 'app:teams_cam'))];
+  // the set for the application profile being edited, if it has one
+  function appSet(p) {
+    const key = p && p.profile; if (!key || key === 'default') return null;
+    const prof = deviceProfiles(dev()).find(x => x.key === key);
+    const hay = [key].concat(prof ? prof.match : []).join(' ');
+    return APP_SETS.find(a => a.match.test(hay)) || null;
+  }
+  const appLabel = set => set.name === 'browser' ? 'For browsers' : 'For ' + set.name;
+  // an item of the list: a preset, or one of the ready-made keystrokes above
+  const recItem = k => k.startsWith('app:') ? { key: k, icon: (APP_ACTIONS[k.slice(4)].type === 'adapter' ? 'fa-arrows-up-down' : 'fa-keyboard'), label: APP_ACTIONS[k.slice(4)].label } : presetItem(k);
   const MOUSE_GROUP = ['middle_click', 'back', 'forward', 'dpi_cycle', 'smartshift_toggle', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'action_ring'];
   const WHEEL_GROUP = ['hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel', 'nothing'];
   const K = (code, label) => ({ code: 'KEY_' + code, label: label || code });
@@ -1351,7 +1391,7 @@
   const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
   const allowedFor = p => new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && (S.presets.all[k] || {}).type !== 'gesture')
     : p.section === 'gesture' ? Object.keys(S.presets.all).filter(k => GESTURE_TYPES.includes(S.presets.all[k].type))
-    : p.section === 'thumbwheel' ? S.presets.wheel.filter(k => k !== 'volume_dial') : p.section === 'buttons' ? S.presets.buttons.filter(k => k !== 'volume_dial' && ((S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy))) : S.presets.keys.filter(k => k !== 'action_ring' && k !== 'volume_dial'));
+    : p.section === 'thumbwheel' ? S.presets.wheel.filter(k => k !== 'volume_dial') : p.section === 'buttons' ? S.presets.buttons.filter(k => k !== 'volume_dial' && ((S.presets.all[k] || {}).type !== 'gesture' || (p.ctl && p.ctl.raw_xy))) : S.presets.keys.filter(k => k !== 'volume_dial'));
   function drawerItems(sec, p) {
     const ok = allowedFor(p || S.picker);
     return (OPTS_CATS[sec] || []).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
@@ -1381,12 +1421,20 @@
       // function; the fixed gesture presets give way to the button's own gestures
       const holdable = p.section === 'buttons' && !!(p.ctl && p.ctl.raw_xy);
       if (holdable) rows.push(presetItem('action_ring'), { key: 'gestures', icon: 'fa-hand-pointer', label: 'Gestures' });
-      if (mouse) for (const k of (MOUSE_RECOMMEND[p.cid] || [])) if (ok.has(k) && S.presets.all[k] && !(holdable && (k === 'action_ring' || S.presets.all[k].type === 'gesture'))) rows.push(presetItem(k));
+      const aset = mouse ? appSet(p) : null, list = aset ? (aset[p.section === 'thumbwheel' ? 'thumb' : p.cid] || MOUSE_RECOMMEND[p.cid] || []) : (MOUSE_RECOMMEND[p.section === 'thumbwheel' ? 'thumb' : p.cid] || []);
+      if (mouse) for (const k of list) {
+        if (k.startsWith('app:')) { rows.push(Object.assign(recItem(k), { meta: appLabel(aset) })); continue; }
+        if (ok.has(k) && S.presets.all[k] && !(holdable && (k === 'action_ring' || S.presets.all[k].type === 'gesture'))) rows.push(presetItem(k));
+      }
+      // 3. the thumb wheel: any two keystrokes, one for each way it turns
+      if (p.section === 'thumbwheel') rows.push({ key: 'wheel:keys', icon: 'fa-keyboard', label: 'Two keystrokes', meta: 'One each way' });
+      // 2. a key can open the action ring, as in Options+
+      if (!mouse && ok.has('action_ring')) rows.push(presetItem('action_ring'));
       if (p.section === 'thumbwheel') return `<div class="acts">${rows.map(i => actRow(p, i)).join('')}</div>`;
       const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
       // a button set to show the action ring gets a way straight to the ring's own settings
       // set to show the action ring: a way to the ring's own settings, tucked under that row
-      const ringCfg = p.section === 'buttons' && isRingAction(p.current) ? `<button class="act ring-cfg" data-act="ring-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure action ring</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
+      const ringCfg = (p.section === 'buttons' || !mouse) && isRingAction(p.current) ? `<button class="act ring-cfg" data-act="ring-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure action ring</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
       const gesturesOn = p.section === 'buttons' && !!p.current && (typeof p.current === 'string' ? (S.presets.all[p.current] || {}) : p.current).type === 'gesture';
       const gestRow = `<button class="act ${gesturesOn ? 'on' : ''}" data-act="pick-gestures"><i class="fa-solid fa-hand-pointer ic"></i><span class="t">Gestures</span><span class="m">Hold and swipe</span><i class="fa-solid fa-check chk"></i></button>` +
         (gesturesOn ? `<button class="act ring-cfg" data-act="gest-config"><i class="fa-solid fa-sliders ic"></i><span class="t">Configure gestures</span><i class="fa-solid fa-arrow-right more"></i></button>` : '');
@@ -1931,6 +1979,16 @@
       case 'pick-key': { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; root.querySelectorAll('.drawer .act').forEach(x => x.classList.toggle('on', x.dataset.act === 'pick-key' && x.dataset.key === key)); root.querySelectorAll('.drawer .kc').forEach(x => x.classList.toggle('on', x.dataset.key === key)); return; }
       case 'pick-cat': S.picker.cat = key; S.picker.recording = key === 'key'; render(); return;
       case 'pick-item':
+        if (key.startsWith('app:')) return assignPicked(JSON.parse(JSON.stringify(APP_ACTIONS[key.slice(4)])));
+        if (key === 'wheel:keys') {
+          const typedKeys = t => t.trim() ? t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) : null;
+          prompt('Two keystrokes', [{ key: 'up', label: 'Turning one way', placeholder: 'ctrl+tab' }, { key: 'down', label: 'Turning the other way', placeholder: 'ctrl+shift+tab' }], async v => {
+            const plus = typedKeys(v.up || ''), minus = typedKeys(v.down || '');
+            if (!plus || !minus) { toast('Type a keystroke for each way', true); return render(); }
+            await assignPicked({ type: 'adapter', step: 120, label: `${plus.map(keyName).join(' + ')} / ${minus.map(keyName).join(' + ')}`, plus: { type: 'keystroke', keys: plus }, minus: { type: 'keystroke', keys: minus } });
+          }, 'Assign');
+          return;
+        }
         if (key === 'ring:profile') return assignPicked(RING_NEXT_PROFILE);
         if (key === 'ring:brightness') return assignPicked(RING_BRIGHTNESS);
         if (key === 'ring:folder') {
