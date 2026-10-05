@@ -17,7 +17,9 @@ const MOUSE_PHOTOS = (() => {
 // the underside, for Easy-Switch: where the printed 1, 2 and 3 sit above the switch button
 const MOUSE_BOTTOMS = (() => {
   const s3 = { src: '../assets/devices/b034-bottom.png', w: 692, h: 1024, hosts: [[0, 225, 672, 'l'], [1, 266, 650, 'r'], [2, 307, 672, 'r']] };
-  return { b034: s3, b035: s3, b043: s3 };
+  // MX Master 4: Logitech's product photo of its underside, the lit channel light put out (the page lights the current one)
+  const m4 = { src: '../assets/devices/b042-bottom.png', w: 706, h: 1024, hosts: [[0, 236, 705, 'l'], [1, 277, 690, 'r'], [2, 319, 705, 'r']] };
+  return { b034: s3, b035: s3, b043: s3, b042: m4 };
 })();
 const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
 // The mouse photo: a ring on each button and its name beside it, on the side away from the mouse.
