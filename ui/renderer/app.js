@@ -1143,8 +1143,18 @@
     // in a folder the middle is the folder itself; its name and the way back are top-left
     const hub = f ? `<div class="rs-hub folder-hub" title="${esc(f.label || 'Folder')}"><i class="fa-solid fa-folder-open"></i></div>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
     const where = !f && ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
+    // a folder's page: a dashed crescent through its actions and Add instead of a full circle
+    let crescent = '';
+    if (f) {
+      const used = slots.map((x, i) => x || i === addAt ? RING_FAN[i] : null).filter(v => v !== null);
+      if (used.length) {
+        const base = S.ringPath[0] * 45 - 90, a1 = (base + Math.min(...used) - 17) * Math.PI / 180, a2 = (base + Math.max(...used) + 17) * Math.PI / 180;
+        const pt = a => `${(50 + 30 * Math.cos(a)).toFixed(2)} ${(50 + 30 * Math.sin(a)).toFixed(2)}`;
+        crescent = `<svg class="rs-crescent" viewBox="0 0 100 100"><path d="M${pt(a1)} A30 30 0 ${(a2 - a1) > Math.PI ? 1 : 0} 1 ${pt(a2)}"/></svg>`;
+      }
+    }
     const animCls = anim ? (anim.kind === 'in' ? 'anim-in' : 'anim-out') : '', animVars = at ? `style="--fx:${at.x.toFixed(1)}%;--fy:${at.y.toFixed(1)}%"` : '';
-    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${parts}${hub}</div></div>`;
+    return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${crescent}${parts}${hub}</div></div>`;
   }
   // the ⋯ menu of a slot, beside it
   function ringSlotMenu(sl, i, x, y, inFolder) {
@@ -1169,7 +1179,7 @@
   // next ones continue clockwise from there (the real ring draws them at those same directions)
   // a folder's actions are an ordered list fanned out around the folder's direction: the first in
   // that direction, the next a little counter-clockwise, then a little clockwise, and outward
-  const RING_FAN = [0, -30, 30, -60, 60, -90, 90, -120];
+  const RING_FAN = [0, -34, 34, -68, 68, -102, 102, -136];
   const ringFanDeg = (folderAt, k) => folderAt * 45 - 90 + RING_FAN[k];
   const ringNextFree = slots => slots.findIndex(x => !x);
   const ringFirstFree = () => { const k = ringNextFree(ringSlots()); return k < 0 ? 0 : k; };

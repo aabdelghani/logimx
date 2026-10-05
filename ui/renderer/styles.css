@@ -1093,3 +1093,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .devview2 .cfg-back .folder-name { animation: rs-name-in .35s ease-out .15s both; }
 @media (prefers-reduced-motion: reduce) { .rs-disc.anim-in .rs-chip, .rs-disc.anim-in .rs-lab, .rs-disc.anim-in .folder-hub, .rs-disc.anim-in::before, .rs-disc.anim-out .rs-chip, .rs-disc.anim-out .rs-lab, .rs-disc.anim-out .rs-hub, .devview2 .cfg-back .folder-name { animation: none; } }
 .devview2 .cfg-back .folder-name { field-sizing: content; min-width: 4ch; }   /* the box hugs the name, so the pencil sits right after it */
+/* a folder's page: its actions on a dashed crescent around the folder, not a full circle */
+.rs-disc.in-folder::before { display: none; }
+.rs-crescent { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.rs-crescent path { fill: none; stroke: color-mix(in srgb, var(--accbg) 55%, transparent); stroke-width: .45; stroke-dasharray: 1.4 1.4; }
+.rs-disc.anim-in .rs-crescent { animation: rs-fade-in .35s ease-out .4s both; }

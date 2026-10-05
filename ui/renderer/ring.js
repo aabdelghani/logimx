@@ -95,11 +95,17 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ang = i => (i * 45 - 90) * Math.PI / 180;    // slot 0 at the top, clockwise
   // a folder's actions: an ordered list fanned out around the folder's direction on a bigger circle
-  const FAN = [0, -30, 30, -60, 60, -90, 90, -120];   // degrees from the folder's direction, counter-clockwise first
-  const FAN_R = 1.95;                                  // the outer circle, times the ring's radius
+  const FAN = [0, -34, 34, -68, 68, -102, 102, -136];   // degrees from the folder's direction, counter-clockwise first
+  const FAN_R = 1.0;                                     // the crescent's radius around the folder, times the ring's radius
   const fanAng = j => ang(stack[0]) + FAN[j] * Math.PI / 180;
-  // where a button of the level shown sits: on the ring, or on the open folder's fan
-  const posOf = i => { const a = stack.length ? fanAng(i) : ang(i), r = stack.length ? RR * FAN_R : RR; return { a, r, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) }; };
+  // the open folder's own place: the middle of its crescent
+  const folderAt = () => ({ x: CX + RR * Math.cos(ang(stack[0])), y: CY + RR * Math.sin(ang(stack[0])) });
+  // where a button of the level shown sits: on the ring, or on the crescent around the open folder
+  const posOf = i => {
+    if (!stack.length) { const a = ang(i); return { a, r: RR, cx: CX, cy: CY, x: CX + RR * Math.cos(a), y: CY + RR * Math.sin(a) }; }
+    const a = fanAng(i), r = RR * FAN_R, f = folderAt();
+    return { a, r, cx: f.x, cy: f.y, x: f.x + r * Math.cos(a), y: f.y + r * Math.sin(a) };
+  };
   function setRaw(on) { raw = on; document.body.classList.toggle('raw', on); if (!on) { vx = vy = 0; } }
   function build(still) {
     slotsEl.classList.toggle('moved', !!still);
@@ -117,15 +123,25 @@
     const fx = stack.length ? CX + RR * Math.cos(ang(stack[0])) : CX, fy = stack.length ? CY + RR * Math.sin(ang(stack[0])) : CY;
     html += slots.map((s, i) => {
       if (!s) return '';   // an empty slot is not drawn at all
-      const { a, r, x: bx, y: by } = posOf(i), c = Math.cos(a), sn = Math.sin(a);
+      const { a, r, cx: ox, cy: oy, x: bx, y: by } = posOf(i), c = Math.cos(a), sn = Math.sin(a);
       const folder = s.action && s.action.type === 'folder';
       // each button springs out from the middle (or, in a folder, from the folder), one after another
       const bub = `<div class="bub ${folder ? 'folder' : ''} ${stack.length ? 'fan' : ''}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${(a * 180 / Math.PI).toFixed(1)}deg;--i:${i};--dx:${(fx - bx).toFixed(0)}px;--dy:${(fy - by).toFixed(0)}px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
       // the label sits outside the bubble, growing away from the ring
-      const lx = CX + (r + B + 16) * c, ly = CY + (r + B + 16) * sn;
+      const lx = ox + (r + B + 16) * c, ly = oy + (r + B + 16) * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
       return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(s.label)}${folder ? ' <i class="fa-solid fa-chevron-right lab-more"></i>' : ''}</div>`;
     }).join('');
+    if (stack.length) {
+      const used = slots.map((x, i) => x ? FAN[i] : null).filter(v => v !== null);
+      if (used.length) {
+        const f = folderAt(), r = RR * FAN_R, base = ang(stack[0]) * 180 / Math.PI, pad = 17;
+        const a1 = (base + Math.min(...used) - pad) * Math.PI / 180, a2 = (base + Math.max(...used) + pad) * Math.PI / 180;
+        const p1 = [f.x + r * Math.cos(a1), f.y + r * Math.sin(a1)], p2 = [f.x + r * Math.cos(a2), f.y + r * Math.sin(a2)];
+        const large = (a2 - a1) > Math.PI ? 1 : 0;
+        html = `<svg class="crescent"><path d="M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 ${large} 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}"/></svg>` + html;
+      }
+    }
     slotsEl.innerHTML = html;
     setHover(-1);
   }
