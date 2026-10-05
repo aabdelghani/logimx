@@ -1,4 +1,11 @@
-/* LogiMX renderer. One state object, full re-render on change, Adwaita-style layout. */
+// The settings window, MVVM:
+//   Model       model/api.js (every request to the agent and the main process), model/store.js (what
+//               they know, kept up to date by their events), ../shared/ (the logic the main process
+//               shares: rings, profiles, actions, battery)
+//   View models vm/*.js: each screen's state, what follows from it, and its commands (a button's
+//               data-act name → a command on plain data); they never touch the page
+//   Views       view/*.js: draw the page from the view models and turn input into commands
+// This file builds the Model, links the modules together and starts the window.
 import * as Ring from '../shared/ring.mjs';
 import * as Act from '../shared/actions.mjs';
 import { batIcon, batClass } from '../shared/battery.mjs';

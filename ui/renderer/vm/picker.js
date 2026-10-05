@@ -196,6 +196,8 @@ const keyGrab = { start: () => api.quiet('record_start'), cancel: () => api.quie
 const PICKER_FOLD = { rec: true };
 // the section just unfolded (it animates open once), read once by the view
 function takeUnfolded() { const p = S.picker; if (!p) return null; const v = p.unfolded; p.unfolded = null; return v; }
+// Enter in the panel's command, text or link field: that is what gets assigned
+function assignTyped() { S.picker.cat = 'cmd'; return commands['pick-assign']({ data: {}, on: false }, null, dev()); }
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -313,4 +315,4 @@ export const commands = {
   },
 };
 
-export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem, setChord, dropOnGesture, keyGrab, PICKER_FOLD, takeUnfolded };
+export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem, setChord, dropOnGesture, keyGrab, PICKER_FOLD, takeUnfolded, assignTyped };
