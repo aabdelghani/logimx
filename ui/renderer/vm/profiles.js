@@ -5,6 +5,11 @@ import { isMouse } from '../../shared/profiles.mjs';
 let S, allProfiles, api, appClass, call, changed, dev, deviceProfiles, fx, gestureControl, keyLayout, merge, prompt, setAssign, toast;
 export function link(ctx) { ({ S, allProfiles, api, appClass, call, changed, dev, deviceProfiles, fx, gestureControl, keyLayout, merge, prompt, setAssign, toast } = ctx); }
 
+// the screen state this view model owns: the profile edited and the one previewed (hover), the add panel and its ticks
+export const state = {
+  editProfile: undefined, previewProfile: undefined, addPanel: undefined, addSel: undefined,
+};
+
 async function addProfile(name, cls, here) {
   name = (name || '').trim(); cls = (cls || '').trim();
   if (!name || !cls) return toast('Pick an application', true);
@@ -49,6 +54,13 @@ async function applyPreset(k) {
 // settings is listed first (what everything starts from), then each installed application with its
 // icon; one picked with its check mark, Add puts it in the profile bar to configure from there.
 const addLabel = () => (S.addSel || []).length > 1 ? `Add ${S.addSel.length}` : 'Add';
+// hovering an app in the profile bar shows its profile until the pointer leaves the bar
+function previewProfile(k) {
+  if (k) { if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; changed(); } }
+  else if (S.previewProfile) { S.previewProfile = null; changed(); }
+}
+// an application's icon (a data URL), looked up by the main process
+const appIcon = a => api.host.appIcon({ icon: a.icon, id: a.id });
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -94,4 +106,4 @@ export const commands = {
   'ov-reset': async (it, e, d, key) => { const dd = S.devices.find(x => x.id === it.data.dev); const profs = JSON.parse(JSON.stringify(dd.config.profiles)); const sect = profs[it.data.profile][it.data.section]; if (sect) delete sect[it.data.cid]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); changed(); return; },
 };
 
-export const provide = { addProfile, seedProfiles, applyPreset, addLabel };
+export const provide = { addProfile, seedProfiles, applyPreset, addLabel, previewProfile, appIcon };

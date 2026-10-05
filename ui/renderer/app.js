@@ -42,16 +42,14 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   // the Model: requests to the agent, and what it knows mirrored here
   const api = createApi(window.agent, msg => toast(msg, true));
   const store = createStore(api);
-  // the screens' own state: where the window is, what is open, what is being edited
-  const view = {
-    theme: 'light', mode: 'app', page: 'home', dev: null, dir: 'tap', dlg: null, picker: null, menu: null,
-    pair: { step: 1, found: [] }, ob: { step: 1, preset: 'gnome' }, appDetail: null, conflictDismissed: false,
-  };
-  // one name for both while the screens move to their view models: the Model's fields read and
-  // write the store, the rest the screens' state
-  const S = new Proxy(view, {
-    get: (t, k) => k in store.data ? store.data[k] : t[k],
-    set: (t, k, v) => { if (k in store.data) store.data[k] = v; else t[k] = v; return true; },
+  // The screens' state is owned by the view models (each one's `state`); S reads and writes a
+  // field where it lives: the Model's data in the store, the rest in the view model owning it.
+  const owner = {};
+  for (const m of MODULES) if (m.state) for (const k of Object.keys(m.state)) owner[k] = m.state;
+  const loose = {};   // a field no view model declares (kept, but it should be declared)
+  const S = new Proxy(loose, {
+    get: (t, k) => k in store.data ? store.data[k] : owner[k] ? owner[k][k] : t[k],
+    set: (t, k, v) => { if (k in store.data) store.data[k] = v; else if (owner[k]) owner[k][k] = v; else t[k] = v; return true; },
   });
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
   const VERSION = '0.8.2';
@@ -89,7 +87,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const changed = () => render();
   // every button's command, by its data-act name, from the view models
   const commands = Object.assign({}, ...MODULES.map(m => m.commands || {}));
-  const ctx = Object.assign({ commands, changed, $, root, api, store, view, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
+  const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
   const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles } = ctx;

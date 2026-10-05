@@ -5,8 +5,13 @@ import * as Act from '../../shared/actions.mjs';
 import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast;
-export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast } = ctx); }
+let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast;
+export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast } = ctx); }
+
+// the screen state this view model owns: the action picker open (null: none)
+export const state = {
+  picker: null, dir: 'tap',
+};
 
 // ----------------------------------------------------------- dialogs
 const PICKER_CATS = [['all', 'All', 'fa-list'], ['key', 'Keystroke', 'fa-keyboard'], ['media', 'Media', 'fa-play'], ['window', 'Window', 'fa-window-maximize'], ['ws', 'Workspaces', 'fa-table-cells-large'], ['cmd', 'Command', 'fa-terminal'], ['app', 'Apps', 'fa-rocket'], ['device', 'Device', 'fa-computer-mouse']];
@@ -181,6 +186,16 @@ async function assignPicked(action) {
 }
 
 const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
+// keys from the recorder: the chord so far, and whether it is still listening
+function setChord(chord, recording) { if (!S.picker) return; S.picker.chord = chord; if (recording !== undefined) S.picker.recording = recording; }
+// an action dropped on a gesture direction: the panel turns to that direction, then assigns it
+function dropOnGesture(k, a) { S.dir = k; const p = S.picker; p.slot = SLOTS[k][1]; p.label = SLOTS[k][0]; return assignPicked(a); }
+// the agent grabbing the keyboard for the recorder (X11), and letting go
+const keyGrab = { start: () => api.quiet('record_start'), cancel: () => api.quiet('record_cancel') };
+// the picker's sections open at first: Recommended
+const PICKER_FOLD = { rec: true };
+// the section just unfolded (it animates open once), read once by the view
+function takeUnfolded() { const p = S.picker; if (!p) return null; const v = p.unfolded; p.unfolded = null; return v; }
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -235,8 +250,8 @@ export const commands = {
     openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
     return;
   },
-  'acc-toggle': async (it, e, d, key) => { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); p.unfolded = p.fold[key] ? key : null; changed(); return; },
-  'rec-open': async (it, e, d, key) => { const p = S.picker; p.q = ''; p.fold = Object.assign({}, p.fold, { rec: true }); p.sel = null; p.selKey = null; if (p.cat === 'key') { fx.stopRecorder(); p.recording = false; p.cat = 'all'; } else { p.cat = 'key'; p.recording = true; } changed(); return; },
+  'acc-toggle': async (it, e, d, key) => { const p = S.picker; p.fold = Object.assign({}, p.fold || PICKER_FOLD, { [key]: !(p.fold || PICKER_FOLD)[key] }); p.unfolded = p.fold[key] ? key : null; changed(); return; },
+  'rec-open': async (it, e, d, key) => { const p = S.picker; p.q = ''; p.fold = Object.assign({}, p.fold || PICKER_FOLD, { rec: true }); p.sel = null; p.selKey = null; if (p.cat === 'key') { fx.stopRecorder(); p.recording = false; p.cat = 'all'; } else { p.cat = 'key'; p.recording = true; } changed(); return; },
   'pick-key': async (it, e, d, key) => { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; fx.markPicked('key', key); return; },
   'pick-cat': async (it, e, d, key) => { S.picker.cat = key; S.picker.recording = key === 'key'; changed(); return; },
   'pick-item': async (it, e, d, key) => {
@@ -298,4 +313,4 @@ export const commands = {
   },
 };
 
-export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem };
+export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem, setChord, dropOnGesture, keyGrab, PICKER_FOLD, takeUnfolded };

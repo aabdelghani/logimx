@@ -2,10 +2,19 @@
 // agent's state, first run.
 
 // from the rest of the window, filled in by link()
-let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, openPicker, refresh, ringSelect, toast;
-export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, openPicker, refresh, ringSelect, toast } = ctx); }
+let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, openPicker, refresh, ringSelect, sidePanelClosed, toast;
+export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, openPicker, refresh, ringSelect, sidePanelClosed, toast } = ctx); }
+
+// the screen state this view model owns: where the window is: page and device, dialog and menu open, first run, theme
+export const state = {
+  theme: 'light', mode: 'app', page: 'home', dev: null, dlg: null, menu: null, appDetail: null, conflictDismissed: false,
+  ob: { step: 1, preset: 'gnome' }, homeAt: undefined, homeSlide: undefined, ptSel: undefined, esSel: undefined, blClosed: undefined,
+  cfgFrom: undefined, cfgKind: undefined, cfgBack: undefined,
+};
 
 const HOME_PER_VIEW = 2;   // two cards side by side at the window's size; more page with the arrows
+// the page of devices Home shows, kept within the pages there are
+function homePage(pages) { S.homeAt = Math.max(0, Math.min(pages - 1, S.homeAt || 0)); return S.homeAt; }
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -23,7 +32,7 @@ export const commands = {
     }
     // with a panel open on the right, the back arrow folds the panel away first
     if (drawerUp()) { fx.closeDrawer(); return; }
-    if (fx.panelOpen()) { fx.closeDrawer(() => { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }); return; }
+    if (fx.panelOpen()) { fx.closeDrawer(sidePanelClosed); return; }
     if (S.picker && S.picker.recording) { fx.stopRecorder(); S.picker.recording = false; } go('home'); return;
   },
   'home-step': async (it, e, d, key) => { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); changed(); return; },
@@ -72,4 +81,4 @@ export const commands = {
   'ob-preset': async (it, e, d, key) => { S.ob.preset = key; changed(); return; },
 };
 
-export const provide = { HOME_PER_VIEW };
+export const provide = { HOME_PER_VIEW, homePage };

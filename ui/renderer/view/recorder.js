@@ -3,8 +3,8 @@
 import { codeToKey, MODS } from '../../shared/actions.mjs';
 
 // from the rest of the window, filled in by link()
-let S, api, assignPicked, esc, keyName, render, root;
-export function link(ctx) { ({ S, api, assignPicked, esc, keyName, render, root } = ctx); }
+let S, assignPicked, esc, keyGrab, keyName, render, root, setChord;
+export function link(ctx) { ({ S, assignPicked, esc, keyGrab, keyName, render, root, setChord } = ctx); }
 
 // ------------------------------------------------------------ recorder
 let recorder = null;
@@ -45,7 +45,7 @@ function startRecorder(onUpdate, onDone) {
 }
 function stopRecorder() {
   recGen++;   // a record_start still in flight must not take effect after this
-  if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; api.quiet('record_cancel').catch(() => {}); }
+  if (agentGrab) { agentGrab = false; recordDone = recordPartial = null; keyGrab.cancel().catch(() => {}); }
   if (!recorder) return;
   document.removeEventListener('keydown', recorder.onDown, true);
   document.removeEventListener('keyup', recorder.onUp, true);
@@ -58,7 +58,7 @@ const recording = () => !!recorder;
 // the agent's own recorder reports keys as they are pressed, and when it is done
 function onRecordEvent(data) {
   if (!agentGrab || !S.picker) return;
-  if (data.done && data.timeout) { recordDone = recordPartial = null; agentGrab = false; S.picker.chord = data.keys || []; S.picker.recording = false; render(); }
+  if (data.done && data.timeout) { recordDone = recordPartial = null; agentGrab = false; setChord(data.keys || [], false); render(); }
   else if (data.done) { const f = recordDone; recordDone = recordPartial = null; agentGrab = false; if (f) f(data.keys || []); }
   else if (recordPartial) recordPartial(data.keys || []);
 }
@@ -70,24 +70,23 @@ function armRecorder() {
   // then would drop the keys already held and leave the next release with nothing to finish.
   if (recorderActive()) return;
   const onPartial = chord => {
-    S.picker.chord = chord;
+    setChord(chord);
     const box = root.querySelector('.recbox .keys');
     if (box) box.innerHTML = chord.map(k => `<span>${esc(keyName(k))}</span>`).join('');
   };
   const onFinal = keys => {
     agentGrab = false;
-    S.picker.chord = keys;
-    S.picker.recording = false;
+    setChord(keys, false);
     if (keys && keys.length) assignPicked({ type: 'keystroke', keys });
     else render();
   };
   const gen = ++recGen;
   armPending = true;
-  api.quiet('record_start').then(() => {
+  keyGrab.start().then(() => {
     armPending = false;
     // disarmed while the agent was setting the grab up (the typed field took focus): let go
     // again, or the agent would keep swallowing keys the page no longer wants
-    if (gen !== recGen) { api.quiet('record_cancel').catch(() => {}); return; }
+    if (gen !== recGen) { keyGrab.cancel().catch(() => {}); return; }
     agentGrab = true; recordDone = onFinal; recordPartial = onPartial;
   })
     .catch(() => {
@@ -95,7 +94,7 @@ function armRecorder() {
       if (gen !== recGen) return;
       agentGrab = false;
       startRecorder((chord, cancelled) => {
-        if (cancelled) { S.picker.chord = chord; S.picker.recording = false; render(); return; }
+        if (cancelled) { setChord(chord, false); render(); return; }
         onPartial(chord);
       }, onFinal);
     });

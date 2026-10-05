@@ -79,4 +79,28 @@ function keyLayout(d) {
   return { frow, special };
 }
 const KEY_ICONS = { brightness_down: 'fa-sun', brightness_up: 'fa-sun', backlight_down: 'fa-lightbulb', backlight_up: 'fa-lightbulb', dictation: 'fa-microphone', emoji: 'fa-face-smile', emoji_heart_eyes: 'fa-face-smile', emoji_crying: 'fa-face-smile', emoji_smiley: 'fa-face-smile', emoji_tears: 'fa-face-smile', mic_mute: 'fa-microphone-slash', prev_track: 'fa-backward-step', play_pause: 'fa-play', next_track: 'fa-forward-step', mute: 'fa-volume-xmark', volume_down: 'fa-volume-low', volume_up: 'fa-volume-high', calculator: 'fa-calculator', screenshot: 'fa-camera', context_menu: 'fa-bars', screen_lock: 'fa-lock', mission_control: 'fa-table-cells-large', launchpad: 'fa-grip', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switch: 'fa-window-restore', app_switch_dashboard: 'fa-window-restore', search: 'fa-magnifying-glass', home: 'fa-house', virtual_keyboard: 'fa-keyboard', language_switch: 'fa-language', voice_assistant: 'fa-comment-dots', open_apps: 'fa-window-restore', all_apps: 'fa-grip', switch_app: 'fa-window-restore' };
-export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, CID, PAGES, devicePages, navPages, generalPagesAll, generalPages, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS };
+// the gestures and action ring page exists only as a mouse button's Configure view; reached any
+// other way (another device, a lost way back) it gives way to the device's own first page
+function pageGuard() {
+  if (S.page !== 'gestures') return;
+  const gd = dev();
+  if (!gd || !isMouse(gd) || !S.cfgFrom) { S.cfgFrom = null; S.page = gd ? devicePages(gd)[0] : 'home'; }
+}
+// the dialog or panel has gone (its closing animation done): then `after`, and the window redrawn
+function dialogClosed(after) { S.dlg = null; if (after) after(); changed(); }
+// the side panel beside a device closed: adding apps is cancelled, the backlight panel stays shut
+// until BACKLIGHT opens it again
+function sidePanelClosed() { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }
+// a one-time hint for the next drawing (which way to slide, what to animate): read once, then gone
+function takeCue(name, none = null) { const v = S[name]; S[name] = none; return v; }
+// A field typed into: its value kept where the open dialog keeps it. Answers what of the page
+// needs drawing again: 'page', the picker's 'apps' or 'list', the 'wish' button, or nothing.
+function setField(f, v) {
+  if (S.dlg === 'picker' && S.picker && S.picker.drawer) { S.picker[f] = v; if (f === 'cmd' || f === 'text' || f === 'open') S.picker.cat = 'cmd'; else if (f === 'typed') S.picker.cat = 'key'; return f === 'q' ? 'page' : null; }
+  if (S.dlg === 'report') { S.report = Object.assign({}, S.report, { [f]: v }); return null; }
+  if (S.dlg === 'wish') { S.wish = { what: v }; return 'wish'; }
+  if (S.dlg === 'picker') { S.picker[f] = v; return f === 'q' ? (S.picker.cat === 'app' ? 'apps' : 'list') : null; }
+  if (S.dlg === 'prompt') { const x = S.prompt.fields.find(x => x.key === f); if (x) x.value = v; }
+  return null;
+}
+export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, CID, PAGES, devicePages, navPages, generalPagesAll, generalPages, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS, pageGuard, dialogClosed, sidePanelClosed, takeCue, setField };

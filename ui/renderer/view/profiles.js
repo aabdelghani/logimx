@@ -2,9 +2,11 @@
 import { isMouse } from '../../shared/profiles.mjs';
 
 // from the rest of the window, filled in by link()
-let PHYS, S, addLabel, api, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, profileOf, render, root, sec;
-export function link(ctx) { ({ PHYS, S, addLabel, api, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, profileOf, render, root, sec } = ctx); }
+let PHYS, S, addLabel, appIcon, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, previewProfile, profileOf, render, root, sec;
+export function link(ctx) { ({ PHYS, S, addLabel, appIcon, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, previewProfile, profileOf, render, root, sec } = ctx); }
 
+// the applications' icons, as the main process found them (null: none, or still looking)
+const icons = { byKey: {}, byId: {} };
 // ----------------------------------------------------------- profile bar
 // Top right of a device's view: the global settings, one icon per application profile, and +.
 // Hovering an app previews its changes on the device; clicking it edits that profile; its ×
@@ -13,12 +15,11 @@ function profileIcon(p) {
   const cls = (p.match[0] || '').toLowerCase(), apps = S.apps || [];
   const a = apps.find(x => (x.wm_class || '').toLowerCase() === cls || (x.id || '').toLowerCase() === cls) || apps.find(x => (x.name || '').toLowerCase() === p.name.toLowerCase());
   const key = p.key;
-  S.appIcons = S.appIcons || {};
-  if (a && !(key in S.appIcons)) {
-    S.appIcons[key] = null;
-    api.host.appIcon({ icon: a.icon, id: a.id }).then(u => { if (u) { S.appIcons[key] = u; render(); } }).catch(() => {});
+  if (a && !(key in icons.byKey)) {
+    icons.byKey[key] = null;
+    appIcon(a).then(u => { if (u) { icons.byKey[key] = u; render(); } }).catch(() => {});
   }
-  return S.appIcons[key] ? `<img src="${S.appIcons[key]}" alt="">` : `<span class="pf-letter" style="background:${colorFor(p.name)}">${esc(p.name.charAt(0).toUpperCase())}</span>`;
+  return icons.byKey[key] ? `<img src="${icons.byKey[key]}" alt="">` : `<span class="pf-letter" style="background:${colorFor(p.name)}">${esc(p.name.charAt(0).toUpperCase())}</span>`;
 }
 function profileBar() {
   const cur = S.editProfile || 'default';
@@ -26,7 +27,7 @@ function profileBar() {
   const live = (dev() || {}).profile || 'default';
   const apps = deviceProfiles(dev()).map(p => `<div class="pf-wrap"><button class="pf pf-app ${cur === p.key ? 'on' : ''} ${live === p.key ? 'live' : ''}" data-act="pf-edit" data-key="${esc(p.key)}" data-tip="${esc(p.name)}${live === p.key ? ' · in use now' : ''}">${profileIcon(p)}</button><button class="pf-x" data-act="pf-remove" data-key="${esc(p.key)}" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
   // ticked in the add panel and not added yet: shown faded until Add, gone if the panel is closed
-  const pending = (S.addPanel ? S.addSel || [] : []).map(id => (S.apps || []).find(a => a.id === id)).filter(Boolean).map(a => { const u = (S.appIconById || {})[a.id]; return `<div class="pf-wrap"><span class="pf pending" data-tip="${esc(a.name)} (not added yet)">${u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`}</span></div>`; }).join('');
+  const pending = (S.addPanel ? S.addSel || [] : []).map(id => (S.apps || []).find(a => a.id === id)).filter(Boolean).map(a => { const u = icons.byId[a.id]; return `<div class="pf-wrap"><span class="pf pending" data-tip="${esc(a.name)} (not added yet)">${u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`}</span></div>`; }).join('');
   return `<div class="pbar"><button class="pf ${cur === 'default' ? 'on' : ''} ${live === 'default' ? 'live' : ''}" data-act="pf-edit" data-key="default" data-tip="Global settings${live === 'default' ? ' · in use now' : ''}"><i class="fa-solid fa-globe"></i></button>${apps}${pending}<button class="pf pf-add" data-act="pf-add" data-tip="Add application"><i class="fa-solid fa-plus"></i></button></div>`;
 }
 function allProfiles() {
@@ -72,13 +73,13 @@ function refreshBar() {
   bindBarHover();
 }
 function bindBarHover() {
-  root.querySelectorAll('.pbar .pf-app').forEach(b => b.onmouseenter = () => { const k = b.dataset.key; if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; render(); } });
-  const pbar = root.querySelector('.pbar'); if (pbar) pbar.onmouseleave = () => { if (S.previewProfile) { S.previewProfile = null; render(); } };
+  root.querySelectorAll('.pbar .pf-app').forEach(b => b.onmouseenter = () => previewProfile(b.dataset.key));
+  const pbar = root.querySelector('.pbar'); if (pbar) pbar.onmouseleave = () => previewProfile(null);
 }
 function renderAddPanel(d) {
   const have = new Set(deviceProfiles(d).flatMap(p => p.match.map(m => m.toLowerCase())));
   const apps = (S.apps || []).filter(a => a.name && !/logimx|notlogi/i.test(a.wm_class || a.id || '')).slice().sort((a, b) => a.name.localeCompare(b.name));
-  const icon = a => { const u = (S.appIconById || {})[a.id]; return u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`; };
+  const icon = a => { const u = icons.byId[a.id]; return u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`; };
   const rows = apps.map(a => {
     const added = have.has((a.wm_class || a.id || '').toLowerCase());
     return `<button class="act add-app ${(S.addSel || []).includes(a.id) ? 'on' : ''} ${added ? 'added' : ''}" data-act="add-pick" data-key="${esc(a.id)}" data-name="${esc(a.name.toLowerCase())}" ${added ? 'disabled' : ''}><span class="ic app-ic" data-icon="${esc(a.id)}">${icon(a)}</span><span class="t">${esc(a.name)}</span>${added ? '<span class="m">Added</span>' : ''}<i class="fa-solid fa-check chk"></i></button>`;
@@ -95,4 +96,4 @@ function renderAddPanel(d) {
   </div></div>`;
 }
 
-export const provide = { profileIcon, profileBar, allProfiles, pageApps, colorFor, pageAppDetail, refreshBar, bindBarHover, renderAddPanel };
+export const provide = { profileIcon, profileBar, allProfiles, pageApps, colorFor, pageAppDetail, refreshBar, bindBarHover, renderAddPanel, icons };

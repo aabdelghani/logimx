@@ -4,6 +4,11 @@
 let S, api, call, changed, toast;
 export function link(ctx) { ({ S, api, call, changed, toast } = ctx); }
 
+// the screen state this view model owns: pairing: its step, what was found, Bluetooth's progress
+export const state = {
+  pair: { step: 1, found: [] },
+};
+
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {

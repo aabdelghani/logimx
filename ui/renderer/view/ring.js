@@ -2,8 +2,8 @@
 import { isFolderSlot, RING_DIRS } from '../../shared/ring.mjs';
 
 // from the rest of the window, filled in by link()
-let S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringUseName, ringViewApp, row, sec, sw;
-export function link(ctx) { ({ S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringUseName, ringViewApp, row, sec, sw } = ctx); }
+let S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringUseName, ringViewApp, row, sec, sw, takeCue;
+export function link(ctx) { ({ S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringUseName, ringViewApp, row, sec, sw, takeCue } = ctx); }
 
 // The action ring's own profiles, where the applications usually are: pick the one in use, make a
 // blank one to drag actions onto. With an application picked in the mouse window, the choice is
@@ -25,7 +25,7 @@ function ringStage() {
   const top = ringTop(ringState(), true), f = ringFolder(top);
   // into a folder: the page grows out of the folder's place and its actions pop in one by one;
   // back out: the ring settles in and the folder's place gives a pulse
-  const anim = S.ringAnim; S.ringAnim = null;
+  const anim = takeCue('ringAnim');
   const at = anim ? (() => { const a = (anim.from * 45 - 90) * Math.PI / 180; return { x: 30 * Math.cos(a), y: 30 * Math.sin(a) }; })() : null;
   let order = 0;
   const parts = f ? ringParentRing(top) + ringFolderRow(slots) : slots.map((sl, i) => {

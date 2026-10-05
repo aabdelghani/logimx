@@ -4,6 +4,11 @@
 let S, api, assignment, changed, setAssign, toast;
 export function link(ctx) { ({ S, api, assignment, changed, setAssign, toast } = ctx); }
 
+// the screen state this view model owns: the gesture button being configured from Hold
+export const state = {
+  holdCid: undefined,
+};
+
 const SLOTS = { tap: ['Tap', 'click'], up: ['Swipe up', 'up'], down: ['Swipe down', 'down'], left: ['Swipe left', 'left'], right: ['Swipe right', 'right'] };
 const gestureCapable = d => d.controls.filter(c => c.divertable && c.raw_xy && c.cid !== 0xD7);
 const isRingAction = a => a === 'action_ring' || (!!a && typeof a === 'object' && a.type === 'ui' && a.event === 'ring');

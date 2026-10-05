@@ -2,8 +2,8 @@
 import { RING_NEXT_PROFILE, RING_BRIGHTNESS, RING_DIRS } from '../../shared/ring.mjs';
 
 // from the rest of the window, filled in by link()
-let S, SLOTS, actionIcon, assignPicked, presetLabel, render, ringSlots, root, saveRingSlots, toast;
-export function link(ctx) { ({ S, SLOTS, actionIcon, assignPicked, presetLabel, render, ringSlots, root, saveRingSlots, toast } = ctx); }
+let S, dropOnGesture, dropOnRing, root;
+export function link(ctx) { ({ S, dropOnGesture, dropOnRing, root } = ctx); }
 
 // hovering a key on the photo shows its name and what it does now
 // On the ring page an action can be dragged from the panel straight onto any slot of the ring
@@ -31,8 +31,7 @@ function gestureDrag() {
       let a; try { a = JSON.parse(e.dataTransfer.getData('application/x-logimx-action')); } catch (x) { return; }
       document.body.classList.remove('dragging-act');
       // the panel turns to the direction it was dropped on, then the action is assigned there
-      S.dir = k; const p = S.picker; p.slot = SLOTS[k][1]; p.label = SLOTS[k][0];
-      await assignPicked(a);
+      await dropOnGesture(k, a);
     };
   });
 }
@@ -57,13 +56,8 @@ function ringDrag() {
     t.ondrop = async e => {
       e.preventDefault();
       let a; try { a = JSON.parse(e.dataTransfer.getData('application/x-logimx-action')); } catch (x) { return; }
-      if (t.dataset.ins) { document.body.classList.remove('dragging-act'); S.picker.insert = t.dataset.ins; await assignPicked(a); return; }
-      const slots = ringSlots();
-      slots[i] = { action: a, label: presetLabel(a), icon: actionIcon(a) };
-      await saveRingSlots(slots);
+      await dropOnRing(i, t.dataset.ins, a);
       document.body.classList.remove('dragging-act');
-      const p = S.picker; p.cid = i; p.label = RING_DIRS[i]; p.current = a; p.sel = null; p.selKey = null;
-      render(); toast(`Slot ${i + 1}: ${presetLabel(a)}`);
     };
   });
 }

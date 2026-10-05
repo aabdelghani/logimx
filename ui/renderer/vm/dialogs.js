@@ -4,6 +4,11 @@
 let IS_MAC, IS_WIN, S, VERSION, api, call, changed, fx, loadLogs, toast;
 export function link(ctx) { ({ IS_MAC, IS_WIN, S, VERSION, api, call, changed, fx, loadLogs, toast } = ctx); }
 
+// the screen state this view model owns: the prompt, confirmation, wish and report being filled in
+export const state = {
+  prompt: undefined, confirm: undefined, wish: undefined, report: undefined,
+};
+
 // The report goes into a public issue, so it is shown in full before anything leaves the machine
 // and it is the person who submits it, signed in to their own account in the browser.
 const ISSUE_URL = 'https://github.com/aabdelghani/notlogi/issues/new';

@@ -3,8 +3,8 @@ import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 import { RING_BRIGHTNESS } from '../../shared/ring.mjs';
 
 // from the rest of the window, filled in by link()
-let GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, api, appLabel, appSet, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, render, ringBehaviour, root, row, sec, sectionsFor;
-export function link(ctx) { ({ GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, api, appLabel, appSet, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, render, ringBehaviour, root, row, sec, sectionsFor } = ctx); }
+let GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, PICKER_FOLD, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, appLabel, appSet, brightnessStatus, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, ringBehaviour, root, row, sec, sectionsFor, takeUnfolded;
+export function link(ctx) { ({ GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, PICKER_FOLD, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, appLabel, appSet, brightnessStatus, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, ringBehaviour, root, row, sec, sectionsFor, takeUnfolded } = ctx); }
 
 function renderPicker() {
   const p = S.picker;
@@ -44,8 +44,7 @@ const adjBadge = k => RING_DRAG.has(k) ? '<span class="adj-tag" title="Hold and 
 // monitor brightness needs ddcutil and access to the monitors' I2C buses: asked once, offered
 // under Brightness when this computer does not have it yet
 function briSetupRow() {
-  if (S.briStatus === undefined) { S.briStatus = null; api.host.briStatus().then(st => { S.briStatus = st; if (!st.ok) render(); }).catch(() => {}); }
-  const st = S.briStatus;
+  const st = brightnessStatus();
   if (!st || st.ok || !['ddcutil', 'i2c'].includes(st.reason)) return '';
   return `<button class="act ring-cfg" data-act="bri-setup"><i class="fa-solid fa-screwdriver-wrench ic"></i><span class="t">Set up brightness</span><span class="m">${st.reason === 'ddcutil' ? 'Installs ddcutil' : 'Allows access'}</span><i class="fa-solid fa-arrow-right more"></i></button>`;
 }
@@ -106,7 +105,7 @@ function drawerSection(p, k) {
 }
 function renderPickerDrawer(foot) {
   const p = S.picker, q = (p.q || '').trim().toLowerCase();
-  const fold = p.fold || (p.fold = { rec: true });
+  const fold = p.fold || PICKER_FOLD;
   let list;
   if (q) {
     const hits = [];
@@ -115,8 +114,8 @@ function renderPickerDrawer(foot) {
     if (p.section !== 'thumbwheel' && ('keystroke assignment'.includes(q) || 'shortcut'.includes(q))) hits.unshift(`<button class="act" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><span class="m">Recommended</span></button>`);
     list = `<div class="acts">${hits.join('') || '<div class="row hint">No actions match</div>'}</div>`;
   } else {
-    list = sectionsFor(p).map(([k, l]) => `<div class="acc ${fold[k] ? 'open' : ''}"><button class="acc-head" data-act="acc-toggle" data-key="${k}"><span class="grow">${l}</span><i class="fa-solid fa-chevron-down chev"></i></button>${fold[k] ? `<div class="acc-body ${p.unfolded === k ? 'unfold' : ''}">${drawerSection(p, k)}</div>` : ''}</div>`).join('');
-    p.unfolded = null;
+    const unfolded = takeUnfolded();
+    list = sectionsFor(p).map(([k, l]) => `<div class="acc ${fold[k] ? 'open' : ''}"><button class="acc-head" data-act="acc-toggle" data-key="${k}"><span class="grow">${l}</span><i class="fa-solid fa-chevron-down chev"></i></button>${fold[k] ? `<div class="acc-body ${unfolded === k ? 'unfold' : ''}">${drawerSection(p, k)}</div>` : ''}</div>`).join('');
   }
   return `<div class="drawer-wrap"><div class="dlg drawer" data-stop>
     <div class="dlg-head"><span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span></div>

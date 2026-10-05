@@ -5,8 +5,8 @@ import { toolName } from '../../shared/actions.mjs';
 import { batClass } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
-let MOUSE_PHOTOS, PAGES, S, VERSION, api, armRecorder, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, stopRecorder;
-export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, api, armRecorder, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, stopRecorder } = ctx); }
+let MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
+export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder } = ctx); }
 
 // ============================================================ render
 // Animations run when something new appears, not on every refresh: the page when it is
@@ -14,12 +14,7 @@ export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, api, armRecorder
 let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
 function render() {
   stopRecorder();
-  // the gestures and action ring page exists only as a mouse button's Configure view; reached any
-  // other way (another device, a lost way back) it gives way to the device's own first page
-  if (S.page === 'gestures') {
-    const gd = dev();
-    if (!gd || !isMouse(gd) || !S.cfgFrom) { S.cfgFrom = null; S.page = gd ? devicePages(gd)[0] : 'home'; }
-  }
+  pageGuard();
   document.documentElement.setAttribute('data-theme', S.theme);
   const pageKey = `${S.mode}|${S.page}|${S.dev}|${S.appDetail ? S.appDetail.key : ''}|${S.devices.length ? 1 : 0}`;
   const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
@@ -73,7 +68,7 @@ function render() {
   if (mid && !(S.page === 'gestures' && S.cfgFrom)) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
   // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
   const blMid = root.querySelector('.devview2.panel-open .dev-config');
-  if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(() => { if (S.addPanel) { S.addPanel = false; S.addSel = []; } else S.blClosed = true; }); });
+  if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(sidePanelClosed); });
 }
 // The keyboard moves and resizes when the panel opens or closes: draw it where it was and let it
 // glide to its new place, instead of snapping.
@@ -92,12 +87,12 @@ function glideFrom(from, el) {
 // The key panel leaves to the right, easing in, and only then does the page list come back
 function closeDrawer(after) {
   const w = root.querySelector('.drawer-wrap');
-  if (!w) { S.dlg = null; if (after) after(); render(); return; }
+  if (!w) { dialogClosed(after); return; }
   if (w.classList.contains('closing')) return;
   stopRecorder();
   w.classList.add('closing');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  setTimeout(() => { S.dlg = null; if (after) after(); render(); }, reduce ? 0 : 170);
+  setTimeout(() => dialogClosed(after), reduce ? 0 : 170);
 }
 let lastPin = null;
 function keyTips() {
@@ -287,11 +282,11 @@ function bind() {
   const addq = root.querySelector('.add-panel .add-q');
   if (addq) addq.oninput = () => { const q = addq.value.trim().toLowerCase(); root.querySelectorAll('.add-list .add-app').forEach(r => { r.style.display = !q || r.dataset.name.includes(q) ? '' : 'none'; }); };
   root.querySelectorAll('.add-panel .app-ic[data-icon]').forEach(el => {
-    const id = el.dataset.icon; S.appIconById = S.appIconById || {};
-    if (id in S.appIconById) return;
-    S.appIconById[id] = null;
+    const id = el.dataset.icon;
+    if (id in icons.byId) return;
+    icons.byId[id] = null;
     const a = (S.apps || []).find(x => x.id === id); if (!a) return;
-    api.host.appIcon({ icon: a.icon, id: a.id }).then(u => { if (!u) return; S.appIconById[id] = u; root.querySelectorAll(`.add-panel .app-ic[data-icon="${CSS.escape(id)}"]`).forEach(x => { x.innerHTML = `<img src="${u}" alt="">`; }); }).catch(() => {});
+    appIcon(a).then(u => { if (!u) return; icons.byId[id] = u; root.querySelectorAll(`.add-panel .app-ic[data-icon="${CSS.escape(id)}"]`).forEach(x => { x.innerHTML = `<img src="${u}" alt="">`; }); }).catch(() => {});
   });
   // hovering an app in the profile bar previews it; leaving the bar shows what was there again
   bindBarHover();
@@ -309,7 +304,14 @@ function bind() {
   });
   root.querySelectorAll('[data-field]').forEach(i => {
     i.onclick = e => e.stopPropagation();
-    i.oninput = () => { if (S.dlg === 'picker' && S.picker && S.picker.drawer) { const f = i.dataset.field; S.picker[f] = i.value; if (f === 'cmd' || f === 'text' || f === 'open') S.picker.cat = 'cmd'; else if (f === 'typed') S.picker.cat = 'key'; if (f === 'q') render(); return; } if (S.dlg === 'report') { S.report = Object.assign({}, S.report, { [i.dataset.field]: i.value }); return; } if (S.dlg === 'wish') { S.wish = { what: i.value }; const go = root.querySelector('[data-act=wish-open]'); if (go) go.disabled = !i.value.trim(); return; } if (S.dlg === 'picker') { S.picker[i.dataset.field] = i.value; if (i.dataset.field === 'q') { if (S.picker.cat === 'app') renderAppList(); else { const list = root.querySelector('.acts'); if (list) renderPickerList(); } } } if (S.dlg === 'prompt') { const f = S.prompt.fields.find(f => f.key === i.dataset.field); if (f) f.value = i.value; } };
+    // typed text goes to the view model; only what it says changed is drawn again
+    i.oninput = () => {
+      const redraw = setField(i.dataset.field, i.value);
+      if (redraw === 'page') render();
+      else if (redraw === 'apps') renderAppList();
+      else if (redraw === 'list') { if (root.querySelector('.acts')) renderPickerList(); }
+      else if (redraw === 'wish') { const go = root.querySelector('[data-act=wish-open]'); if (go) go.disabled = !i.value.trim(); }
+    };
     i.onkeydown = e => { if (e.key === 'Enter' && S.dlg === 'prompt') { e.preventDefault(); onAction('prompt-ok'); } if (e.key === 'Enter' && S.dlg === 'picker' && S.picker && S.picker.drawer && ['cmd', 'text', 'open'].includes(i.dataset.field)) { e.preventDefault(); S.picker.cat = 'cmd'; onAction('pick-assign'); } };
   });
   if (S.dlg === 'picker' && S.picker.cat === 'key' && S.picker.recording && !recorderActive()) armRecorder();
@@ -319,7 +321,7 @@ function bind() {
     // page, the in-page fallback preventDefaults them), so typing needs it out of the way.
     typed.onfocus = () => {
       if (!S.picker || !S.picker.recording) return;
-      stopRecorder(); S.picker.recording = false;
+      stopRecorder(); setChord(S.picker.chord, false);
       const t = root.querySelector('.recbox .t'); if (t) t.textContent = 'Click here, then press the keys';
       const box = root.querySelector('.recbox');
       if (box && !box.querySelector('[data-act="rec-start"]')) { const b = document.createElement('button'); b.className = 'btn primary'; b.dataset.act = 'rec-start'; b.textContent = 'Start recording'; b.onclick = e => { e.stopPropagation(); onAction('rec-start', b, e); }; box.appendChild(b); }

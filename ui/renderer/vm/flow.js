@@ -4,6 +4,11 @@
 let S, api, changed, prompt, store, toast;
 export function link(ctx) { ({ S, api, changed, prompt, store, toast } = ctx); }
 
+// the screen state this view model owns: Flow's setup step
+export const state = {
+  flowSetup: undefined,
+};
+
 function flowRefresh() { store.loadFlow().then(() => { if (S.page === 'flow') changed(); }); }
 
 // what its buttons do: data-act name → command, given the button's data and value (it), the

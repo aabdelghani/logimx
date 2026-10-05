@@ -4,8 +4,13 @@ import * as Ring from '../../shared/ring.mjs';
 import { RING_DIRS, eight, isFolderSlot, newRingId } from '../../shared/ring.mjs';
 
 // from the rest of the window, filled in by link()
-let S, api, changed, dev, deviceProfiles, drawerUp, fx, prompt, setGeneral, toast, view;
-export function link(ctx) { ({ S, api, changed, dev, deviceProfiles, drawerUp, fx, prompt, setGeneral, toast, view } = ctx); }
+let S, actionIcon, api, assignPicked, changed, dev, deviceProfiles, drawerUp, fx, presetLabel, prompt, setGeneral, toast;
+export function link(ctx) { ({ S, actionIcon, api, assignPicked, changed, dev, deviceProfiles, drawerUp, fx, presetLabel, prompt, setGeneral, toast } = ctx); }
+
+// the screen state this view model owns: the ring's folder open ([i]) and the next drawing's animation
+export const state = {
+  ringPath: undefined, ringAnim: undefined,
+};
 
 // The ring keeps several sets of eight actions (profiles); one is in use. Older settings had a
 // single list of slots, which becomes the first profile. The shapes live in shared/ring.mjs.
@@ -55,6 +60,21 @@ function ringTidyFolders() {
 }
 const ringEditing = i => drawerUp() && S.picker.section === 'ring' && !S.picker.insert && S.picker.cid === i;
 
+// an action dropped on the ring: on an Add of a folder's row it goes in at that end, on a slot it
+// takes the slot, and the panel shows that slot
+async function dropOnRing(i, ins, a) {
+  if (ins) { S.picker.insert = ins; return assignPicked(a); }
+  const slots = ringSlots();
+  slots[i] = { action: a, label: presetLabel(a), icon: actionIcon(a) };
+  await saveRingSlots(slots);
+  const p = S.picker; p.cid = i; p.label = RING_DIRS[i]; p.current = a; p.sel = null; p.selKey = null;
+  changed(); toast(`Slot ${i + 1}: ${presetLabel(a)}`);
+}
+// whether this computer can set monitor brightness yet (ddcutil and I2C access), asked once
+function brightnessStatus() {
+  if (S.briStatus === undefined) { S.briStatus = null; api.host.briStatus().then(st => { S.briStatus = st; if (!st.ok) changed(); }).catch(() => {}); }
+  return S.briStatus;
+}
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -160,4 +180,4 @@ export const commands = {
   'ring-clear': async (it, e, d, key) => { await saveRingSlots([]); toast('Slots cleared'); changed(); return; },
 };
 
-export const provide = { ringState, ringApp, ringViewApp, appRing, ringTop, ringFolder, ringSlots, saveRing, saveRingSlots, ringAppName, ringAppMatch, ringUseName, ringInserting, ringSelectAdd, saveFolderName, ringSelect, ringTidyFolders, ringEditing };
+export const provide = { ringState, ringApp, ringViewApp, appRing, ringTop, ringFolder, ringSlots, saveRing, saveRingSlots, ringAppName, ringAppMatch, ringUseName, ringInserting, ringSelectAdd, saveFolderName, ringSelect, ringTidyFolders, ringEditing, dropOnRing, brightnessStatus };
