@@ -3,8 +3,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { batIcon } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
-let S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, root, themeMenu;
-export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, root, themeMenu } = ctx); }
+let S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, root, themeMenu;
+export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, root, themeMenu } = ctx); }
 
 function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
 function pageHome() {
@@ -13,7 +13,7 @@ function pageHome() {
   const low = devs.filter(d => d.battery && !d.battery.charging && d.battery.percent <= 20);
   const summary = [`${devs.length} device${devs.length === 1 ? '' : 's'} connected`]
     .concat(charging ? [`${charging} charging`] : [], low.length ? [`${low.map(d => d.name).join(' and ')} ${low.length === 1 ? 'needs' : 'need'} charging`] : [], !charging && !low.length && devs.length ? ['batteries fine'] : []).join(' · ');
-  const cards = devs.map(d => {
+  const cards = homeDevices().map(d => {
     const off = isOffline(d);
     const b = d.battery, st = batteryState(b), src = homePhotoSrc(d);
     const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
@@ -24,13 +24,13 @@ function pageHome() {
     return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? 'Not connected' : esc(link)}">
       <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="${esc(d.name)}">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
       <div class="dev-body centered">
-        ${off ? '<div class="dev-state off"><i class="fa-solid fa-link-slash"></i><span class="dev-label">Not connected</span></div>' : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
+        ${off ? `<div class="dev-inactive"><span class="inactive-tag" title="Not connected">Inactive</span><button class="inactive-del" data-act="dev-hide" data-key="${esc(d.id)}" title="Remove from NotLogi"><i class="fa-solid fa-trash-can"></i></button></div>` : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
       </div></div>`;
   }).join('');
   // every device in one row, sharing the width; when they cannot all fit the row scrolls sideways
   // with the arrows (and the arrow keys), which only show then (homeFit, after drawing)
-  const arrow = (dir, icon, title) => `<button class="home-arrow" data-act="home-step" data-key="${dir}" title="${title}"><i class="fa-solid ${icon}"></i></button>`;
-  return `<div class="home-pager" style="--n:${devs.length}">${arrow(-1, 'fa-chevron-left', 'Previous devices')}<div class="home-strip">${cards}</div>${arrow(1, 'fa-chevron-right', 'More devices')}</div>`;
+  const arrow = (dir, icon, title) => `<button class="home-arrow ${dir < 0 ? 'prev' : 'next'}" data-act="home-step" data-key="${dir}" title="${title}"><i class="fa-solid ${icon}"></i></button>`;
+  return `<div class="home-pager">${arrow(-1, 'fa-arrow-left', 'Previous devices')}<div class="home-strip">${cards}</div>${arrow(1, 'fa-arrow-right', 'More devices')}</div>`;
 }
 
 // Once drawn: whether the row of devices fits (no arrows) or scrolls, and which arrows can move it.

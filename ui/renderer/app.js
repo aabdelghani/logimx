@@ -97,7 +97,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule, homeFit } = ctx;
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
@@ -132,7 +132,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     // the Model takes the event; what is on screen decides whether it needs redrawing
     const hit = store.applyEvent(event, data);
     if (hit) {
-      if (event === 'device' || event === 'device_added') { if (!S.dev) S.dev = data.id; changed(); }
+      if (event === 'device' || event === 'device_added') { if (!S.dev) S.dev = data.id; unhideIfBack(store.device(data.id)); changed(); }
       else if (event === 'device_removed') { if (S.dev === data.id && S.page !== 'home') go('home'); changed(); }
       else if (event === 'battery' || event === 'general') changed();
       else if (event === 'profile') { if (S.dev === data.id && S.page !== 'home') changed(); }

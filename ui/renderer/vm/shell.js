@@ -2,8 +2,8 @@
 // agent's state, first run.
 
 // from the rest of the window, filled in by link()
-let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, openPicker, refresh, ringSelect, sidePanelClosed, toast;
-export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, openPicker, refresh, ringSelect, sidePanelClosed, toast } = ctx); }
+let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast;
+export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast } = ctx); }
 
 // the screen state this view model owns: where the window is: page and device, dialog and menu open, first run, theme
 export const state = {
@@ -12,6 +12,15 @@ export const state = {
   cfgFrom: undefined, cfgKind: undefined, cfgBack: undefined,
 };
 
+// Home's devices: all of them, except inactive ones removed from the list (they come back when
+// they connect again; their settings are kept)
+const hiddenDevices = () => (S.ui && S.ui.hidden_devices) || [];
+const homeDevices = () => S.devices.filter(d => !(isOffline(d) && hiddenDevices().includes(d.id)));
+// a removed device that connects again is listed again
+function unhideIfBack(d) {
+  if (!d || isOffline(d) || !hiddenDevices().includes(d.id)) return;
+  api.host.uiSettings({ hidden_devices: hiddenDevices().filter(x => x !== d.id) }).then(u => { if (u) S.ui = u; changed(); }).catch(() => {});
+}
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -31,6 +40,14 @@ export const commands = {
     if (drawerUp()) { fx.closeDrawer(); return; }
     if (fx.panelOpen()) { fx.closeDrawer(sidePanelClosed); return; }
     if (S.picker && S.picker.recording) { fx.stopRecorder(); S.picker.recording = false; } go('home'); return;
+  },
+  'dev-hide': async (it, e, d, key) => {
+    const dd = S.devices.find(x => x.id === key); if (!dd) return;
+    S.confirm = { title: `Remove ${dd.name}?`, text: `${dd.name} is not connected. It leaves the list, and comes back with its settings when it connects again.`, ok: 'Remove', onOk: async () => {
+      S.ui = await api.host.uiSettings({ hidden_devices: hiddenDevices().concat(key) }) || S.ui;
+      toast(`${dd.name} removed`);
+    } };
+    S.dlg = 'confirm'; changed(); return;
   },
   'home-step': async (it, e, d, key) => { fx.scrollHome(Number(key)); return; },
   'home-open': async (it, e, d, key) => { go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return; },
@@ -77,4 +94,4 @@ export const commands = {
   'ob-preset': async (it, e, d, key) => { S.ob.preset = key; changed(); return; },
 };
 
-export const provide = {};
+export const provide = { homeDevices, unhideIfBack };
