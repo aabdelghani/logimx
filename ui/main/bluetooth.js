@@ -170,10 +170,10 @@ function btPair(addr, name) {
   clearTimeout(state.btTimer); state.btTimer = null; btStopScan(); state.btMode = null;
   const quiet = () => (btPairOpen && state.win && !state.win.isDestroyed() && state.win.isVisible()) || btPopShown();   // the dialog or the pop-up shows progress itself
   const say = (title, body) => { if (!quiet() && Notification.isSupported()) new Notification({ title, body, icon: path.join(ROOT, 'assets', 'icon.png') }).show(); };
-  const state = (s, extra) => btEmit(Object.assign({ type: 'pair', address: addr, name, state: s }, extra || {}));
-  state('pairing'); say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
+  const progress = (s, extra) => btEmit(Object.assign({ type: 'pair', address: addr, name, state: s }, extra || {}));
+  progress('pairing'); say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
   let p;
-  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = null; state('failed', { why: 'bluetoothctl is not available.' }); return btSetMode(); }
+  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = null; progress('failed', { why: 'bluetoothctl is not available.' }); return btSetMode(); }
   let out = '', done = false, step = 'pair';
   const send = c => { try { p.stdin.write(c + '\n'); } catch (e) {} };
   const finish = (ok, why) => {
@@ -181,11 +181,11 @@ function btPair(addr, name) {
     send('scan off'); send('quit'); setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
     if (ok) {
       btNotified.set(addr, Date.now() + 24 * 3600e3); btFound.delete(addr);
-      state('connected'); say(`${name} is connected`, 'NotLogi picks it up in a moment.');
+      progress('connected'); say(`${name} is connected`, 'NotLogi picks it up in a moment.');
       if (btPopShown()) { clearTimeout(btPopTimer); btPopTimer = setTimeout(btPopHide, 2600); }
     } else {
       why = why || 'Put it back in pairing mode and try again.';
-      state('failed', { why }); say(`Could not connect ${name}`, why);
+      progress('failed', { why }); say(`Could not connect ${name}`, why);
     }
     setTimeout(btSetMode, 2000);
   };
@@ -193,7 +193,7 @@ function btPair(addr, name) {
   p.stdout.on('data', d => {
     out += stripAnsi(d.toString());
     const pk = /Passkey:? (\d{6})/i.exec(out) || /Confirm passkey (\d{6})/i.exec(out);
-    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; state('passkey', { passkey: pk[1] }); say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
+    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; progress('passkey', { passkey: pk[1] }); say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
     if (/Confirm passkey|Request confirmation/i.test(out) && !out.includes('[confirmed]')) { out += '[confirmed]'; send('yes'); }
     if (step === 'pair' && /Pairing successful|AlreadyExists/i.test(out)) { step = 'connect'; send(`trust ${addr}`); send(`connect ${addr}`); }
     if (step === 'connect' && /Connection successful/i.test(out)) finish(true);
