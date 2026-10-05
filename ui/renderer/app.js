@@ -204,6 +204,8 @@
     const drawerWill = panelOn();
     const moving = drawerWill !== lastDrawer ? root.querySelector('.dev-config .content > .page > :first-child') : null;
     const from = moving ? moving.getBoundingClientRect() : null;
+    // the folder's name being typed survives a redraw (a battery or focus update): same text, same caret
+    const ae = document.activeElement, typing = ae && ae.classList && ae.classList.contains('folder-name') ? { v: ae.value, a: ae.selectionStart, b: ae.selectionEnd } : null;
     root.innerHTML = html;
     if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
     if (dlgOpened) { const sc = root.querySelector(S.dlg === 'picker' ? '.scrim, .drawer-wrap' : '.scrim'); if (sc) sc.classList.add('enter'); }
@@ -225,12 +227,14 @@
     // the folder's name on its page: Enter or leaving the field saves it
     const fname = root.querySelector('.folder-name');
     if (fname) {
-      const was = fname.value;
+      const was = fname.defaultValue;   // the saved name, even when a redraw kept what is being typed
       fname.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fname.blur(); if (e.key === 'Escape') { fname.value = was; fname.blur(); } };
-      // the whole name is selected on the first click, ready to type over; the box grows with it
-      fname.onfocus = () => setTimeout(() => fname.select(), 0);
+      // the whole name is selected on the first click, ready to type over (not when a redraw gives
+      // the focus back); the box grows with it
+      fname.onfocus = () => { if (fname.dataset.keep) { delete fname.dataset.keep; return; } setTimeout(() => fname.select(), 0); };
       fname.addEventListener('input', () => { fname.size = Math.max(8, Math.min(24, fname.value.length + 1)); });
       fname.onchange = async () => { if (fname.value.trim() !== was) { await saveFolderName(fname.value); render(); } };
+      if (typing) { fname.value = typing.v; fname.dataset.keep = '1'; fname.focus(); fname.setSelectionRange(typing.a, typing.b); }
     }
     // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
     const mid = root.querySelector('.devview2.drawer-open:not(.panel-open) .dev-config');
@@ -414,7 +418,7 @@
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
       const items = navPages(d).map(p => p === 'easy' && !easyView(d) ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       const drawer = drawerUp(), blp = !drawer && (S.addPanel || backlightPanel(d));
-      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button>${S.page === 'gestures' && S.cfgKind === 'ring' && ringFolder(ringTop(ringState())) ? `<input class="cfg-name folder-name" data-field="folderName" value="${esc(ringFolder(ringTop(ringState())).label || 'New folder')}" size="${Math.max(8, Math.min(24, (ringFolder(ringTop(ringState())).label || 'New folder').length + 1))}" title="Click to rename the folder" spellcheck="false"><button class="hbtn icon folder-rename" data-act="folder-rename" title="Rename the folder"><i class="fa-solid fa-pen"></i></button>` : `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button>${S.page === 'gestures' && S.cfgKind === 'ring' && ringFolder(ringTop(ringState())) ? `<input class="cfg-name folder-name ${S.ringAnim && S.ringAnim.kind === 'in' ? 'enter' : ''}" data-field="folderName" value="${esc(ringFolder(ringTop(ringState())).label || 'New folder')}" size="${Math.max(8, Math.min(24, (ringFolder(ringTop(ringState())).label || 'New folder').length + 1))}" title="Click to rename the folder" spellcheck="false"><button class="hbtn icon folder-rename" data-act="folder-rename" title="Rename the folder"><i class="fa-solid fa-pen"></i></button><span class="folder-hint">Enter to save · Esc to cancel</span>` : `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>Have a wish? Found a problem? I'm here to make it happen, I love to build!</span><span class="wish-promise"><i class="fa-solid fa-stopwatch"></i>Granted within 24 hours</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>Report an issue</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -1526,13 +1530,6 @@
     if (!st || st.ok || !['ddcutil', 'i2c'].includes(st.reason)) return '';
     return `<button class="act ring-cfg" data-act="bri-setup"><i class="fa-solid fa-screwdriver-wrench ic"></i><span class="t">Set up brightness</span><span class="m">${st.reason === 'ddcutil' ? 'Installs ddcutil' : 'Allows access'}</span><i class="fa-solid fa-arrow-right more"></i></button>`;
   }
-  // the ring's own actions: a folder of eight more, and the next ring profile
-  // the ring's own actions. A folder already on the ring can still be opened; making new folders
-  // and the next-profile slot are coming soon: shown last and greyed out
-  function ringOwnRows(p) {
-    const cur = p.current && typeof p.current === 'object' ? p.current.type : null;
-    return cur === 'folder' ? `<button class="act ring-cfg" data-act="ring-open-folder"><i class="fa-solid fa-folder-open ic"></i><span class="t">Open folder</span><span class="m">Edit its eight actions</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
-  }
   const ringSoonRows = () => [['fa-layer-group', 'Next ring profile']]
     .map(([ic, t]) => `<div class="act soon" aria-disabled="true" title="Coming soon"><i class="fa-solid ${ic} ic"></i><span class="t">${t}</span><span class="soon-tag">Soon</span></div>`).join('');
   const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
@@ -1557,7 +1554,7 @@
         const vi = sugg.findIndex(i => i.key === 'volume_dial');
         if (ring && IS_LINUX()) sugg.splice(vi + 1, 0, { key: 'ring:brightness', icon: 'fa-sun', label: RING_BRIGHTNESS.label });
         const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
-        return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i) + (i.key === 'ring:brightness' ? briSetupRow() : '')).join('')}${ks}${ring ? ringSoonRows() : ''}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+        return `<div class="acts">${sugg.map(i => actRow(p, i) + (i.key === 'ring:brightness' ? briSetupRow() : '')).join('')}${ks}${ring ? ringSoonRows() : ''}</div>${p.cat === 'key' ? recBox(p) : ''}`;
       }
       const r = mouse ? null : RECOMMEND[p.cid];
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
@@ -2256,7 +2253,6 @@
         toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? 'Monitor brightness is ready' : 'Set up; this monitor does not answer brightness requests') : (r && r.error) || 'Failed', !(r && r.ok));
         render(); return;
       }
-      case 'ring-open-folder': S.ringAnim = { kind: 'in', from: S.picker.cid }; S.ringPath = [S.picker.cid]; ringSelectAdd(); render(); return;
       case 'ring-up': { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } render(); return; }
       case 'ring-app-drop': { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); render(); return; }
       case 'ring-travel': await saveRing({ travel: Number(b.value) }); return;

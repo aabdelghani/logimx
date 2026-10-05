@@ -41,7 +41,10 @@
     /* an open folder: the ring stays in view, dimmed, the folder lit; its actions fan out beside it */
     .bub.parent { opacity: .38; animation: none; transition: opacity .18s ease-out; }
     .bub.parent.open { opacity: 1; background: var(--acc); color: var(--acc-fg); transform: scale(1.06); }
-    .bub.fan { animation-delay: calc(var(--i) * 35ms); }
+    /* a folder's actions: each one pops up in its place, a quick overshoot, the middle of the row first */
+    @keyframes fan-in { from { opacity: 0; transform: scale(0); } 55% { opacity: 1; transform: scale(1.15); } to { opacity: 1; transform: none; } }
+    .bub.fan { animation: fan-in .22s ease-out both; animation-delay: calc(var(--i) * 30ms); }
+    @media (prefers-reduced-motion: reduce) { .bub.fan { animation: none; } }
     /* a folder: a small folder mark on its bubble, a chevron after its name */
     .bub.folder { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 3px var(--card), 0 0 0 5px var(--acc); }
     .lab .lab-more { font-size: 11px; opacity: .6; margin-left: 4px; }

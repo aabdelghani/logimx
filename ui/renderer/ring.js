@@ -124,8 +124,11 @@
       if (!s) return '';   // an empty slot is not drawn at all
       const { a, r, cx: ox, cy: oy, x: bx, y: by } = posOf(i), c = Math.cos(a), sn = Math.sin(a);
       const folder = s.action && s.action.type === 'folder';
-      // each button springs out from the middle (or, in a folder, from the folder), one after another
-      const bub = `<div class="bub ${folder ? 'folder' : ''} ${stack.length ? 'fan' : ''}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${(a * 180 / Math.PI).toFixed(1)}deg;--i:${i};--dx:${(fx - bx).toFixed(0)}px;--dy:${(fy - by).toFixed(0)}px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
+      // each button springs out from the middle, one after another; in a folder each one pops up in its
+      // place, the middle of the row first
+      const fan = stack.length, sx = fan ? CX + RR * c : fx, sy = fan ? CY + RR * sn : fy;
+      const order = fan ? Math.abs((fanOrder[i] ?? 0) - (fanN - 1) / 2) : i;
+      const bub = `<div class="bub ${folder ? 'folder' : ''} ${fan ? 'fan' : ''}" data-i="${i}" style="left:${bx.toFixed(1)}px;top:${by.toFixed(1)}px;--a:${(a * 180 / Math.PI).toFixed(1)}deg;--i:${order};--dx:${(sx - bx).toFixed(0)}px;--dy:${(sy - by).toFixed(0)}px"><i class="fa-solid ${esc(s.icon || (folder ? 'fa-folder' : 'fa-circle-dot'))}"></i></div>`;
       // the label sits outside the bubble, growing away from the ring
       const lx = ox + (r + B + 16) * c, ly = oy + (r + B + 16) * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
