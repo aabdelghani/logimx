@@ -1057,3 +1057,15 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .rpbar .rp .rp-ed:hover { background: var(--btn); color: var(--fg); }
 .rpbar .rp-new { border: 2px dashed var(--brd); background: transparent; color: var(--dim); }
 .rpbar .rp-new:hover { border-color: var(--accbg); color: var(--accbg); }
+/* action ring: a slot's ⋯ menu button, its menu, a folder's page */
+.rs-chip { overflow: visible; }
+.rs-dots { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--win); color: var(--fg); box-shadow: 0 2px 6px rgba(0,0,0,.25); opacity: .85; transition: transform .12s, opacity .12s; }
+.rs-dots i { font-size: 11px !important; color: inherit; }
+.rs-dots:hover { opacity: 1; transform: scale(1.12); background: var(--accbg); color: #fff; }
+.rs-chip.empty .rs-dots { top: -8px; right: -8px; }
+.rs-menu { position: absolute; z-index: 5; translate: 34px -10px; min-width: 170px; }
+.rs-hub.folder-hub { background: var(--accbg); color: #fff; width: 64px; height: 64px; margin: -32px 0 0 -32px; }
+.rs-hub.folder-hub i { font-size: 26px !important; color: #fff; }
+.devview2 .cfg-back .folder-name { opacity: 1 !important; pointer-events: auto; font: 700 20px var(--font); color: var(--fg); background: transparent; border: 2px solid transparent; border-radius: 8px; padding: 2px 8px; width: 260px; outline: none; -webkit-app-region: no-drag; }
+.devview2 .cfg-back .folder-name:hover { border-color: var(--brd); }
+.devview2 .cfg-back .folder-name:focus { border-color: var(--accbg); background: var(--card); }

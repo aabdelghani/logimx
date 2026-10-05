@@ -222,6 +222,13 @@
     keyTips();
     ringDrag();
     gestureDrag();
+    // the folder's name on its page: Enter or leaving the field saves it
+    const fname = root.querySelector('.folder-name');
+    if (fname) {
+      const was = fname.value;
+      fname.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fname.blur(); if (e.key === 'Escape') { fname.value = was; fname.blur(); } };
+      fname.onchange = async () => { if (fname.value.trim() !== was) { await saveFolderName(fname.value); render(); } };
+    }
     // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
     const mid = root.querySelector('.devview2.drawer-open:not(.panel-open) .dev-config');
     // the ring opened from a button keeps its panel: the back arrow is the way out
@@ -403,7 +410,7 @@
       // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
       const items = navPages(d).map(p => p === 'easy' && !easyView(d) ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
       const drawer = drawerUp(), blp = !drawer && (S.addPanel || backlightPanel(d));
-      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="cfg-name">${esc(d.name)}</span></div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+      body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button>${S.page === 'gestures' && S.cfgKind === 'ring' && ringFolder(ringTop(ringState())) ? `<input class="cfg-name folder-name" data-field="folderName" value="${esc(ringFolder(ringTop(ringState())).label || 'New folder')}" title="Rename the folder" spellcheck="false">` : `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
     } else {
       body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>Have a wish? Found a problem? I'm here to make it happen, I love to build!</span><span class="wish-promise"><i class="fa-solid fa-stopwatch"></i>Granted within 24 hours</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>Report an issue</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
     }
@@ -1109,19 +1116,46 @@
   // each slot's action beside it; a slot opens its actions in the panel on the right
   function ringStage() {
     const slots = ringSlots(true);   // the hovered app's ring, else the one being edited
+    const top = ringTop(ringState(), true), f = ringFolder(top);
+    // a folder's own page: only the actions it has around it, and one Add at the next free place
+    const addAt = f ? slots.findIndex(x => !x) : -1;
     const parts = slots.map((sl, i) => {
+      if (f && !sl && i !== addAt) return '';
       const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
-      return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>` +
-        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(sl ? sl.label : 'Empty')}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>`;
+      // the ⋯ on a slot: make it a folder, open it, or clear it (inside a folder: clear only)
+      const dots = !f || sl ? `<span class="rs-dots" data-act="rs-menu" data-key="${i}" title="More"><i class="fa-solid fa-ellipsis"></i></span>` : '';
+      const label = sl ? sl.label : f ? 'Add' : 'Add action';
+      return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i>${dots}</button>` +
+        `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty})">${esc(label)}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>` +
+        (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, !!f) : '');
     }).join('');
-    // inside a folder the middle goes back up, and the folder's name sits above the ring
-    const top = ringTop(ringState(), true), f = ringFolder(top);
-    const hub = f ? `<button class="rs-hub back" data-act="ring-up" title="Back to the ring"><i class="fa-solid fa-arrow-left"></i></button>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
-    const where = f ? `<div class="rs-where"><i class="fa-solid fa-folder-open"></i>${esc(f.label || 'Folder')}</div>` : ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
+    // in a folder the middle is the folder itself; its name and the way back are top-left
+    const hub = f ? `<div class="rs-hub folder-hub" title="${esc(f.label || 'Folder')}"><i class="fa-solid fa-folder-open"></i></div>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
+    const where = !f && ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
     return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''}">${parts}${hub}</div></div>`;
   }
+  // the ⋯ menu of a slot, beside it
+  function ringSlotMenu(sl, i, x, y, inFolder) {
+    const it = (act, icon, label, cls) => `<button data-act="${act}" data-key="${i}" class="${cls || ''}"><i class="fa-solid ${icon}"></i>${label}</button>`;
+    const items = inFolder ? (sl ? it('rs-clear', 'fa-trash', 'Clear slot', 'danger') : '')
+      : isFolderSlot(sl) ? it('rs-open', 'fa-folder-open', 'Open folder') + it('rs-clear', 'fa-trash', 'Remove folder', 'danger')
+      : it('rs-folder', 'fa-folder-plus', 'Add folder') + (sl ? it('rs-clear', 'fa-trash', 'Clear slot', 'danger') : '');
+    return `<div class="menu rs-menu" data-menu style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%">${items}</div>`;
+  }
+  // the folder's name, top-left on its page: saved as the slot's label
+  async function saveFolderName(name) {
+    const i = (S.ringPath || [])[0]; if (i == null) return;
+    name = (name || '').trim() || 'New folder';
+    const path = S.ringPath; S.ringPath = [];
+    const slots = ringSlots(), f = slots[i];
+    if (isFolderSlot(f)) { slots[i] = Object.assign({}, f, { label: name, action: Object.assign({}, f.action, { label: name }) }); await saveRingSlots(slots); }
+    S.ringPath = path;
+  }
+  // the panel turns to a place in the open ring or folder
+  const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.cid = i; p.label = RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
+  const ringFirstFree = () => { const sl = ringSlots(); const k = sl.findIndex(x => !x); return k < 0 ? 0 : k; };
   // the ring's profiles, from the panel head: switch, add one, or remove the one in use
   function ringProfileMenu() {
     const rs = ringState(), cur = rs.profiles[rs.active];
@@ -1435,7 +1469,7 @@
     const cur = p.current && typeof p.current === 'object' ? p.current.type : null;
     return cur === 'folder' ? `<button class="act ring-cfg" data-act="ring-open-folder"><i class="fa-solid fa-folder-open ic"></i><span class="t">Open folder</span><span class="m">Edit its eight actions</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
   }
-  const ringSoonRows = () => [['fa-folder', 'New folder'], ['fa-layer-group', 'Next ring profile']]
+  const ringSoonRows = () => [['fa-layer-group', 'Next ring profile']]
     .map(([ic, t]) => `<div class="act soon" aria-disabled="true" title="Coming soon"><i class="fa-solid ${ic} ic"></i><span class="t">${t}</span><span class="soon-tag">Soon</span></div>`).join('');
   const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
   const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
@@ -1892,6 +1926,7 @@
     switch (act) {
       case 'page': go(b.dataset.page); return;
       case 'go-home':
+        if (S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; ringSelect(i); render(); return; }
         // opened from a button's Configure: back to the mouse's Buttons, panel and all
         // with that button's actions open again on the right (the panel changes in place)
         if (S.cfgFrom && S.page === 'gestures') {
@@ -2056,6 +2091,19 @@
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-size': await saveRing({ size: key }); render(); return;
+      case 'rs-menu': S.menu = S.menu === 'rs:' + key ? null : 'rs:' + key; render(); return;
+      case 'rs-folder': {
+        const i = Number(key); S.menu = null;
+        const slots = ringSlots(), had = slots[i];
+        // the slot becomes a folder; an action already there moves inside as its first one
+        slots[i] = { action: { type: 'folder', label: 'New folder', slots: had && !isFolderSlot(had) ? [had] : [] }, label: 'New folder', icon: 'fa-folder' };
+        await saveRingSlots(slots);
+        S.ringPath = [i]; ringSelect(ringFirstFree()); render();
+        setTimeout(() => { const n = root.querySelector('.folder-name'); if (n) { n.focus(); n.select(); } }, 180);
+        return;
+      }
+      case 'rs-open': S.menu = null; S.ringPath = [Number(key)]; ringSelect(ringFirstFree()); render(); return;
+      case 'rs-clear': { S.menu = null; const slots = ringSlots(); slots[Number(key)] = null; await saveRingSlots(slots); ringSelect(Number(key)); render(); return; }
       case 'rp-use': {
         const r = ringState(), k = ringApp(); S.ringPath = [];
         if (key === '#own') return;
@@ -2332,6 +2380,9 @@
     render();
   }
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; render(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !recorder && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
+  }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recorder) { S.dlg = S.dlg === 'prompt' && S.prompt && S.prompt.back ? S.prompt.back : null; render(); } });
   // on Home the arrow keys page through the devices when there are more than fit
   document.addEventListener('keydown', e => {
