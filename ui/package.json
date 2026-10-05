@@ -5,7 +5,7 @@
   "description": "NotLogi: unofficial mouse & keyboard tools for Linux, Windows and macOS",
   "homepage": "https://github.com/aabdelghani/notlogi",
   "author": "Ahmed Abdelghany",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "main": "main.js",
   "scripts": {
     "start": "electron . --class=LogiMX",
@@ -147,7 +147,7 @@
       "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extendInfo": {
         "LSMinimumSystemVersion": "11.0",
-        "NSHumanReadableCopyright": "MIT License. NotLogi is not affiliated with Logitech."
+        "NSHumanReadableCopyright": "PolyForm Noncommercial 1.0.0: free for personal use; commercial use needs a license. NotLogi is not affiliated with Logitech."
       },
       "extraResources": [
         {

@@ -4,7 +4,7 @@
 
 [![Release build](https://github.com/aabdelghani/notlogi/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/notlogi/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/aabdelghani/notlogi?color=2dd4bf&label=release)](https://github.com/aabdelghani/notlogi/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-2dd4bf.svg)](LICENSE)
 [![Platforms: Linux, Windows, macOS](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20beta%20%C2%B7%20macOS%20beta-2dd4bf.svg)](#requirements)
 [![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
 [![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
@@ -16,8 +16,8 @@ SmartShift, DPI, the keyboard backlight and more. On Linux it runs on GNOME, KDE
 desktops, on X11 and Wayland.
 
 NotLogi is an independent project. It is not affiliated with, endorsed by, or supported by the
-manufacturer of these devices. The device pictures in the app belong to this repository and are
-covered by its license.
+manufacturer of these devices. The device pictures in the app are the manufacturer's product
+images, used to show which device is which; they are not covered by NotLogi's license.
 
 | Action ring | The ring on the desktop |
 |---|---|
@@ -428,4 +428,10 @@ tracking on KDE and Sway.
 
 ## License
 
-MIT
+[PolyForm Noncommercial 1.0.0](LICENSE): free to use, change and share for personal use, study,
+hobby projects and noncommercial organizations (charities, schools, public bodies). Using NotLogi
+commercially, in a business or in a product, needs a separate license: write to
+ahmedabdelghany15@gmail.com.
+
+Releases up to 0.8.2 were published under the MIT license and stay available under it.
+Bundled third-party code keeps its own license (agent/third_party).
