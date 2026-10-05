@@ -5,8 +5,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import * as Act from '../../shared/actions.mjs';
 
 // from the rest of the window, filled in by link()
-let KEYBOARD_PHOTOS, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, render, root, sec;
-export function link(ctx) { ({ KEYBOARD_PHOTOS, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, render, root, sec } = ctx); }
+let S, changed, fx, sec;
+export function link(ctx) { ({ S, changed, fx, sec } = ctx); }
 
 const dev = () => S.devices.find(d => d.id === S.dev) || null;
 const profileOf = Prof.profileOf;
@@ -43,10 +43,8 @@ const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat(
 const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy', 'flow'];
 const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
 const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
-function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; render(); }
+function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; changed(); }
 
-const easyView = d => !!(d && (d.state || {}).hosts && (isMouse(d) ? MOUSE_BOTTOMS[d.id] : (KEYBOARD_PHOTOS[d.id] || {}).hosts));
-const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && !S.previewProfile && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && easyView(d))));
 
 function countOverrides(d, key) {
   const p = profileOf(d, key), def = profileOf(d, 'default'); let n = 0;
@@ -58,7 +56,7 @@ const deviceProfiles = d => Object.entries(((d && d.config) || {}).profiles || {
 // a device the agent knows but cannot reach right now (receiver link down, or Bluetooth gone)
 const isOffline = d => d.online === false || !!d.offline;
 const drawerUp = () => !!(S.picker && S.picker.drawer && (S.dlg === 'picker' || (S.dlg === 'prompt' && S.prompt && S.prompt.back === 'picker')));
-function prompt(title, fields, onOk, ok, note) { S.prompt = { title, fields, onOk, ok, note, back: drawerUp() ? 'picker' : null }; S.dlg = 'prompt'; render(); setTimeout(() => { const i = root.querySelector('.dlg input'); if (i) i.focus(); }, 30); }
+function prompt(title, fields, onOk, ok, note) { S.prompt = { title, fields, onOk, ok, note, back: drawerUp() ? 'picker' : null }; S.dlg = 'prompt'; changed(); fx.focus('.dlg input', { delay: 30 }); }
 // What the focus tracker will report for an application picked by name: its window class from the
 // installed list (or its id), else the name itself in lower case
 function appClass(name) {
@@ -66,4 +64,19 @@ function appClass(name) {
   return a ? (a.wm_class || a.id || n) : n.replace(/\s+/g, '-');
 }
 
-export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, CID, PAGES, devicePages, navPages, generalPagesAll, generalPages, go, easyView, backlightPanel, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass };
+// What the MX Keys S reports, used only when a keyboard gives no positions for its F row
+const FROW_FALLBACK = [199, 200, 226, 227, 259, 264, 284, 228, 229, 230, 231, 232];
+// The F row and the keys beside it come from the keyboard itself: every reprogrammable control
+// says which F key it sits on (1-12, 0 for a dedicated key). The MX Keys, MX Keys S and Craft all
+// put different functions on those keys, so nothing here is fixed to one model.
+function keyLayout(d) {
+  const ctls = (d.controls || []).filter(c => c.divertable);
+  const byPos = ctls.filter(c => c.position >= 1 && c.position <= 12).sort((a, b) => a.position - b.position);
+  const frow = (byPos.length ? byPos : FROW_FALLBACK.map((cid, i) => { const c = ctls.find(x => x.cid === cid); return c && Object.assign({}, c, { position: i + 1 }); }).filter(Boolean))
+    .map(c => ({ cid: c.cid, pos: c.position, k: 'F' + c.position, icon: KEY_ICONS[c.name] || 'fa-keyboard', label: c.label }));
+  const inRow = new Set(frow.map(k => k.cid));
+  const special = ctls.filter(c => !inRow.has(c.cid)).map(c => ({ cid: c.cid, icon: KEY_ICONS[c.name] || 'fa-keyboard', label: c.label }));
+  return { frow, special };
+}
+const KEY_ICONS = { brightness_down: 'fa-sun', brightness_up: 'fa-sun', backlight_down: 'fa-lightbulb', backlight_up: 'fa-lightbulb', dictation: 'fa-microphone', emoji: 'fa-face-smile', emoji_heart_eyes: 'fa-face-smile', emoji_crying: 'fa-face-smile', emoji_smiley: 'fa-face-smile', emoji_tears: 'fa-face-smile', mic_mute: 'fa-microphone-slash', prev_track: 'fa-backward-step', play_pause: 'fa-play', next_track: 'fa-forward-step', mute: 'fa-volume-xmark', volume_down: 'fa-volume-low', volume_up: 'fa-volume-high', calculator: 'fa-calculator', screenshot: 'fa-camera', context_menu: 'fa-bars', screen_lock: 'fa-lock', mission_control: 'fa-table-cells-large', launchpad: 'fa-grip', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switch: 'fa-window-restore', app_switch_dashboard: 'fa-window-restore', search: 'fa-magnifying-glass', home: 'fa-house', virtual_keyboard: 'fa-keyboard', language_switch: 'fa-language', voice_assistant: 'fa-comment-dots', open_apps: 'fa-window-restore', all_apps: 'fa-grip', switch_app: 'fa-window-restore' };
+export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, CID, PAGES, devicePages, navPages, generalPagesAll, generalPages, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS };

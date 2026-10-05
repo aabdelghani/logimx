@@ -2,8 +2,8 @@
 import { isMouse } from '../../shared/profiles.mjs';
 
 // from the rest of the window, filled in by link()
-let PHYS, S, api, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, profileOf, render, root, sec;
-export function link(ctx) { ({ PHYS, S, api, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, profileOf, render, root, sec } = ctx); }
+let PHYS, S, addLabel, api, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, profileOf, render, root, sec;
+export function link(ctx) { ({ PHYS, S, addLabel, api, card, countOverrides, dev, deviceProfiles, drop, esc, keyLayout, onAction, presetLabel, profileOf, render, root, sec } = ctx); }
 
 // ----------------------------------------------------------- profile bar
 // Top right of a device's view: the global settings, one icon per application profile, and +.
@@ -63,10 +63,6 @@ function pageAppDetail(ad) {
   return `<div class="row" style="border:0;padding:0 0 4px"><span class="ch app-row" style="width:36px;height:36px;border-radius:10px;background:${isDef ? 'var(--dim)' : colorFor(prof.name)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${esc(prof.name.charAt(0).toUpperCase())}</span><div class="grow"><div class="lbl" style="font-size:17px;font-weight:600">${esc(prof.name)}</div><div class="sub">${isDef ? 'Used for all other windows' : esc(prof.match.join(', ')) + ' · ' + (prof.overrides || 0) + ' overrides'}</div></div>${isDef ? '' : `<button class="btn sm" data-act="reset-overrides" data-key="${esc(key)}"><i class="fa-solid fa-rotate-left"></i>Reset all</button><button class="btn sm" data-act="rename-profile" data-key="${esc(key)}"><i class="fa-solid fa-pen"></i>Rename</button><button class="btn sm danger" data-act="del-profile" data-key="${esc(key)}">Remove</button>`}</div>` +
     groups + (isDef ? '' : `<div class="legend"><span class="dot" style="background:var(--accbg)"></span>Overridden here<span class="dot" style="background:var(--trk);margin-left:8px"></span>Inherited from Default</div>`);
 }
-// + in the profile bar: the device's applications to choose from, like a key's actions. Global
-// settings is listed first (what everything starts from), then each installed application with its
-// icon; one picked with its check mark, Add puts it in the profile bar to configure from there.
-const addLabel = () => (S.addSel || []).length > 1 ? `Add ${S.addSel.length}` : 'Add';
 // the bar redrawn in place (the panel keeps its search and scroll position)
 function refreshBar() {
   const old = root.querySelector('.pbar'); if (!old) return;
@@ -99,4 +95,4 @@ function renderAddPanel(d) {
   </div></div>`;
 }
 
-export const provide = { profileIcon, profileBar, allProfiles, pageApps, colorFor, pageAppDetail, addLabel, refreshBar, bindBarHover, renderAddPanel };
+export const provide = { profileIcon, profileBar, allProfiles, pageApps, colorFor, pageAppDetail, refreshBar, bindBarHover, renderAddPanel };

@@ -30,21 +30,6 @@ function keyboardPhoto(d, plain) {
   return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${hot}</svg>`;
 }
 
-const KEY_ICONS = { brightness_down: 'fa-sun', brightness_up: 'fa-sun', backlight_down: 'fa-lightbulb', backlight_up: 'fa-lightbulb', dictation: 'fa-microphone', emoji: 'fa-face-smile', emoji_heart_eyes: 'fa-face-smile', emoji_crying: 'fa-face-smile', emoji_smiley: 'fa-face-smile', emoji_tears: 'fa-face-smile', mic_mute: 'fa-microphone-slash', prev_track: 'fa-backward-step', play_pause: 'fa-play', next_track: 'fa-forward-step', mute: 'fa-volume-xmark', volume_down: 'fa-volume-low', volume_up: 'fa-volume-high', calculator: 'fa-calculator', screenshot: 'fa-camera', context_menu: 'fa-bars', screen_lock: 'fa-lock', mission_control: 'fa-table-cells-large', launchpad: 'fa-grip', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switch: 'fa-window-restore', app_switch_dashboard: 'fa-window-restore', search: 'fa-magnifying-glass', home: 'fa-house', virtual_keyboard: 'fa-keyboard', language_switch: 'fa-language', voice_assistant: 'fa-comment-dots', open_apps: 'fa-window-restore', all_apps: 'fa-grip', switch_app: 'fa-window-restore' };
-// What the MX Keys S reports, used only when a keyboard gives no positions for its F row
-const FROW_FALLBACK = [199, 200, 226, 227, 259, 264, 284, 228, 229, 230, 231, 232];
-// The F row and the keys beside it come from the keyboard itself: every reprogrammable control
-// says which F key it sits on (1-12, 0 for a dedicated key). The MX Keys, MX Keys S and Craft all
-// put different functions on those keys, so nothing here is fixed to one model.
-function keyLayout(d) {
-  const ctls = (d.controls || []).filter(c => c.divertable);
-  const byPos = ctls.filter(c => c.position >= 1 && c.position <= 12).sort((a, b) => a.position - b.position);
-  const frow = (byPos.length ? byPos : FROW_FALLBACK.map((cid, i) => { const c = ctls.find(x => x.cid === cid); return c && Object.assign({}, c, { position: i + 1 }); }).filter(Boolean))
-    .map(c => ({ cid: c.cid, pos: c.position, k: 'F' + c.position, icon: KEY_ICONS[c.name] || 'fa-keyboard', label: c.label }));
-  const inRow = new Set(frow.map(k => k.cid));
-  const special = ctls.filter(c => !inRow.has(c.cid)).map(c => ({ cid: c.cid, icon: KEY_ICONS[c.name] || 'fa-keyboard', label: c.label }));
-  return { frow, special };
-}
 function pageKeys(d) {
   // only the keyboard: hovering a key says what it does, clicking it opens its actions beside it
   const photo = keyboardPhoto(d);
@@ -96,4 +81,4 @@ function renderBacklightPanel(d) {
   </div></div>`;
 }
 
-export const provide = { KEYBOARD_PHOTOS, keyboardPhoto, KEY_ICONS, FROW_FALLBACK, keyLayout, pageKeys, backlightTag, pageBacklight, BL_STEPS, renderBacklightPanel };
+export const provide = { KEYBOARD_PHOTOS, keyboardPhoto, pageKeys, backlightTag, pageBacklight, BL_STEPS, renderBacklightPanel };

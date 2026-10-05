@@ -3,8 +3,8 @@ import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 import { RING_BRIGHTNESS } from '../../shared/ring.mjs';
 
 // from the rest of the window, filled in by link()
-let GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, api, appLabel, appSet, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, recItem, render, ringBehaviour, root, row, sec, sectionsFor;
-export function link(ctx) { ({ GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, api, appLabel, appSet, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, recItem, render, ringBehaviour, root, row, sec, sectionsFor } = ctx); }
+let GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, api, appLabel, appSet, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, render, ringBehaviour, root, row, sec, sectionsFor;
+export function link(ctx) { ({ GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, api, appLabel, appSet, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, render, ringBehaviour, root, row, sec, sectionsFor } = ctx); }
 
 function renderPicker() {
   const p = S.picker;
@@ -39,7 +39,6 @@ function renderPicker() {
 const actRow = (p, i) => `<button class="act ${(p.selKey || curOf(p) || '') === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}${i.key === 'action_ring' ? '<span class="new-tag">New</span>' : ''}${p.section === 'ring' ? adjBadge(i.key) : ''}</span>${i.meta ? `<span class="m">${esc(i.meta)}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
 const keyRow = (p, k, meta) => `<button class="act ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}"><span class="kcap">${esc(k.label)}</span>${meta ? `<span class="m">${meta}</span>` : ''}<i class="fa-solid fa-check chk"></i></button>`;
 const keyCap = (p, k) => `<button class="kc ${(p.selKey || (keyCur(p) && 'key:' + keyCur(p)) || '') === 'key:' + k.code ? 'on' : ''}" data-act="pick-key" data-key="${k.code}" title="${esc(k.label)}">${esc(k.label)}</button>`;
-const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
 const adjBadge = k => RING_DRAG.has(k) ? '<span class="adj-tag" title="Hold and drag, or scroll over it, to change"><i class="fa-solid fa-sliders"></i></span>'
   : RING_WHEEL.has(k) ? '<span class="adj-tag" title="Scroll over it to change"><i class="fa-solid fa-sliders"></i></span>' : '';
 // monitor brightness needs ddcutil and access to the monitors' I2C buses: asked once, offered
@@ -149,4 +148,4 @@ function renderAppList() {
 }
 function renderPickerList() { const p = S.picker; const list = root.querySelector('.acts'); if (!list) return; const items = pickerItems(p); const curKey = typeof p.current === 'string' ? p.current : (p.current && p.current.preset); list.innerHTML = items.map(i => `<button class="act ${curKey === i.key || p.sel === i.key ? 'on' : ''}" data-act="pick-item" data-key="${i.key}"><i class="fa-solid ${i.icon} ic"></i><span class="t">${esc(i.label)}</span><span class="m">${i.meta}</span><i class="fa-solid fa-check chk"></i></button>`).join('') || '<div class="row hint">No actions match</div>'; list.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.stopPropagation(); onAction('pick-item', b); }); }
 
-export const provide = { renderPicker, actRow, keyRow, keyCap, presetItem, adjBadge, briSetupRow, ringSoonRows, recBox, drawerSection, renderPickerDrawer, appTabHtml, renderAppList, renderPickerList };
+export const provide = { renderPicker, actRow, keyRow, keyCap, adjBadge, briSetupRow, ringSoonRows, recBox, drawerSection, renderPickerDrawer, appTabHtml, renderAppList, renderPickerList };

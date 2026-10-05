@@ -9,6 +9,7 @@ import { createApi } from './model/api.js';
 import { createStore } from './model/store.js';
 const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newRingId } = Ring;
 import * as htmlView from './view/html.js';
+import * as fxView from './view/fx.js';
 import * as coreVM from './vm/core.js';
 import * as recorderView from './view/recorder.js';
 import * as renderView from './view/render.js';
@@ -25,9 +26,15 @@ import * as flowVM from './vm/flow.js';
 import * as pickerVM from './vm/picker.js';
 import * as pickerView from './view/picker.js';
 import * as dialogsView from './view/dialogs.js';
-import * as actionsVM from './vm/actions.js';
+import * as dispatchView from './view/dispatch.js';
 import * as profilesVM from './vm/profiles.js';
-const MODULES = [htmlView, coreVM, recorderView, renderView, dndView, mouseView, keyboardView, deviceView, profilesView, ringView, homeView, settingsView, ringVM, flowVM, pickerVM, pickerView, dialogsView, actionsVM, profilesVM];
+import * as shellVM from './vm/shell.js';
+import * as gesturesVM from './vm/gestures.js';
+import * as deviceVM from './vm/device.js';
+import * as settingsVM from './vm/settings.js';
+import * as pairVM from './vm/pair.js';
+import * as dialogsVM from './vm/dialogs.js';
+const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mouseView, keyboardView, deviceView, profilesView, ringView, homeView, settingsView, ringVM, flowVM, pickerVM, pickerView, dialogsView, dispatchView, profilesVM, shellVM, gesturesVM, deviceVM, settingsVM, pairVM, dialogsVM];
 (() => {
   const $ = s => document.querySelector(s);
   const root = $('#root');
@@ -78,8 +85,13 @@ const MODULES = [htmlView, coreVM, recorderView, renderView, dndView, mouseView,
   }
 
   // the screens (view models in vm/, views in view/): each module gets what it uses from the others
-  const ctx = Object.assign({ $, root, api, store, view, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
+  // a view model changed what is on screen: draw it again
+  const changed = () => render();
+  // every button's command, by its data-act name, from the view models
+  const commands = Object.assign({}, ...MODULES.map(m => m.commands || {}));
+  const ctx = Object.assign({ commands, changed, $, root, api, store, view, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
+  fxView.linkViews(ctx);
   const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; render(); } });
   document.addEventListener('keydown', e => {

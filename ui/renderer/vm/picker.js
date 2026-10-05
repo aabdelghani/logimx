@@ -1,10 +1,12 @@
 // View model: the action picker: what each control can do, what is recommended for it, and
 // assigning the picked action.
+import { isFolderSlot, RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS } from '../../shared/ring.mjs';
+import * as Act from '../../shared/actions.mjs';
 import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, META, S, actionIcon, api, assignment, dev, deviceProfiles, gestureControl, gestureObject, presetItem, presetLabel, render, renderAppList, ringSlots, saveRingSlots, sec, setAssign, toast;
-export function link(ctx) { ({ ALT, META, S, actionIcon, api, assignment, dev, deviceProfiles, gestureControl, gestureObject, presetItem, presetLabel, render, renderAppList, ringSlots, saveRingSlots, sec, setAssign, toast } = ctx); }
+let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast;
+export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast } = ctx); }
 
 // ----------------------------------------------------------- dialogs
 const PICKER_CATS = [['all', 'All', 'fa-list'], ['key', 'Keystroke', 'fa-keyboard'], ['media', 'Media', 'fa-play'], ['window', 'Window', 'fa-window-maximize'], ['ws', 'Workspaces', 'fa-table-cells-large'], ['cmd', 'Command', 'fa-terminal'], ['app', 'Apps', 'fa-rocket'], ['device', 'Device', 'fa-computer-mouse']];
@@ -137,14 +139,14 @@ function drawerItems(sec, p) {
 }
 function openPicker(t) {
   // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
-  api.quiet('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') renderAppList(); }).catch(() => { S.running = []; });
+  api.quiet('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') fx.refreshAppList(); }).catch(() => { S.running = []; });
   const d = t.dev || dev();
   const section = t.section, cid = t.cid;
   const gslot = section === 'gesture' && d && t.slot ? gestureObject(d, cid)[t.slot] : null;
   const current = section === 'gesture' ? (gslot ? gslot.preset || gslot : null) : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
   const ctl = typeof cid === 'number' && section !== 'ring' && d ? d.controls.find(c => c.cid === cid) : null;
   S.picker = { drawer: !!t.drawer, fold: t.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || S.editProfile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.drawer ? false : t.cat === 'key' };
-  S.dlg = 'picker'; render();
+  S.dlg = 'picker'; changed();
 }
 async function assignPicked(action) {
   const p = S.picker; const d = S.devices.find(x => x.id === p.dev);
@@ -161,8 +163,8 @@ async function assignPicked(action) {
       slots[p.cid] = entry;
       await saveRingSlots(slots);
     }
-    if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; render(); toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); return; }
-    S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); render(); return;
+    if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; changed(); toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); return; }
+    S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); changed(); return;
   }
   if (p.section === 'gesture') {
     const cid = gestureControl(d), g = gestureObject(d, cid);
@@ -174,8 +176,126 @@ async function assignPicked(action) {
   } else {
     await setAssign(d, p.section, p.cid, action, p.profile);
   }
-  if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; render(); toast('Assigned ' + presetLabel(action)); return; }
-  S.dlg = null; toast('Assigned ' + presetLabel(action)); render();
+  if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; changed(); toast('Assigned ' + presetLabel(action)); return; }
+  S.dlg = null; toast('Assigned ' + presetLabel(action)); changed();
 }
 
-export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked };
+const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
+// what its buttons do: data-act name → command, given the button's data and value (it), the
+// event, the device on screen and the button's data-key
+export const commands = {
+  'pick': async (it, e, d, key) => {
+    {
+    // a folder on the ring opens straight away (its ⋯ menu removes it)
+    if (it.data.ins && S.picker && S.picker.section === 'ring') { ringSelectAdd(it.data.ins); changed(); return; }
+    const fc = Number(it.data.cid);
+    if (it.data.section === 'ring' && S.page === 'gestures' && S.cfgKind === 'ring' && !(S.ringPath || []).length && isFolderSlot(ringSlots()[fc])) {
+      S.menu = null; S.ringPath = [fc]; S.ringAnim = { kind: 'in', from: fc }; ringSelectAdd(); changed(); return;
+    }
+    }
+    openPicker({ drawer: S.page === 'gestures' && (it.data.section === 'ring' || it.data.section === 'gesture'), dev: it.data.dev ? S.devices.find(x => x.id === it.data.dev) : d, section: it.data.section, cid: it.data.cid === 'thumb' ? 'thumb' : Number(it.data.cid), label: it.data.label, cat: it.data.cat, profile: it.data.profile }); return;
+  },
+  'pick-gesture': async (it, e, d, key) => { openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: it.data.slot }); return; },
+  'pick-gestures': async (it, e, d, key) => {
+    // this button now carries gestures: what it had for them before, else the navigation set
+    const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, g = gestureObject(dd, p.cid);
+    g.type = 'gesture';
+    await setAssign(dd, 'buttons', p.cid, g, p.profile);
+    S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
+    p.current = g; p.sel = null;
+    toast(`Gestures on ${p.label || 'this button'}`);
+    changed(); return;
+  },
+  'gest-config': async (it, e, d, key) => {
+    const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d;
+    fx.stopRecorder();
+    // like the action ring: the panel stays and turns into the Tap gesture's actions, the
+    // directions in the middle pick which one it shows; back returns to the mouse's Buttons
+    S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
+    S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
+    S.cfgFrom = 'buttons'; S.cfgKind = 'gestures'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
+    S.dir = 'tap';
+    openPicker({ drawer: true, dev: dd, section: 'gesture', cid: p.cid, label: SLOTS.tap[0], slot: SLOTS.tap[1] });
+    return;
+  },
+  'ring-config': async (it, e, d, key) => {
+    ringTidyFolders();
+    // to the ring's settings: on this mouse's Gestures & action ring page when the button can carry
+    // it there, otherwise the Action ring page
+    const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, cap = dd && gestureCapable(dd).some(c => c.cid === p.cid);
+    fx.stopRecorder();
+    if (!cap) { go('ring'); return; }
+    // the ring in the middle with its actions open on the right (the left bar folds away, as
+    // with any panel); the back arrow returns to the mouse's Buttons
+    // the panel stays where it is and changes to the ring's: no closing and reopening on the way
+    S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
+    S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
+    S.cfgFrom = 'buttons'; S.cfgKind = 'ring'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
+    const slots = ringSlots(), first = Math.max(0, slots.findIndex(s => !s));
+    openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
+    return;
+  },
+  'acc-toggle': async (it, e, d, key) => { const p = S.picker; p.fold = Object.assign({}, p.fold, { [key]: !(p.fold || {})[key] }); p.unfolded = p.fold[key] ? key : null; changed(); return; },
+  'rec-open': async (it, e, d, key) => { const p = S.picker; p.q = ''; p.fold = Object.assign({}, p.fold, { rec: true }); p.sel = null; p.selKey = null; if (p.cat === 'key') { fx.stopRecorder(); p.recording = false; p.cat = 'all'; } else { p.cat = 'key'; p.recording = true; } changed(); return; },
+  'pick-key': async (it, e, d, key) => { const p = S.picker; if (p.drawer) return assignPicked({ type: 'keystroke', keys: [key] }); p.cat = 'all'; p.sel = { type: 'keystroke', keys: [key] }; p.selKey = 'key:' + key; fx.markPicked('key', key); return; },
+  'pick-cat': async (it, e, d, key) => { S.picker.cat = key; S.picker.recording = key === 'key'; changed(); return; },
+  'pick-item': async (it, e, d, key) => {
+    if (key.startsWith('app:')) return assignPicked(JSON.parse(JSON.stringify(APP_ACTIONS[key.slice(4)])));
+    if (key === 'wheel:keys') {
+      const typedKeys = Act.typedKeys;
+      prompt('Two keystrokes', [{ key: 'up', label: 'Turning one way', placeholder: 'ctrl+tab' }, { key: 'down', label: 'Turning the other way', placeholder: 'ctrl+shift+tab' }], async v => {
+        const plus = typedKeys(v.up || ''), minus = typedKeys(v.down || '');
+        if (!plus || !minus) { toast('Type a keystroke for each way', true); return changed(); }
+        await assignPicked({ type: 'adapter', step: 120, label: `${plus.map(keyName).join(' + ')} / ${minus.map(keyName).join(' + ')}`, plus: { type: 'keystroke', keys: plus }, minus: { type: 'keystroke', keys: minus } });
+      }, 'Assign');
+      return;
+    }
+    if (key === 'ring:profile') return assignPicked(RING_NEXT_PROFILE);
+    if (key === 'ring:brightness') return assignPicked(RING_BRIGHTNESS);
+    if (key === 'ring:folder') {
+      if (isFolderSlot({ action: S.picker.current })) return;
+      prompt('New folder', [{ key: 'name', label: 'Name', placeholder: 'Media, Windows, Apps…' }], async v => {
+        const name = (v.name || '').trim() || 'Folder';
+        await assignPicked({ type: 'folder', label: name, slots: [] });
+        const slots = ringSlots(); slots[S.picker.cid].label = name; slots[S.picker.cid].icon = 'fa-folder'; await saveRingSlots(slots); changed();
+      }, 'Create');
+      return;
+    }
+    if (S.picker.drawer) return assignPicked(key); S.picker.sel = key; fx.markPicked('item', key, S.picker.drawer); return;
+  },
+  'rec-start': async (it, e, d, key) => { if (S.picker.drawer) S.picker.cat = 'key'; if (S.picker.recording) return; S.picker.recording = true; changed(); return; },
+  'pick-launch': async (it, e, d, key) => { if (S.picker.drawer) { S.picker.cat = 'app'; S.picker.launch = key; S.picker.cmd = S.picker.text = S.picker.open = ''; return commands['pick-assign']({ data: {}, on: false }, null, d); } S.picker.launch = key; S.picker.cmd = ''; S.picker.text = ''; S.picker.open = ''; if (S.picker.cat === 'app') fx.refreshAppList(); else changed(); return; },
+  'pick-disable': async (it, e, d, key) => { await assignPicked('nothing'); return; },
+  'pick-default': async (it, e, d, key) => {
+    const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
+    if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await saveRingSlots(slots); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); changed(); return; }
+    const defs = ((await api.quiet('defaults', { id: dd.id })).profiles || {}).default || {};
+    let a = 'native';
+    if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';
+    else if (p.section === 'gesture') a = 'nothing';
+    else a = (defs[p.section] || {})[String(p.cid)] || 'native';
+    if (p.profile && p.profile !== 'default') { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[p.profile] && profs[p.profile][p.section]) { delete profs[p.profile][p.section][String(p.cid)]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } S.picker = null; toast('Override removed, follows All applications'); changed(); return; }
+    await assignPicked(a); return;
+  },
+  'pick-assign': async (it, e, d, key) => {
+    const p = S.picker;
+    if (p.cat === 'key') {
+      const t = (p.typed || '').trim();
+      if (t) { fx.stopRecorder(); return assignPicked({ type: 'keystroke', keys: Act.typedKeys(t) }); }
+      // whatever the box shows is what the user wants, whether or not the recorder saw a release
+      if ((p.chord || []).length) { fx.stopRecorder(); p.recording = false; return assignPicked({ type: 'keystroke', keys: p.chord.slice() }); }
+      return toast('Record or type a keystroke first', true);
+    }
+    if (p.cat === 'cmd') { if (p.cmd) return assignPicked({ type: 'command', cmd: p.cmd, label: 'Run: ' + p.cmd }); if (p.text) return assignPicked({ type: 'type_text', text: p.text }); if (p.open) return assignPicked({ type: 'open', target: p.open, label: 'Open ' + p.open.replace(/^https?:\/\//, '').slice(0, 24) }); return toast('Enter a command, text or target', true); }
+    if (p.cat === 'app') {
+      if (!p.launch) return toast('Pick an application first', true);
+      const a = (S.apps || []).concat(S.running || []).find(x => x.id === p.launch);
+      if (a && a.url) return assignPicked({ type: 'open', target: a.url, label: a.name });
+      return assignPicked({ type: 'launch', app: p.launch, label: a ? a.name : p.launch });
+    }
+    if (p.sel) return assignPicked(p.sel);
+    return toast('Pick an action first', true);
+  },
+};
+
+export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem };

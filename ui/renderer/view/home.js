@@ -3,11 +3,10 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { batIcon } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
-let S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, themeMenu;
-export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, themeMenu } = ctx); }
+let HOME_PER_VIEW, S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, themeMenu;
+export function link(ctx) { ({ HOME_PER_VIEW, S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, themeMenu } = ctx); }
 
 function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
-const HOME_PER_VIEW = 2;   // two cards side by side at the window's size; more page with the arrows
 function pageHome() {
   const devs = S.devices;
   const charging = devs.filter(d => d.battery && d.battery.charging).length;
@@ -58,4 +57,4 @@ function renderEmpty() {
         : S.agentBusy ? '' : `<button class="btn primary" data-act="start-agent"><i class="fa-solid ${needsBuild ? 'fa-hammer' : 'fa-play'}"></i>${needsBuild ? 'Build and start' : 'Start the agent'}</button>`}${booting ? '' : '<button class="btn" data-act="onboard"><i class="fa-solid fa-shield-halved"></i>Setup guide</button>'}</div></div></main></div>`;
 }
 
-export const provide = { greeting, HOME_PER_VIEW, pageHome, renderEmpty };
+export const provide = { greeting, pageHome, renderEmpty };

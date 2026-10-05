@@ -2,8 +2,8 @@
 import { isNative } from '../../shared/profiles.mjs';
 
 // from the rest of the window, filled in by link()
-let S, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, overridden, presetLabel, range, ringStage, ringState, row, sec, sw;
-export function link(ctx) { ({ S, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, overridden, presetLabel, range, ringStage, ringState, row, sec, sw } = ctx); }
+let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw;
+export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw } = ctx); }
 
 // ----------------------------------------------------------- photos
 // One photo per mouse model, keyed by device id like the keyboards. A spot is a control id (or
@@ -72,24 +72,6 @@ function pageButtons(d) {
       `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
 }
 
-const SLOTS = { tap: ['Tap', 'click'], up: ['Swipe up', 'up'], down: ['Swipe down', 'down'], left: ['Swipe left', 'left'], right: ['Swipe right', 'right'] };
-const gestureCapable = d => d.controls.filter(c => c.divertable && c.raw_xy && c.cid !== 0xD7);
-const isRingAction = a => a === 'action_ring' || (!!a && typeof a === 'object' && a.type === 'ui' && a.event === 'ring');
-// the button that is held: the one carrying gestures or the action ring (they share it, one at a time)
-function gestureControl(d) {
-  const picked = (S.holdCid || {})[d.id];
-  if (picked !== undefined && gestureCapable(d).some(c => c.cid === picked)) return picked;
-  for (const c of gestureCapable(d)) { const a = assignment(d, 'buttons', c.cid); const r = typeof a === 'string' ? (S.presets.all[a] || {}) : (a || {}); if (r.type === 'gesture' || isRingAction(a)) return c.cid; }
-  return 195;
-}
-function gestureObject(d, cid) {
-  const a = assignment(d, 'buttons', cid);
-  const src = typeof a === 'string' ? S.presets.all[a] : a;
-  if (src && src.type === 'gesture') return JSON.parse(JSON.stringify(src));
-  const kept = ((S.ui || {}).savedGesture || {})[d.id + ':' + cid] || ((S.ui || {}).savedGesture || {})[d.id];   // what the button did before the ring took it
-  if (kept && kept.type === 'gesture') return JSON.parse(JSON.stringify(kept));
-  const o = JSON.parse(JSON.stringify(S.presets.all.gesture_navigation)); o.label = 'Custom gestures'; return o;
-}
 function gestureStage(d, cid, g, sens) {
   const on = k => drawerUp() && S.picker.section === 'gesture' && S.dir === k;
   const cell = (k, icon) => { const sub = g[SLOTS[k][1]]; return `<button class="gs-cell ${k === 'tap' ? 'tap' : ''} ${on(k) ? 'on' : ''} ${isNative(sub) || !sub || (sub.type === 'nothing') ? 'empty' : ''}" data-act="dir-pick" data-key="${k}"><i class="fa-solid ${icon}"></i><span class="gs-k">${SLOTS[k][0]}</span><span class="gs-d">${esc(sub ? presetLabel(sub.preset || sub) : 'Do nothing')}</span></button>`; };
@@ -247,4 +229,4 @@ function renderPointerPanel(d) {
   </div></div>`;
 }
 
-export const provide = { MOUSE_PHOTOS, MOUSE_BOTTOMS, buttonRows, mousePhoto, PHYS, pageButtons, SLOTS, gestureCapable, isRingAction, gestureControl, gestureObject, gestureStage, pageGestures, WAVES, pageHaptics, PT_NAMES, ptSummary, thumbInfo, pointPhoto, pagePointer, pointerSettings, thumbSettings, WHEEL_ACTIONS, renderPointerPanel };
+export const provide = { MOUSE_PHOTOS, MOUSE_BOTTOMS, buttonRows, mousePhoto, PHYS, pageButtons, gestureStage, pageGestures, WAVES, pageHaptics, PT_NAMES, ptSummary, thumbInfo, pointPhoto, pagePointer, pointerSettings, thumbSettings, WHEEL_ACTIONS, renderPointerPanel };

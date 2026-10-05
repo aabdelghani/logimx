@@ -3,8 +3,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { batIcon } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, backlightPanel, card, chk, easyView, esc, isOffline, range, row, sec, sw;
-export function link(ctx) { ({ ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, backlightPanel, card, chk, easyView, esc, isOffline, range, row, sec, sw } = ctx); }
+let ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, card, chk, esc, isOffline, range, row, sec, sw;
+export function link(ctx) { ({ ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, card, chk, esc, isOffline, range, row, sec, sw } = ctx); }
 
 // a computer slot: its name, whether it is the one in use, and how it is linked
 function hostInfo(h, i) {
@@ -134,4 +134,6 @@ function pageDeviceSettings(d) {
   return (general ? sec('General', card(general)) : '') + (keys ? sec('Disabled keys', card(keys), 'switched off while on') : '') + sec('Device backup', card(backup));
 }
 
-export const provide = { hostInfo, easyPhoto, keyboardEasyPhoto, renderEasyPanel, pageEasy, pageInfo, devicePhotoSrc, TOP_VIEWS, homePhotoSrc, navBattery, batteryState, batteryRing, DISABLE_KEYS, pageDeviceSettings };
+const easyView = d => !!(d && (d.state || {}).hosts && (isMouse(d) ? MOUSE_BOTTOMS[d.id] : (KEYBOARD_PHOTOS[d.id] || {}).hosts));
+const backlightPanel = d => !!(d && !S.blClosed && !S.appDetail && !S.previewProfile && ((S.page === 'backlight' && !isMouse(d) && (d.state || {}).backlight && KEYBOARD_PHOTOS[d.id]) || (S.page === 'pointer' && isMouse(d) && MOUSE_PHOTOS[d.id]) || (S.page === 'easy' && easyView(d))));
+export const provide = { hostInfo, easyPhoto, keyboardEasyPhoto, renderEasyPanel, pageEasy, pageInfo, devicePhotoSrc, TOP_VIEWS, homePhotoSrc, navBattery, batteryState, batteryRing, DISABLE_KEYS, pageDeviceSettings, easyView, backlightPanel };

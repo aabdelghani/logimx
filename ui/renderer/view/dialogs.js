@@ -3,8 +3,8 @@ import { toolName } from '../../shared/actions.mjs';
 import { isMouse } from '../../shared/profiles.mjs';
 
 // from the rest of the window, filled in by link()
-let IS_LINUX, IS_MAC, IS_WIN, S, VERSION, agentNeedsBuild, card, esc, row;
-export function link(ctx) { ({ IS_LINUX, IS_MAC, IS_WIN, S, VERSION, agentNeedsBuild, card, esc, row } = ctx); }
+let IS_LINUX, IS_MAC, IS_WIN, S, agentNeedsBuild, card, esc, row;
+export function link(ctx) { ({ IS_LINUX, IS_MAC, IS_WIN, S, agentNeedsBuild, card, esc, row } = ctx); }
 
 // Bluetooth, the way Windows does it: put the device in pairing mode and it shows up here within
 // seconds; Connect pairs, trusts and connects it, showing a keyboard's passkey to type
@@ -46,18 +46,6 @@ function renderPair() {
     <div class="dlg-head">Pair a device<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
     <div class="dlg-body"><div class="steps">${steps}</div>${body}</div>
     <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="pair-cancel">Cancel</button>${p.step === 2 && p.via === 'bt' ? '' : `<button class="btn primary" data-act="pair-next" ${p.step === 2 && !p.error ? 'disabled' : ''}>${p.step === 3 ? 'Finish' : p.step === 2 ? 'Retry' : 'Continue'}</button>`}</div></div></div></div>`;
-}
-// The report goes into a public issue, so it is shown in full before anything leaves the machine
-// and it is the person who submits it, signed in to their own account in the browser.
-const ISSUE_URL = 'https://github.com/aabdelghani/notlogi/issues/new';
-function reportBody(r, withLog) {
-  return `### What happened\n\n${(r.what || '').trim() || '<!-- What did you do, what did you expect, what happened instead? -->'}\n\n### Diagnostics\n\n${r.summary}\n` +
-    (withLog && r.log ? `\n<details><summary>Agent log, last lines</summary>\n\n\`\`\`\n${r.log}\n\`\`\`\n\n</details>\n` : withLog ? '' : '\n_The agent log was too long for the link: it is on the clipboard, paste it here._\n');
-}
-// A wish: a feature request in its own words, with only the version, system and devices beside it
-function wishBody(w) {
-  const devs = S.devices.map(d => d.name).join(', ') || 'none connected';
-  return `### My wish\n\n${(w.what || '').trim()}\n\n### Setup\n\nNotLogi ${S.status.version || VERSION} on ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'} · devices: ${devs}\n`;
 }
 function renderWish() {
   const w = S.wish || {};
@@ -134,4 +122,4 @@ function renderOnboard() {
     <div class="ob-body">${body}<div class="ob-foot"><button class="btn" data-act="ob-prev" ${o.step === 1 ? 'disabled' : ''}>Back</button><button class="btn primary" data-act="ob-next">${o.step === 3 ? 'Finish' : 'Continue'}</button></div></div></div></main></div>`;
 }
 
-export const provide = { btPairBody, renderPair, ISSUE_URL, reportBody, wishBody, renderWish, renderReport, renderPrompt, renderConfirm, onboardPermissions, renderOnboard };
+export const provide = { btPairBody, renderPair, renderWish, renderReport, renderPrompt, renderConfirm, onboardPermissions, renderOnboard };
