@@ -1174,12 +1174,22 @@ ipcMain.handle('app-icon', async (_e, spec) => {
 ipcMain.handle('accessibility', (_e, prompt) => ({ trusted: plat.accessibilityTrusted(prompt), needed: plat.IS_MAC }));
 ipcMain.handle('open-accessibility', () => plat.openAccessibilitySettings());
 ipcMain.handle('open-bluetooth', () => { if (!plat.IS_LINUX) return plat.openBluetooth(); execFile('gnome-control-center', ['bluetooth'], () => execFile('systemsettings', ['kcm_bluetooth'], () => {})); });
+// The latest release on GitHub. A renamed repository answers at its old address with a redirect,
+// so redirects are followed (a few, to the same API host).
 ipcMain.handle('check-updates', () => new Promise(resolve => {
   const https = require('https');
-  const req = https.get({ host: 'api.github.com', path: '/repos/aabdelghani/logimx/releases/latest', headers: { 'User-Agent': 'LogiMX' }, timeout: 8000 }, res => {
-    let body = ''; res.on('data', c => body += c); res.on('end', () => { try { const j = JSON.parse(body); resolve({ ok: true, latest: (j.tag_name || '').replace(/^v/, ''), url: j.html_url, current: app.getVersion() }); } catch (e) { resolve({ ok: false, error: 'unexpected reply' }); } });
-  });
-  req.on('error', e => resolve({ ok: false, error: e.message })); req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'timeout' }); });
+  const get = (where, hops) => {
+    const req = https.get(Object.assign({ host: 'api.github.com', headers: { 'User-Agent': 'NotLogi' }, timeout: 8000 }, where), res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && hops > 0) {
+        res.resume();
+        try { const u = new URL(res.headers.location, 'https://api.github.com'); if (u.host === 'api.github.com') return get({ path: u.pathname + u.search }, hops - 1); } catch (e) {}
+        return resolve({ ok: false, error: 'unexpected redirect' });
+      }
+      let body = ''; res.on('data', c => body += c); res.on('end', () => { try { const j = JSON.parse(body); resolve({ ok: true, latest: (j.tag_name || '').replace(/^v/, ''), url: j.html_url, current: app.getVersion() }); } catch (e) { resolve({ ok: false, error: 'unexpected reply' }); } });
+    });
+    req.on('error', e => resolve({ ok: false, error: e.message })); req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'timeout' }); });
+  };
+  get({ path: '/repos/aabdelghani/notlogi/releases/latest' }, 3);
 }));
 // A report for a public issue: what is needed to reproduce a problem and nothing that identifies the
 // person. Serial numbers, host names, the user name and the home directory are taken out, and

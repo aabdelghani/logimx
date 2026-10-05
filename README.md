@@ -2,8 +2,8 @@
 
 **Unofficial mouse & keyboard tools for Linux** (formerly LogiMX)
 
-[![Release build](https://github.com/aabdelghani/logimx/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/logimx/actions/workflows/release.yml)
-[![Latest release](https://img.shields.io/github/v/release/aabdelghani/logimx?color=2dd4bf&label=release)](https://github.com/aabdelghani/logimx/releases/latest)
+[![Release build](https://github.com/aabdelghani/notlogi/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/notlogi/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/aabdelghani/notlogi?color=2dd4bf&label=release)](https://github.com/aabdelghani/notlogi/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
 [![Platforms: Linux, Windows, macOS](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20beta%20%C2%B7%20macOS%20beta-2dd4bf.svg)](#requirements)
 [![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
@@ -57,7 +57,7 @@ covered by its license.
 
 ## Install
 
-Packages are attached to each [release](https://github.com/aabdelghani/logimx/releases). They are
+Packages are attached to each [release](https://github.com/aabdelghani/notlogi/releases). They are
 built by CI from the tagged source.
 
 **Debian / Ubuntu (.deb)**: installs the app, the agent, the udev rule and a systemd user service.

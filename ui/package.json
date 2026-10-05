@@ -3,7 +3,7 @@
   "productName": "NotLogi",
   "version": "0.7.0",
   "description": "NotLogi: unofficial mouse & keyboard tools for Linux, Windows and macOS",
-  "homepage": "https://github.com/aabdelghani/logimx",
+  "homepage": "https://github.com/aabdelghani/notlogi",
   "author": "Ahmed Abdelghany",
   "license": "MIT",
   "main": "main.js",

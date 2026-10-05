@@ -1164,7 +1164,7 @@
   }
 
   function pageAbout() {
-    const links = [['fa-book', 'Documentation', 'https://github.com/aabdelghani/logimx#readme'], ['fa-code-branch', 'Source code', 'https://github.com/aabdelghani/logimx'], ['fa-bug', 'Report an issue', 'https://github.com/aabdelghani/logimx/issues'], ['fa-heart', 'Contributors', 'https://github.com/aabdelghani/logimx/graphs/contributors']];
+    const links = [['fa-book', 'Documentation', 'https://github.com/aabdelghani/notlogi#readme'], ['fa-code-branch', 'Source code', 'https://github.com/aabdelghani/notlogi'], ['fa-bug', 'Report an issue', 'https://github.com/aabdelghani/notlogi/issues'], ['fa-heart', 'Contributors', 'https://github.com/aabdelghani/notlogi/graphs/contributors']];
     const logs = S.logs.length ? S.logs : [{ t: `${new Date().toLocaleTimeString()} INFO  agent ${S.connected ? 'connected' : 'not running'} · ${S.devices.length} device(s) · tracker ${S.status.tracker || 'n/a'}`, c: 'dim' }];
     return `<div class="card about-hero"><span class="mark"><i class="fa-solid fa-computer-mouse"></i></span><div class="name">NotLogi</div><div class="tagline">Unofficial mouse &amp; keyboard tools for ${IS_WIN() ? 'Windows' : IS_MAC() ? 'macOS' : 'Linux'}</div><div class="tags"><span>v${S.status.version || VERSION}</span><span>MIT</span><span>${S.appInfo.packaged ? 'Packaged' : 'Source'}</span>${IS_LINUX() ? '' : '<span>Beta</span>'}</div></div>` +
       card(links.map(([i, l, u]) => `<div class="row click" data-act="open" data-url="${u}"><i class="fa-solid ${i}" style="width:20px;text-align:center;color:var(--dim)"></i><span class="grow lbl">${l}</span><i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--dim);font-size:11px"></i></div>`).join('')) +
@@ -1459,7 +1459,7 @@
   }
   // The report goes into a public issue, so it is shown in full before anything leaves the machine
   // and it is the person who submits it, signed in to their own account in the browser.
-  const ISSUE_URL = 'https://github.com/aabdelghani/logimx/issues/new';
+  const ISSUE_URL = 'https://github.com/aabdelghani/notlogi/issues/new';
   function reportBody(r, withLog) {
     return `### What happened\n\n${(r.what || '').trim() || '<!-- What did you do, what did you expect, what happened instead? -->'}\n\n### Diagnostics\n\n${r.summary}\n` +
       (withLog && r.log ? `\n<details><summary>Agent log, last lines</summary>\n\n\`\`\`\n${r.log}\n\`\`\`\n\n</details>\n` : withLog ? '' : '\n_The agent log was too long for the link: it is on the clipboard, paste it here._\n');
