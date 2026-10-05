@@ -1032,3 +1032,4 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 /* About: the name with its tagline underneath */
 .about-hero .tagline { margin-top: -4px; font-size: 15px; color: var(--dim); }
 .about-hero .mark i { font-size: 30px !important; }
+.act.soon { opacity: .45; cursor: default; pointer-events: none; }

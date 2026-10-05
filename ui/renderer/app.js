@@ -12,7 +12,7 @@
     flow: null, flowStatus: 'stopped', flowDetail: '',
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
-  const VERSION = '0.8.0';
+  const VERSION = '0.8.1';
 
   // ------------------------------------------------------------------ rpc
   async function call(method, params) {
@@ -1303,14 +1303,14 @@
     return `<button class="act ring-cfg" data-act="bri-setup"><i class="fa-solid fa-screwdriver-wrench ic"></i><span class="t">Set up brightness</span><span class="m">${st.reason === 'ddcutil' ? 'Installs ddcutil' : 'Allows access'}</span><i class="fa-solid fa-arrow-right more"></i></button>`;
   }
   // the ring's own actions: a folder of eight more, and the next ring profile
+  // the ring's own actions. A folder already on the ring can still be opened; making new folders
+  // and the next-profile slot are coming soon: shown last and greyed out
   function ringOwnRows(p) {
     const cur = p.current && typeof p.current === 'object' ? p.current.type : null;
-    const rows = [];
-    if (!(S.ringPath || []).length) rows.push(`<button class="act ${cur === 'folder' ? 'on' : ''}" data-act="pick-item" data-key="ring:folder"><i class="fa-solid fa-folder ic"></i><span class="t">${cur === 'folder' ? esc(presetLabel(p.current)) : 'New folder'}</span><span class="m">Opens eight more</span><i class="fa-solid fa-check chk"></i></button>`);
-    if (cur === 'folder') rows.push(`<button class="act ring-cfg" data-act="ring-open-folder"><i class="fa-solid fa-folder-open ic"></i><span class="t">Open folder</span><span class="m">Edit its eight actions</span><i class="fa-solid fa-arrow-right more"></i></button>`);
-    if (!ringApp()) rows.push(`<button class="act ${cur === 'ring_profile' ? 'on' : ''}" data-act="pick-item" data-key="ring:profile"><i class="fa-solid fa-layer-group ic"></i><span class="t">Next ring profile</span><span class="m">Stays open</span><i class="fa-solid fa-check chk"></i></button>`);
-    return rows.join('');
+    return cur === 'folder' ? `<button class="act ring-cfg" data-act="ring-open-folder"><i class="fa-solid fa-folder-open ic"></i><span class="t">Open folder</span><span class="m">Edit its eight actions</span><i class="fa-solid fa-arrow-right more"></i></button>` : '';
   }
+  const ringSoonRows = () => [['fa-folder', 'New folder'], ['fa-layer-group', 'Next ring profile']]
+    .map(([ic, t]) => `<div class="act soon" aria-disabled="true" title="Coming soon"><i class="fa-solid ${ic} ic"></i><span class="t">${t}</span><span class="soon-tag">Soon</span></div>`).join('');
   const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
   const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
   const allowedFor = p => new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && (S.presets.all[k] || {}).type !== 'gesture')
@@ -1333,7 +1333,7 @@
         const vi = sugg.findIndex(i => i.key === 'volume_dial');
         if (ring && IS_LINUX()) sugg.splice(vi + 1, 0, { key: 'ring:brightness', icon: 'fa-sun', label: RING_BRIGHTNESS.label });
         const ks = `<button class="act ${p.cat === 'key' ? 'on' : ''}" data-act="rec-open"><i class="fa-solid fa-keyboard ic"></i><span class="t">Keystroke assignment</span><i class="fa-solid ${p.cat === 'key' ? 'fa-chevron-up' : 'fa-chevron-down'} more"></i></button>`;
-        return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i) + (i.key === 'ring:brightness' ? briSetupRow() : '')).join('')}${ks}</div>${p.cat === 'key' ? recBox(p) : ''}`;
+        return `<div class="acts">${ring ? ringOwnRows(p) : ''}${sugg.map(i => actRow(p, i) + (i.key === 'ring:brightness' ? briSetupRow() : '')).join('')}${ks}${ring ? ringSoonRows() : ''}</div>${p.cat === 'key' ? recBox(p) : ''}`;
       }
       const r = mouse ? null : RECOMMEND[p.cid];
       const own = r ? r[0] : p.section === 'thumbwheel' ? 'Horizontal scroll' : (p.ctl && p.ctl.label) || p.label || 'Default';
