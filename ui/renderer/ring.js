@@ -98,7 +98,7 @@
   // its radius and spaced like the ring's own buttons, centred on the folder's direction
   let fanOrder = [], fanN = 0;
   function fanLayout() { fanOrder = []; fanN = 0; slots.forEach((x, i) => { if (x) fanOrder[i] = fanN++; }); }
-  const FAN_R = 2, FAN_STEP = 45 / FAN_R;   // same distance between neighbours as on the ring
+  const FAN_R = 2, FAN_STEP = 20;   // degrees between neighbours: a little closer than on the ring
   const fanAng = i => ang(stack[0]) + ((fanOrder[i] ?? 0) - (fanN - 1) / 2) * FAN_STEP * Math.PI / 180;
   // where a button of the level shown sits: on the ring, or on the outer circle of the open folder
   const posOf = i => {

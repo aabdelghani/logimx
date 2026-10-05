@@ -1149,7 +1149,7 @@
   // more of them the crescent grows into a bigger circle so they stay apart
   // In a folder's page the ring is drawn as the real ring shows it: the inner ring smaller and dimmed
   // with the folder lit, the folder's actions on a second circle around the same middle (twice the
-  // radius, spaced like the ring's buttons), in a row centred on the folder's direction with an Add
+  // radius, 20° apart), in a row centred on the folder's direction with an Add
   // at each end (the start puts a new action first, the end last)
   const RING_IN = 20, RING_OUT = 40;   // radii in % of the drawing, the outer twice the inner
   function ringParentRing(top) {
@@ -1164,7 +1164,7 @@
     const items = []; slots.forEach((sl, i) => { if (sl) items.push(i); });
     const full = items.length >= 8;
     const row = full ? items.map(i => ({ i })) : items.length ? [{ add: 'start' }].concat(items.map(i => ({ i })), [{ add: 'end' }]) : [{ add: 'end' }];
-    const m = row.length, step = 45 * RING_IN / RING_OUT, r = RING_OUT, base = S.ringPath[0] * 45 - 90;
+    const m = row.length, step = 20, r = RING_OUT, base = S.ringPath[0] * 45 - 90;
     return row.map((it, k) => {
       const a = (base + (k - (m - 1) / 2) * step) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
       const x = 50 + r * c, y = 50 + r * sn, lx = 50 + (r + 10) * c, ly = 50 + (r + 10) * sn;
