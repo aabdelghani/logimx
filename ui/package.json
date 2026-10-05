@@ -46,7 +46,7 @@
       "icon": "assets/icon.png",
       "synopsis": "Unofficial mouse & keyboard tools for Linux",
       "desktop": {
-        "StartupWMClass": "logimx",
+        "StartupWMClass": "NotLogi",
         "Keywords": "mouse;keyboard;MX;Bolt;"
       },
       "artifactName": "NotLogi-${version}-${arch}.${ext}",

@@ -9,7 +9,8 @@ const plat = require('./platform');
 if (plat.IS_WIN) app.setAppUserModelId('io.github.aabdelghani.logimx');
 const PACKAGED = app.isPackaged;
 const APPIMAGE = process.env.APPIMAGE || '';
-const WM_CLASS = PACKAGED ? 'logimx' : 'LogiMX';
+// the window's class on X11 comes from the app's name (NotLogi): desktop entries match it to show the icon
+const WM_CLASS = 'NotLogi';
 // files shipped next to the app: repo root in development, resources/ in a package
 const resPath = (...p) => PACKAGED ? path.join(process.resourcesPath, ...p) : path.join(__dirname, '..', ...p);
 // how to launch this very app again (autostart, desktop entry)

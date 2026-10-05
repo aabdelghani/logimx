@@ -1049,7 +1049,7 @@ void Daemon::onApp(const std::string& cls) {
     // LogiMX's own windows are neutral: looking at its settings keeps the app you came from
     std::string lc = cls;
     for (auto& ch : lc) ch = static_cast<char>(tolower(static_cast<unsigned char>(ch)));
-    const bool ours = lc == "logimx";
+    const bool ours = lc == "logimx" || lc == "notlogi";   // the window class before and after the rename
     std::string eff = cls;
     if (matches) { profileApp_ = cls; profilePid_ = pid; }
     else if (ours) eff = profileApp_;

@@ -1688,7 +1688,7 @@
   }
   function renderAddPanel(d) {
     const have = new Set(deviceProfiles(d).flatMap(p => p.match.map(m => m.toLowerCase())));
-    const apps = (S.apps || []).filter(a => a.name && !/logimx/i.test(a.wm_class || a.id || '')).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const apps = (S.apps || []).filter(a => a.name && !/logimx|notlogi/i.test(a.wm_class || a.id || '')).slice().sort((a, b) => a.name.localeCompare(b.name));
     const icon = a => { const u = (S.appIconById || {})[a.id]; return u ? `<img src="${u}" alt="">` : `<span class="pf-letter" style="background:${colorFor(a.name)}">${esc(a.name.charAt(0).toUpperCase())}</span>`; };
     const rows = apps.map(a => {
       const added = have.has((a.wm_class || a.id || '').toLowerCase());
@@ -2319,7 +2319,7 @@
   async function addProfile(name, cls, here) {
     name = (name || '').trim(); cls = (cls || '').trim();
     if (!name || !cls) return toast('Pick an application', true);
-    if (/logimx/i.test(cls)) return toast('NotLogi itself cannot have a profile', true);
+    if (/logimx|notlogi/i.test(cls)) return toast('NotLogi itself cannot have a profile', true);
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     for (const dd of here ? [dev()] : S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
     if (here === 'quiet') return;   // the add panel: in the bar, set up when clicked (it says so once for all)
