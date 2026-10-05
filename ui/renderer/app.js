@@ -12,7 +12,7 @@
     flow: null, flowStatus: 'stopped', flowDetail: '',
   };
   try { S.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
-  const VERSION = '0.8.1';
+  const VERSION = '0.8.2';
 
   // ------------------------------------------------------------------ rpc
   async function call(method, params) {
