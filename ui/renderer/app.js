@@ -386,7 +386,7 @@
     const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
     // a keyboard's own view keeps the corner to one action: add an application profile
     const controls = mode === 'device' ? `<div class="right">
-            ${profileBar()}
+            ${S.page === 'gestures' && S.cfgFrom && S.cfgKind === 'ring' ? ringProfileBar() : profileBar()}
             <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
           </div>` : `<div class="right">
             ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
@@ -904,6 +904,19 @@
     return S.appIcons[key] ? `<img src="${S.appIcons[key]}" alt="">` : `<span class="pf-letter" style="background:${colorFor(p.name)}">${esc(p.name.charAt(0).toUpperCase())}</span>`;
   }
   const deviceProfiles = d => Object.entries(((d && d.config) || {}).profiles || {}).filter(([k]) => k !== 'default').map(([key, p]) => ({ key, name: p.name || key, match: p.match || [] }));
+  // The action ring's own profiles, where the applications usually are: pick the one in use, make a
+  // blank one to drag actions onto. With an application picked in the mouse window, the choice is
+  // that application's ring; otherwise it is the global one.
+  function ringProfileBar() {
+    const rs = ringState(), k = ringApp(), ar = k ? appRing(rs, k) : null;
+    const cur = k ? (ar ? (ar.legacy ? '#own' : rs.profiles[ar.i].id) : '') : rs.profiles[rs.active].id;
+    const pill = (id, label, icon) => {
+      const on = cur === id, edit = on && id && id !== '#own';
+      return `<div class="rp ${on ? 'on' : ''}" data-act="rp-use" data-key="${esc(id)}" title="${esc(label)}"><i class="fa-solid ${icon}"></i><span>${esc(label)}</span>${edit ? `<i class="fa-solid fa-pen rp-ed" data-act="rp-rename" data-key="${esc(id)}" title="Rename"></i>${rs.profiles.length > 1 ? `<i class="fa-solid fa-xmark rp-ed" data-act="rp-delete" data-key="${esc(id)}" title="Delete"></i>` : ''}` : ''}</div>`;
+    };
+    const pills = (k ? pill('', 'Same as global', 'fa-globe') : '') + (ar && ar.legacy ? pill('#own', 'Own ring', 'fa-circle-notch') : '') + rs.profiles.map(p => pill(p.id, p.name, 'fa-circle-notch')).join('');
+    return `<div class="pbar rpbar"><span class="rp-for">${k ? esc(ringAppName(k)) : 'Global'}</span>${pills}<button class="rp rp-new" data-act="rp-new" title="A blank ring to drag actions onto"><i class="fa-solid fa-plus"></i><span>New profile</span></button></div>`;
+  }
   function profileBar() {
     const cur = S.editProfile || 'default';
     // the profile in use right now, from the app in front: a live dot on its icon
@@ -1501,7 +1514,7 @@
       p.unfolded = null;
     }
     return `<div class="drawer-wrap"><div class="dlg drawer" data-stop>
-      <div class="dlg-head"><span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span>${p.section === 'ring' ? ringProfileMenu() : ''}</div>
+      <div class="dlg-head"><span class="dh-key">Action</span><span class="dh-sub">Choose what it does</span></div>
       <div class="dlg-body">
         <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input data-field="q" placeholder="Search all actions" value="${esc(p.q || '')}"></div>
         <div class="acc-list">${list}</div>
@@ -1990,7 +2003,7 @@
         // directions in the middle pick which one it shows; back returns to the mouse's Buttons
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
         S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
-        S.cfgFrom = 'buttons'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
+        S.cfgFrom = 'buttons'; S.cfgKind = 'gestures'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
         S.dir = 'tap';
         openPicker({ drawer: true, dev: dd, section: 'gesture', cid: p.cid, label: SLOTS.tap[0], slot: SLOTS.tap[1] });
         return;
@@ -2006,7 +2019,7 @@
         // the panel stays where it is and changes to the ring's: no closing and reopening on the way
         S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
         S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
-        S.cfgFrom = 'buttons'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
+        S.cfgFrom = 'buttons'; S.cfgKind = 'ring'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
         const slots = ringSlots(), first = Math.max(0, slots.findIndex(s => !s));
         openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
         return;
@@ -2043,6 +2056,43 @@
       case 'pick-disable': await assignPicked('nothing'); return;
       case 'ring-test': window.agent.ringShow(); return;
       case 'ring-size': await saveRing({ size: key }); render(); return;
+      case 'rp-use': {
+        const r = ringState(), k = ringApp(); S.ringPath = [];
+        if (key === '#own') return;
+        if (k) { if (!key) delete r.apps[k]; else r.apps[k] = { profile: key, match: ringAppMatch(k) }; await saveRing({ apps: r.apps }); }
+        else { const i = r.profiles.findIndex(p => p.id === key); if (i < 0) return; await saveRing({ active: i }); }
+        if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null;
+        render(); return;
+      }
+      case 'rp-new':
+        prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => {
+          const r = ringState(), k = ringApp(), id = newRingId(), name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`;
+          r.profiles.push({ id, name, slots: [] });
+          if (k) { r.apps[k] = { profile: id, match: ringAppMatch(k) }; await saveRing({ profiles: r.profiles, apps: r.apps }); }
+          else await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 });
+          S.ringPath = [];
+          // a blank ring with its first slot open: actions can be dragged onto any slot
+          if (S.picker && S.picker.section === 'ring') { S.picker.cid = 0; S.picker.label = RING_DIRS[0]; S.picker.current = null; }
+          toast(`"${name}" is a blank ring: drag actions onto it`); render();
+        }, 'Create');
+        return;
+      case 'rp-rename': {
+        const r0 = ringState(), pr = r0.profiles.find(p => p.id === key); if (!pr) return;
+        prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: pr.name }], async v => {
+          const name = (v.name || '').trim(); if (!name) return render();
+          const r = ringState(), t = r.profiles.find(p => p.id === key); if (t) t.name = name; await saveRing({ profiles: r.profiles }); render();
+        }, 'Rename');
+        return;
+      }
+      case 'rp-delete': {
+        const r = ringState(); if (r.profiles.length < 2) return;
+        const i = r.profiles.findIndex(p => p.id === key); if (i < 0) return;
+        const gone = r.profiles.splice(i, 1)[0];
+        for (const [ak, av] of Object.entries(r.apps)) if (av && av.profile === gone.id) delete r.apps[ak];   // its apps go back to the global ring
+        await saveRing({ profiles: r.profiles, apps: r.apps, active: Math.min(r.active > i ? r.active - 1 : r.active, r.profiles.length - 1) });
+        S.ringPath = []; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null;
+        toast(`Profile "${gone.name}" deleted`); render(); return;
+      }
       case 'ring-app-use': {
         const r = ringState(), k = ringApp(); S.menu = null; if (!k || key === '#own') return render();
         if (!key) delete r.apps[k]; else r.apps[k] = { profile: key, match: ringAppMatch(k) };

@@ -1045,3 +1045,15 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .pv-note > i { font-size: 22px !important; color: var(--accbg); display: block; margin-bottom: 8px; }
 .pv-note .sub { margin-top: 6px; font-size: 14px; color: var(--dim); }
 .rs-where.preview { outline: 2px dashed color-mix(in srgb, var(--accbg) 45%, transparent); }
+/* the action ring view: its own profiles where the applications usually are */
+.rpbar { gap: 6px; }
+.rpbar .rp-for { font-size: 13px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; margin-right: 4px; white-space: nowrap; }
+.rpbar .rp { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 10px; border: 2px solid transparent; background: var(--btn); color: var(--fg); font: 600 14px var(--font); white-space: nowrap; cursor: pointer; transition: background .14s, border-color .14s; }
+.rpbar .rp i { font-size: 13px !important; color: var(--dim); }
+.rpbar .rp:hover { background: color-mix(in srgb, var(--accbg) 14%, var(--btn)); }
+.rpbar .rp.on { border-color: var(--accbg); background: color-mix(in srgb, var(--accbg) 16%, transparent); }
+.rpbar .rp.on > i:first-child { color: var(--accbg); }
+.rpbar .rp .rp-ed { font-size: 12px !important; padding: 4px; margin: 0 -4px 0 0; border-radius: 6px; color: var(--dim); }
+.rpbar .rp .rp-ed:hover { background: var(--btn); color: var(--fg); }
+.rpbar .rp-new { border: 2px dashed var(--brd); background: transparent; color: var(--dim); }
+.rpbar .rp-new:hover { border-color: var(--accbg); color: var(--accbg); }
