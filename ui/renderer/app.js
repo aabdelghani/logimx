@@ -631,7 +631,7 @@
     if (k === 'wheel') {
       // all three of the wheel's settings: direction, smooth scrolling, SmartShift (one per line on the photo)
       const ss = s.smartshift || {}, hr = s.hires || {};
-      const natural = hr.invert ?? (st.hires || {}).invert ?? false, smooth = hr.enabled ?? (st.hires || {}).hires ?? true;
+      const natural = hr.invert ?? (st.hires || {}).invert ?? false, smooth = (st.hires || {}).kernel || (hr.enabled ?? (st.hires || {}).hires ?? true);
       const shift = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
       return `${natural ? 'Natural' : 'Standard'} · Smooth ${smooth ? 'on' : 'off'} · SmartShift ${shift ? 'on' : 'off'}`;
     }
@@ -675,7 +675,9 @@
     // the ratchet force on the MX Master 4, under it while it is on)
     const wheel = sec('Scroll wheel', card(
         row('Scroll direction', (hr.invert ?? (st.hires || {}).invert) ? 'Natural: the page follows your finger' : 'Standard', sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"')) +
-        row('Smooth scrolling', 'High-resolution wheel events', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"')) +
+        // over Bluetooth Linux's own Logitech driver scales the wheel: smooth scrolling has to stay on
+        ((st.hires || {}).kernel ? row('Smooth scrolling', 'Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower', sw(true, 'disabled title="Managed by Linux on this connection"'))
+          : row('Smooth scrolling', 'High-resolution wheel events', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +
         row('SmartShift', 'Switch from ratchet to free-spin when the wheel is flicked', sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
         (ssOn ? `<div class="row"><span class="grow lbl">SmartShift sensitivity</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` : '') +
         (ssOn && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">Ratchet force</div><div class="sub">How firm each step of the wheel feels</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));

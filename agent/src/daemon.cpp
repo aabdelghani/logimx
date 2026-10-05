@@ -10,6 +10,27 @@
 #include <unistd.h>
 #endif
 
+// Linux's own Logitech driver (logitech-hidpp-device) handles a device connected directly, over
+// Bluetooth for one, and on systems where the receiver is left to logitech-djreceiver. It turns the
+// wheel's high-resolution mode on and divides every report by the multiplier (15 on the MX Master 3S). Turning
+// the mode off underneath it leaves one report per notch divided by that: scrolling many times slower.
+// So while that driver has the device, high-resolution scrolling stays on.
+static bool kernelScalesWheel(const std::string& id) {
+#ifdef __linux__
+    std::string want = ":046D:" + id;
+    for (auto& c : want) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+    std::error_code ec;
+    std::filesystem::directory_iterator it("/sys/bus/hid/drivers/logitech-hidpp-device", ec), end;
+    for (; !ec && it != end; it.increment(ec)) {
+        std::string n = it->path().filename().string();   // e.g. 0005:046D:B034.001C
+        if (n.find(want + ".") != std::string::npos) return true;
+    }
+#else
+    (void)id;
+#endif
+    return false;
+}
+
 #include <cstring>
 #include <cmath>
 #include <cstdarg>
@@ -156,7 +177,7 @@ json ManagedDevice::readState(bool full) {
         }
         if (auto hr = dev_->hires())
             st["hires"] = {{"hidpp_target", hr->hidppTarget}, {"hires", hr->hires}, {"invert", hr->invert}, {"multiplier", hr->multiplier},
-                           {"has_invert", hr->hasInvert}, {"has_ratchet_switch", hr->hasRatchetSwitch}};
+                           {"has_invert", hr->hasInvert}, {"has_ratchet_switch", hr->hasRatchetSwitch}, {"kernel", kernelScalesWheel(id())}};
         if (auto tw = dev_->thumbwheel())
             st["thumbwheel"] = {{"diverted", tw->diverted}, {"invert", tw->invert}, {"native_res", tw->nativeRes}, {"diverted_res", tw->divertedRes}};
         if (auto dp = dev_->dpi())
@@ -225,7 +246,7 @@ void ManagedDevice::applySettings(const std::string& only) {
         if (dev_->has(hidpp::FORCE_BUTTON) && want("panel_force") && s["panel_force"].is_number()) dev_->setForce(0, s["panel_force"].get<int>());
         if (dev_->has(hidpp::HIRES_WHEEL) && want("hires")) {
             const json& h = s["hires"];
-            dev_->setHires(false, h.value("enabled", true), h.value("invert", false));
+            dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", true), h.value("invert", false));
         }
         if (dev_->has(hidpp::BACKLIGHT2) && want("backlight")) {
             const json& b = s["backlight"];
