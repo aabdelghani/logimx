@@ -1,0 +1,134 @@
+// View: the action ring's settings page: the ring, its folders, its profiles and behaviour.
+import { isFolderSlot, RING_DIRS } from '../../shared/ring.mjs';
+
+// from the rest of the window, filled in by link()
+let S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringUseName, ringViewApp, row, sec, sw;
+export function link(ctx) { ({ S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringUseName, ringViewApp, row, sec, sw } = ctx); }
+
+// The action ring's own profiles, where the applications usually are: pick the one in use, make a
+// blank one to drag actions onto. With an application picked in the mouse window, the choice is
+// that application's ring; otherwise it is the global one.
+function ringProfileBar() {
+  const rs = ringState(), k = ringApp(), ar = k ? appRing(rs, k) : null;
+  const cur = k ? (ar ? (ar.legacy ? '#own' : rs.profiles[ar.i].id) : '') : rs.profiles[rs.active].id;
+  const pill = (id, label, icon) => {
+    const on = cur === id, edit = on && id && id !== '#own';
+    return `<div class="rp ${on ? 'on' : ''}" data-act="rp-use" data-key="${esc(id)}" title="${esc(label)}"><i class="fa-solid ${icon}"></i><span>${esc(label)}</span>${edit ? `<i class="fa-solid fa-pen rp-ed" data-act="rp-rename" data-key="${esc(id)}" title="Rename"></i>${rs.profiles.length > 1 ? `<i class="fa-solid fa-xmark rp-ed" data-act="rp-delete" data-key="${esc(id)}" title="Delete"></i>` : ''}` : ''}</div>`;
+  };
+  const pills = (k ? pill('', 'Same as global', 'fa-globe') : '') + (ar && ar.legacy ? pill('#own', 'Own ring', 'fa-circle-notch') : '') + rs.profiles.map(p => pill(p.id, p.name, 'fa-circle-notch')).join('');
+  return `<div class="pbar rpbar"><span class="rp-for">${k ? esc(ringAppName(k)) : 'Global'}</span>${pills}<button class="rp rp-new" data-act="rp-new" title="A blank ring to drag actions onto"><i class="fa-solid fa-plus"></i><span>New profile</span></button></div>`;
+}
+// Gestures & action ring in a device's view, laid out like the keyboard: the ring in the middle with
+// each slot's action beside it; a slot opens its actions in the panel on the right
+function ringStage() {
+  const slots = ringSlots(true);   // the hovered app's ring, else the one being edited
+  const top = ringTop(ringState(), true), f = ringFolder(top);
+  // into a folder: the page grows out of the folder's place and its actions pop in one by one;
+  // back out: the ring settles in and the folder's place gives a pulse
+  const anim = S.ringAnim; S.ringAnim = null;
+  const at = anim ? (() => { const a = (anim.from * 45 - 90) * Math.PI / 180; return { x: 30 * Math.cos(a), y: 30 * Math.sin(a) }; })() : null;
+  let order = 0;
+  const parts = f ? ringParentRing(top) + ringFolderRow(slots) : slots.map((sl, i) => {
+    const k = order++;
+    const a = (i * 45 - 90) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    const x = 50 + 30 * c, y = 50 + 30 * sn, lx = 50 + 41 * c, ly = 50 + 41 * sn;
+    const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
+    // the ⋯ on a slot: make it a folder, open it, or clear it (inside a folder: clear only)
+    const dots = !f || sl ? `<span class="rs-dots" data-act="rs-menu" data-key="${i}" title="More"><i class="fa-solid fa-ellipsis"></i></span>` : '';
+    const label = sl ? sl.label : f ? 'Add' : 'Add action';
+    return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''} ${anim && anim.kind === 'out' && i === anim.from ? 'just-closed' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(f ? `Action ${i + 1}` : RING_DIRS[i])}" title="${esc(f ? `Action ${i + 1}` : RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i>${dots}</button>` +
+      `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(f ? `Action ${i + 1}` : RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty});--k:${k}">${esc(label)}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>` +
+      (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, !!f) : '');
+  }).join('');
+  // in a folder the middle is the folder itself; its name and the way back are top-left
+  const hub = f ? `<button class="rs-hub back" data-act="ring-up" title="Back to the ring"><i class="fa-solid fa-arrow-left"></i></button>` : `<div class="rs-hub"><i class="fa-solid fa-circle-notch"></i></div>`;
+  const where = !f && ringViewApp() ? `<div class="rs-where ${S.previewProfile ? 'preview' : ''}"><i class="fa-solid fa-window-maximize"></i>${esc(ringAppName())} · uses ${esc(ringUseName(ringState(), ringViewApp()))}</div>` : '';
+  const animCls = anim ? (anim.kind === 'in' ? 'anim-in' : 'anim-out') : '', animVars = at ? `style="--fx:${at.x.toFixed(1)}%;--fy:${at.y.toFixed(1)}%"` : '';
+  return `<div class="ring-stage">${where}<div class="rs-disc ${f ? 'in-folder' : ''} ${animCls}" ${animVars}>${parts}${hub}</div></div>`;
+}
+// A folder's page: its actions in order along a crescent around the folder, centred on the folder's
+// direction, with an Add at each end (the start puts the new action first, the end last); with
+// more of them the crescent grows into a bigger circle so they stay apart
+// In a folder's page the ring is drawn as the real ring shows it: the inner ring smaller and dimmed
+// with the folder lit, the folder's actions on a second circle around the same middle (twice the
+// radius, 20° apart), in a row centred on the folder's direction with an Add
+// at each end (the start puts a new action first, the end last)
+const RING_IN = 20, RING_OUT = 40;   // radii in % of the drawing, the outer twice the inner
+function ringParentRing(top) {
+  const open = S.ringPath[0];
+  return top.map((sl, i) => {
+    if (!sl && i !== open) return '';
+    const a = (i * 45 - 90) * Math.PI / 180, x = 50 + RING_IN * Math.cos(a), y = 50 + RING_IN * Math.sin(a);
+    return `<button class="rs-chip parent ${i === open ? 'open' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" data-act="rs-parent" data-key="${i}" title="${esc(sl ? sl.label : RING_DIRS[i])}"><i class="fa-solid ${esc((sl && sl.icon) || 'fa-folder')}"></i></button>`;
+  }).join('');
+}
+function ringFolderRow(slots) {
+  const items = []; slots.forEach((sl, i) => { if (sl) items.push(i); });
+  const full = items.length >= 8;
+  const row = full ? items.map(i => ({ i })) : items.length ? [{ add: 'start' }].concat(items.map(i => ({ i })), [{ add: 'end' }]) : [{ add: 'end' }];
+  const m = row.length, step = 20, r = RING_OUT, base = S.ringPath[0] * 45 - 90;
+  return row.map((it, k) => {
+    const a = (base + (k - (m - 1) / 2) * step) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    const x = 50 + r * c, y = 50 + r * sn, lx = 50 + (r + 10) * c, ly = 50 + (r + 10) * sn;
+    const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
+    const pos = `left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}`, lpos = `left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty});--k:${k}`;
+    if (it.add) {
+      const on = ringInserting(it.add), tip = it.add === 'start' ? 'Add at the start' : 'Add at the end';
+      return `<button class="rs-chip empty add ${on ? 'selected' : ''}" style="${pos}" data-act="pick" data-section="ring" data-ins="${it.add}" data-cid="${it.add}" data-label="New action" title="${tip}"><i class="fa-solid fa-plus"></i></button>` +
+        `<div class="rs-lab empty ${on ? 'on' : ''}" data-act="pick" data-section="ring" data-ins="${it.add}" data-cid="${it.add}" data-label="New action" style="${lpos}">Add</div>`;
+    }
+    const i = it.i, sl = slots[i];
+    return `<button class="rs-chip ${ringEditing(i) ? 'selected' : ''}" style="${pos}" data-act="pick" data-section="ring" data-cid="${i}" data-label="Action ${i + 1}" title="${esc(sl.label)}"><i class="fa-solid ${esc(sl.icon || 'fa-circle-dot')}"></i><span class="rs-dots" data-act="rs-menu" data-key="${i}" title="More"><i class="fa-solid fa-ellipsis"></i></span></button>` +
+      `<div class="rs-lab ${ringEditing(i) ? 'on' : ''}" data-act="pick" data-section="ring" data-cid="${i}" data-label="Action ${i + 1}" style="${lpos}">${esc(sl.label)}</div>` +
+      (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, true) : '');
+  }).join('');
+}
+// the ⋯ menu of a slot, beside it
+function ringSlotMenu(sl, i, x, y, inFolder) {
+  const it = (act, icon, label, cls) => `<button data-act="${act}" data-key="${i}" class="${cls || ''}"><i class="fa-solid ${icon}"></i>${label}</button>`;
+  const items = inFolder ? (sl ? it('rs-clear', 'fa-trash', 'Clear slot', 'danger') : '')
+    : isFolderSlot(sl) ? it('rs-open', 'fa-folder-open', 'Open folder') + it('rs-clear', 'fa-trash', 'Remove folder', 'danger')
+    : it('rs-folder', 'fa-folder-plus', 'Add folder') + (sl ? it('rs-clear', 'fa-trash', 'Clear slot', 'danger') : '');
+  return `<div class="menu rs-menu" data-menu style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%">${items}</div>`;
+}
+
+// the ring's profiles, from the panel head: switch, add one, or remove the one in use
+function ringProfileMenu() {
+  const rs = ringState(), cur = rs.profiles[rs.active];
+  const k = ringApp();
+  if (k) {
+    const ar = appRing(rs, k), name = ringAppName(k);
+    const item = (key, label, on, icon) => `<button data-act="ring-app-use" data-key="${esc(key)}"><i class="fa-solid ${icon}"></i>${esc(label)}${on ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`;
+    const list = item('', 'Same as global', !ar, 'fa-globe') + (ar && ar.legacy ? item('#own', 'Its own ring', true, 'fa-circle-notch') : '') + rs.profiles.map(pr => item(pr.id, pr.name, ar && !ar.legacy && rs.profiles[ar.i].id === pr.id, 'fa-layer-group')).join('');
+    const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">Ring for ${esc(name)}</div>${list}<div class="sep"></div><button data-act="ring-app-new"><i class="fa-solid fa-plus"></i>New blank profile</button></div>` : '';
+    return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="The ring ${esc(name)} uses"><i class="fa-solid ${ar ? 'fa-layer-group' : 'fa-globe'}"></i><span>${esc(ar ? (ar.legacy ? 'Own ring' : rs.profiles[ar.i].name) : 'Same as global')}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;
+  }
+  const list = rs.profiles.map((pr, i) => `<button data-act="ring-profile" data-key="${i}"><i class="fa-solid fa-layer-group"></i>${esc(pr.name)}${i === rs.active ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('');
+  const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">Ring profiles</div>${list}<div class="sep"></div><button data-act="ring-profile-add"><i class="fa-solid fa-plus"></i>New profile</button>${rs.profiles.length > 1 ? `<button data-act="ring-profile-delete" class="danger"><i class="fa-solid fa-trash"></i>Remove "${esc(cur.name)}"</button>` : ''}</div>` : '';
+  return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="Ring profile"><i class="fa-solid fa-layer-group"></i><span>${esc(cur.name)}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;
+}
+// how the ring behaves, shown at the foot of the ring's action panel
+function ringBehaviour() {
+  const rs = ringState();
+  const free = row('Keep the pointer visible and free', rs.free_pointer ? 'The pointer moves anywhere; the action under it is chosen' : 'The pointer hides and the mouse steers the ring', sw(rs.free_pointer, 'data-act="ring-free"'));
+  const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">Travel before it picks</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
+  const sz = (key, l) => `<button class="${rs.size === key ? 'on' : ''}" data-act="ring-size" data-key="${key}">${l}</button>`;
+  const size = `<div class="row"><span class="grow lbl">Ring size</span><span class="seg">${sz('small', 'Small')}${sz('medium', 'Medium')}${sz('large', 'Large')}</span></div>`;
+  return `<div class="ring-behaviour">${sec('Ring behaviour', card(size + free + feel))}</div>`;
+}
+function pageRing() {
+  const rs = ringState(), slots = ringSlots();
+  const filled = slots.filter(Boolean).length;
+  const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}" title="${p.slots.filter(Boolean).length} of 8 slots filled">${esc(p.name)}</button>`).join('');
+  const profilesRow = `<div class="row" style="gap:10px"><div class="chips grow">${pchips}<button class="pill" data-act="ring-profile-add" title="New profile"><i class="fa-solid fa-plus"></i>New</button></div><button class="btn flat" data-act="ring-profile-rename" title="Rename this profile"><i class="fa-solid fa-pen"></i></button><button class="btn flat" data-act="ring-profile-copy" title="Duplicate this profile"><i class="fa-solid fa-copy"></i></button>${rs.profiles.length > 1 ? '<button class="btn flat danger" data-act="ring-profile-delete" title="Delete this profile"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
+  // preview: the same geometry as the overlay, icons on a disc
+  const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'} ${ringEditing(i) ? 'selected' : ''}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? sl.label : 'Empty · ' + RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');
+  const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? `${filled} of 8 slots filled` : 'No actions yet'}</div><div class="sub">${rs.free_pointer ? 'Hold the button, move the pointer onto an action and let go to run it' : 'Hold the button and nudge the mouse toward an action, then let go to run it'}; or tap the button and click. 1 to 8 and Esc work too.</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button>${filled ? '<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>Clear all</button>' : ''}</div></div></div>`;
+  const rows = slots.map((sl, i) => `<div class="row ${ringEditing(i) ? 'editing' : ''}"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>Empty<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
+  const travel = rs.travel;
+  const free = `<div class="row"><div class="grow"><div class="lbl">Keep the pointer visible and free</div><div class="sub">${rs.free_pointer ? 'The pointer stays on screen and moves anywhere; the action under it is the one chosen' : 'While the button is held the pointer hides and the mouse steers the ring'}</div></div>${sw(rs.free_pointer, 'data-act="ring-free"')}</div>`;
+  const feel = rs.free_pointer ? '' : `<div class="row"><div class="grow"><div class="lbl">Travel before it picks</div><div class="sub">How far the mouse moves before an action is chosen: lower is snappier, higher is calmer</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
+  return sec('Action ring', card(preview + free + feel)) + sec('Profiles', card(profilesRow), 'sets of actions, one in use') + sec(`Slots · ${rs.profiles[rs.active].name}`, card(rows), 'clockwise from the top');
+}
+
+export const provide = { ringProfileBar, ringStage, RING_IN, RING_OUT, ringParentRing, ringFolderRow, ringSlotMenu, ringProfileMenu, ringBehaviour, pageRing };
