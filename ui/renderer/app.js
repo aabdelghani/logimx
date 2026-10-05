@@ -63,7 +63,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
 
   // ------------------------------------------------------------------ rpc
   const call = api.call;
-  window.addEventListener('resize', () => alignToNav());
+  window.addEventListener('resize', () => { alignToNav(); homeFit(); });
   function toast(msg, err) {
     const t = $('#toast'); t.textContent = msg; t.hidden = false; t.classList.toggle('err', !!err);
     clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2600);
@@ -97,7 +97,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule } = ctx;
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule, homeFit } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }

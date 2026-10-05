@@ -3,8 +3,8 @@
 // scroll), keep the add panel's button in step.
 
 // from the rest of the window, filled in by link()
-let root;
-export function link(ctx) { ({ root } = ctx); }
+let card, root;
+export function link(ctx) { ({ card, root } = ctx); }
 let V;   // the view functions passed through below
 export function linkViews(ctx) { V = ctx; }
 
@@ -27,11 +27,16 @@ function markAddPick(key, on, count, label) {
   const ok = root.querySelector('[data-act=add-confirm]');
   if (ok) { ok.disabled = !count; ok.innerHTML = `<i class="fa-solid fa-plus"></i>${label}`; }
 }
+// Home's row of devices moved one card to the left (-1) or right (1)
+function scrollHome(dir) {
+  const strip = root.querySelector('.home-strip'), card = strip && strip.querySelector('.dev-card');
+  if (card) strip.scrollBy({ left: dir * (card.offsetWidth + parseFloat(getComputedStyle(strip).columnGap || 0)), behavior: 'smooth' });
+}
 // a side panel (Backlight, Point & scroll, adding apps) is open beside the device
 const panelOpen = () => !!root.querySelector('.devview2.panel-open');
 
 export const provide = { fx: {
-  focus, markPicked, markAddPick, panelOpen,
+  focus, markPicked, markAddPick, panelOpen, scrollHome,
   // the side panel slides out, then `after` runs and the window is redrawn
   closeDrawer: after => V.closeDrawer(after),
   // the profile bar and the picker's app list redrawn on their own (the rest of the page stays)

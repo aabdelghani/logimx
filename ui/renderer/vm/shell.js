@@ -8,13 +8,10 @@ export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, a
 // the screen state this view model owns: where the window is: page and device, dialog and menu open, first run, theme
 export const state = {
   theme: 'light', mode: 'app', page: 'home', dev: null, dlg: null, menu: null, appDetail: null, conflictDismissed: false,
-  ob: { step: 1, preset: 'gnome' }, homeAt: undefined, homeSlide: undefined, ptSel: undefined, esSel: undefined, blClosed: undefined,
+  ob: { step: 1, preset: 'gnome' }, ptSel: undefined, esSel: undefined, blClosed: undefined,
   cfgFrom: undefined, cfgKind: undefined, cfgBack: undefined,
 };
 
-const HOME_PER_VIEW = 2;   // two cards side by side at the window's size; more page with the arrows
-// the page of devices Home shows, kept within the pages there are
-function homePage(pages) { S.homeAt = Math.max(0, Math.min(pages - 1, S.homeAt || 0)); return S.homeAt; }
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
@@ -35,7 +32,7 @@ export const commands = {
     if (fx.panelOpen()) { fx.closeDrawer(sidePanelClosed); return; }
     if (S.picker && S.picker.recording) { fx.stopRecorder(); S.picker.recording = false; } go('home'); return;
   },
-  'home-step': async (it, e, d, key) => { const n = Math.ceil(S.devices.length / HOME_PER_VIEW); S.homeAt = Math.max(0, Math.min(n - 1, (S.homeAt || 0) + Number(key))); S.homeSlide = Number(key); changed(); return; },
+  'home-step': async (it, e, d, key) => { fx.scrollHome(Number(key)); return; },
   'home-open': async (it, e, d, key) => { go(devicePages(S.devices.find(x => x.id === key) || {})[0], key); return; },
   'bl-open': async (it, e, d, key) => { if (S.blClosed) { S.blClosed = false; changed(); } return; },
   // Point & scroll opens on the mouse alone, like Buttons; its tag or the mouse opens the panel
@@ -80,4 +77,4 @@ export const commands = {
   'ob-preset': async (it, e, d, key) => { S.ob.preset = key; changed(); return; },
 };
 
-export const provide = { HOME_PER_VIEW, homePage };
+export const provide = {};

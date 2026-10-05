@@ -3,8 +3,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { batIcon } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
-let HOME_PER_VIEW, S, agentNeedsBuild, batteryState, esc, homePage, homePhotoSrc, isOffline, takeCue, themeMenu;
-export function link(ctx) { ({ HOME_PER_VIEW, S, agentNeedsBuild, batteryState, esc, homePage, homePhotoSrc, isOffline, takeCue, themeMenu } = ctx); }
+let S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, root, themeMenu;
+export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homePhotoSrc, isOffline, root, themeMenu } = ctx); }
 
 function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
 function pageHome() {
@@ -13,10 +13,7 @@ function pageHome() {
   const low = devs.filter(d => d.battery && !d.battery.charging && d.battery.percent <= 20);
   const summary = [`${devs.length} device${devs.length === 1 ? '' : 's'} connected`]
     .concat(charging ? [`${charging} charging`] : [], low.length ? [`${low.map(d => d.name).join(' and ')} ${low.length === 1 ? 'needs' : 'need'} charging`] : [], !charging && !low.length && devs.length ? ['batteries fine'] : []).join(' · ');
-  const pages = Math.max(1, Math.ceil(devs.length / HOME_PER_VIEW));
-  const at = homePage(pages);
-  const shown = devs.slice(at * HOME_PER_VIEW, at * HOME_PER_VIEW + HOME_PER_VIEW);
-  const cards = shown.map(d => {
+  const cards = devs.map(d => {
     const off = isOffline(d);
     const b = d.battery, st = batteryState(b), src = homePhotoSrc(d);
     const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
@@ -30,12 +27,26 @@ function pageHome() {
         ${off ? '<div class="dev-state off"><i class="fa-solid fa-link-slash"></i><span class="dev-label">Not connected</span></div>' : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
       </div></div>`;
   }).join('');
-  if (pages < 2) return `<div class="home-grid">${cards}</div>`;
-  const step = takeCue('homeSlide', 0), slide = step > 0 ? 'from-right' : step < 0 ? 'from-left' : '';
-  const dots = Array.from({ length: pages }, (_, i) => `<span class="${i === S.homeAt ? 'on' : ''}"></span>`).join('');
-  return `<div class="home-pager"><button class="home-arrow" data-act="home-step" data-key="-1" ${S.homeAt ? '' : 'disabled'} title="Previous devices"><i class="fa-solid fa-chevron-left"></i></button><div class="home-grid ${slide}">${cards}</div><button class="home-arrow" data-act="home-step" data-key="1" ${S.homeAt < pages - 1 ? '' : 'disabled'} title="More devices"><i class="fa-solid fa-chevron-right"></i></button></div><div class="home-dots">${dots}</div>`;
+  // every device in one row, sharing the width; when they cannot all fit the row scrolls sideways
+  // with the arrows (and the arrow keys), which only show then (homeFit, after drawing)
+  const arrow = (dir, icon, title) => `<button class="home-arrow" data-act="home-step" data-key="${dir}" title="${title}"><i class="fa-solid ${icon}"></i></button>`;
+  return `<div class="home-pager" style="--n:${devs.length}">${arrow(-1, 'fa-chevron-left', 'Previous devices')}<div class="home-strip">${cards}</div>${arrow(1, 'fa-chevron-right', 'More devices')}</div>`;
 }
 
+// Once drawn: whether the row of devices fits (no arrows) or scrolls, and which arrows can move it.
+function homeFit() {
+  const pager = root.querySelector('.home-pager'), strip = pager && pager.querySelector('.home-strip');
+  if (!strip) return;
+  const update = () => {
+    const over = strip.scrollWidth > strip.clientWidth + 2;
+    pager.classList.toggle('fits', !over);
+    const [prev, next] = pager.querySelectorAll('.home-arrow');
+    prev.disabled = !over || strip.scrollLeft <= 2;
+    next.disabled = !over || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+  };
+  strip.onscroll = update;
+  update();
+}
 // ----------------------------------------------------------- states
 function renderEmpty() {
   const c = S.conflicts[0], needsBuild = agentNeedsBuild();
@@ -57,4 +68,4 @@ function renderEmpty() {
         : S.agentBusy ? '' : `<button class="btn primary" data-act="start-agent"><i class="fa-solid ${needsBuild ? 'fa-hammer' : 'fa-play'}"></i>${needsBuild ? 'Build and start' : 'Start the agent'}</button>`}${booting ? '' : '<button class="btn" data-act="onboard"><i class="fa-solid fa-shield-halved"></i>Setup guide</button>'}</div></div></main></div>`;
 }
 
-export const provide = { greeting, pageHome, renderEmpty };
+export const provide = { greeting, pageHome, renderEmpty, homeFit };

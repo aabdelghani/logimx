@@ -380,8 +380,9 @@ textarea.text:focus { outline: 2px solid var(--accbg); outline-offset: -1px; }
 @keyframes bolt-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 @keyframes ring-fill { from { stroke-dasharray: 0 999; } }
 .page.enter .bat-ring .val { animation: ring-fill .9s cubic-bezier(.2,.7,.2,1) .2s both; }
-.page.enter .home-grid > * { animation: rise .36s cubic-bezier(.2,.7,.2,1) both; }
+.page.enter .home-grid > *, .page.enter .home-strip > * { animation: rise .36s cubic-bezier(.2,.7,.2,1) both; }
 .page.enter .home-grid > :nth-child(2) { animation-delay: 70ms; } .page.enter .home-grid > :nth-child(3) { animation-delay: 140ms; } .page.enter .home-grid > :nth-child(n+4) { animation-delay: 210ms; }
+.page.enter .home-strip > :nth-child(2) { animation-delay: 70ms; } .page.enter .home-strip > :nth-child(3) { animation-delay: 140ms; } .page.enter .home-strip > :nth-child(n+4) { animation-delay: 210ms; }
 @media (prefers-reduced-motion: reduce) { .dev-state.charging i, .bat-ring .bolt { animation: none; } }
 
 /* ---------------------------------------------------------------- landing and device view
@@ -463,9 +464,16 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .content.landing .dev-state { font-size: 18px; gap: 10px; }
 .content.landing .dev-link { width: 29px; height: 29px; font-size: 15px; }
 .content.landing .bat-ring .bolt { width: 26px; height: 26px; font-size: 14px; }
-/* side by side whenever they fit (a grid with a fixed maximum counts columns by that maximum) */
-.content.landing .home-grid { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; }
-.content.landing .home-grid > .dev-card { flex: 0 1 520px; min-width: 390px; }
+/* every device in one row, sharing the width: a mouse 220 to 360 px, a keyboard (wider photo) 380 to
+   560 px; when they cannot all fit the row scrolls sideways, a card at a time, with the arrows or
+   the arrow keys */
+.home-strip { flex: 1; min-width: 0; display: flex; align-items: center; gap: 40px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 8px 4px 40px; }
+.home-strip::-webkit-scrollbar { display: none; }
+.home-strip > .dev-card { flex: 1 1 0; min-width: 220px; max-width: 360px; scroll-snap-align: center; }
+.home-strip > .dev-card.kbd { flex-grow: 1.8; min-width: 380px; max-width: 560px; }
+.home-strip .dev-photo img { max-width: 100%; object-fit: contain; }
+.home-pager.fits .home-strip { justify-content: center; }
+.home-pager.fits .home-arrow { visibility: hidden; }
 
 /* Home: the battery as an icon with its percentage beside it, then what it is doing */
 .content.landing .dev-state { font-size: 19px; gap: 8px; }
@@ -722,22 +730,13 @@ header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 /* Home with more devices than fit: arrows either side, dots below, the cards slide in from the side
    they come from */
 .home-pager { flex: 1; display: flex; align-items: center; gap: 12px; min-height: 0; }
-.home-pager .home-grid { flex: 1; }
 .home-arrow { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 0; background: transparent; color: var(--fg); font-size: 24px; cursor: pointer; transition: background .14s, opacity .14s; -webkit-app-region: no-drag; }
 .home-arrow:hover:not([disabled]) { background: var(--btn); }
 .home-arrow[disabled] { opacity: .2; cursor: default; }
-.home-dots { display: flex; justify-content: center; gap: 8px; padding: 0 0 36px; }
-.home-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--brd); transition: background .2s, width .2s; }
-.home-dots span.on { width: 22px; border-radius: 4px; background: var(--accbg); }
-@keyframes home-from-right { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: none; } }
-@keyframes home-from-left { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
-.home-grid.from-right > * { animation: home-from-right .32s cubic-bezier(0, 0, .2, 1) both; }
-.home-grid.from-left > * { animation: home-from-left .32s cubic-bezier(0, 0, .2, 1) both; }
 /* a device that is not connected: faded, greyed, and not clickable */
 .dev-card.off { opacity: .45; filter: grayscale(1); }
 .dev-card.off:hover { opacity: .7; }
 .dev-state.off { color: var(--dim); gap: 8px; }
-@media (prefers-reduced-motion: reduce) { .home-grid.from-right > *, .home-grid.from-left > * { animation: none; } }
 /* Easy-Switch: the options under the hosts sit back, dimmed, until pointed at */
 .easy-opts { opacity: .5; filter: grayscale(.6); transition: opacity .2s, filter .2s; }
 .easy-opts:hover, .easy-opts:focus-within { opacity: 1; filter: none; }
