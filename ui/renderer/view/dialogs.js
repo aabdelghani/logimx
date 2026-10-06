@@ -87,18 +87,21 @@ function renderConfirm() {
     <div class="dlg-body"><div class="hint" style="font-size:14px">${esc(p.text)}</div></div>
     <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="confirm-ok">${esc(p.ok)}</button><button class="btn primary" data-act="close-dlg" autofocus>${t('Cancel')}</button></div></div></div></div>`;
 }
-// Windows needs nothing granted; macOS needs Accessibility so LogiMX can press keys and buttons
+// Windows needs nothing granted; macOS needs Accessibility so LogiMX can press keys and buttons,
+// and Input Monitoring so it can open a keyboard
 function onboardPermissions() {
   const agentOk = S.connected, conf = S.conflicts.length, ax = S.ax || { trusted: true };
+  const imOk = !S.status.input_monitoring || S.status.input_monitoring === 'granted';
   const mark = (ok, n) => ok ? '<span class="mark-ok"><i class="fa-solid fa-check"></i></span>' : `<span class="mark-n">${n}</span>`;
   return `<div><h1>${IS_MAC() ? t('Permissions') : t('Getting ready')}</h1><div class="lead">${IS_MAC() ? t('NotLogi talks to your devices directly. To press keys and buttons for you, macOS asks you to allow it once.') : t('NotLogi talks to your devices directly. Nothing else needs to be installed.')}</div></div>
     ${card(`<div class="row">${mark(agentOk, 1)}<div class="grow"><div class="lbl">${t('Background agent')}</div><div class="sub">${agentOk ? t('Running') : S.agentBusy ? t('Starting…') : esc(S.agentErr || t('Not running yet'))}</div></div>${agentOk || S.agentBusy ? '' : `<button class="btn sm" data-act="start-agent">${t('Start')}</button>`}</div>
       ${IS_MAC() ? `<div class="row">${mark(ax.trusted, 2)}<div class="grow"><div class="lbl">${t('Accessibility')}</div><div class="sub">${ax.trusted ? t('Allowed') : t('System Settings > Privacy & Security > Accessibility: switch on NotLogi')}</div></div>${ax.trusted ? '' : `<button class="btn sm" data-act="ax-open">${t('Open settings')}</button>`}</div>` : ''}
-      <div class="row">${mark(!conf, IS_MAC() ? 3 : 2)}<div class="grow"><div class="lbl">${t('Quit Logi Options+ while NotLogi runs')}</div>${conf ? `<div class="sub">${t('{names} is running', { names: esc(S.conflicts.map(c => toolName(c.name)).join(', ')) })}</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">${t('Stop')}</button>` : ''}</div>`)}`;
+      ${IS_MAC() ? `<div class="row">${mark(imOk, 3)}<div class="grow"><div class="lbl">${t('Input Monitoring')}</div><div class="sub">${imOk ? t('Allowed') : ax.trusted ? t('For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi') : t('For keyboards. Allowed together with Accessibility above, or asked for right after it')}</div></div>${imOk || !ax.trusted ? '' : `<button class="btn sm" data-act="im-open">${t('Open settings')}</button>`}</div>` : ''}
+      <div class="row">${mark(!conf, IS_MAC() ? 4 : 2)}<div class="grow"><div class="lbl">${t('Quit Logi Options+ while NotLogi runs')}</div>${conf ? `<div class="sub">${t('{names} is running', { names: esc(S.conflicts.map(c => toolName(c.name)).join(', ')) })}</div>` : ''}</div>${conf ? `<button class="btn sm" data-act="stop-tool" data-tool="${esc(S.conflicts[0].name)}">${t('Stop')}</button>` : ''}</div>`)}`;
 }
 function renderOnboard() {
   const o = S.ob;
-  const steps = [[1, t('Permissions'), IS_LINUX() ? t('udev rule and uinput') : IS_MAC() ? t('Accessibility') : t('Background agent')], [2, t('Devices'), t('Choose what to manage')], [3, t('Preset'), IS_LINUX() ? t('GNOME, macOS or Windows-like') : t('Gestures and the thumb wheel')]].map(([n, l, s]) => `<button class="ob-step ${n === o.step ? 'cur' : n < o.step ? 'done' : ''}" data-act="ob-step" data-key="${n}"><span class="n">${n < o.step ? '✓' : n}</span><div><div class="t">${l}</div><div class="s">${s}</div></div></button>`).join('');
+  const steps = [[1, t('Permissions'), IS_LINUX() ? t('udev rule and uinput') : IS_MAC() ? t('Accessibility, Input Monitoring') : t('Background agent')], [2, t('Devices'), t('Choose what to manage')], [3, t('Preset'), IS_LINUX() ? t('GNOME, macOS or Windows-like') : t('Gestures and the thumb wheel')]].map(([n, l, s]) => `<button class="ob-step ${n === o.step ? 'cur' : n < o.step ? 'done' : ''}" data-act="ob-step" data-key="${n}"><span class="n">${n < o.step ? '✓' : n}</span><div><div class="t">${l}</div><div class="s">${s}</div></div></button>`).join('');
   let body = '';
   if (o.step === 1 && !IS_LINUX()) body = onboardPermissions();
   else if (o.step === 1) {

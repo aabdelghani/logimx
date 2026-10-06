@@ -87,6 +87,7 @@ export const commands = {
   'open': async (it, e, d, key) => { api.host.openExternal(it.data.url); return; },
   'close-dlg': async (it, e, d, key) => { if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; changed(); return; } if (drawerUp()) { fx.closeDrawer(); return; } fx.stopRecorder(); if (S.dlg === 'pair') { call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) api.host.btClose(); } S.dlg = null; changed(); return; },
   'dir': async (it, e, d, key) => { S.dir = key; changed(); return; },
+  'im-open': async (it, e, d, key) => { await api.host.inputMonitoringOpen(); setTimeout(async () => { try { S.ax = await api.host.accessibility(false); S.status = await call('status'); changed(); } catch (err) {} }, 4000); return; },
   'ax-open': async (it, e, d, key) => { api.host.accessibility(true); api.host.openAccessibility(); setTimeout(async () => { S.ax = await api.host.accessibility(false); changed(); }, 4000); return; },
   'install-udev': async (it, e, d, key) => { const r = await api.host.installUdev(); toast(r && r.ok ? t('Rule installed, re-plug the receiver') : (r && r.error) || t('Failed'), !(r && r.ok)); setTimeout(refresh, 2000); return; },
   'onboard': async (it, e, d, key) => { S.mode = 'onboard'; S.ob = { step: 1, preset: IS_WIN() ? 'win' : IS_MAC() ? 'mac' : 'gnome' }; changed(); return; },

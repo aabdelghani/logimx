@@ -26,6 +26,7 @@ if (!single) {
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);   // macOS: the Dock icon was clicked
   app.whenReady().then(async () => {
+    plat.inputMonitoring(true);   // macOS, before anything asks about Accessibility: lists NotLogi under Input Monitoring and asks once, for the MX Keys
     await sharedReady;
     ensureDesktopEntry();
     ensureAutostart();

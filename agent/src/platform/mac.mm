@@ -148,6 +148,11 @@ json conflictingTools() {
     return out;
 }
 
+std::string inputMonitoring() {
+    IOHIDAccessType a = IOHIDCheckAccess(kIOHIDRequestTypeListenEvent);
+    return a == kIOHIDAccessTypeGranted ? "granted" : a == kIOHIDAccessTypeDenied ? "denied" : "unknown";
+}
+
 // -1..1 onto the tracking-speed scale (0 .. 3, 0.6875 being the default), applied now and
 // kept for the next login
 void setPointerSpeed(double v, const std::string&, const std::string&) {

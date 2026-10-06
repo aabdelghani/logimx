@@ -152,6 +152,8 @@ json listApplications() {
     return out;
 }
 
+std::string inputMonitoring() { return "granted"; }
+
 json conflictingTools() {
     json out = json::array();
     DIR* dp = opendir("/proc");

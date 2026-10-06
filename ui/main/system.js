@@ -46,6 +46,13 @@ ipcMain.handle('app-icon', async (_e, spec) => {
 // macOS: posting key and button actions needs the Accessibility permission for LogiMX
 ipcMain.handle('accessibility', (_e, prompt) => ({ trusted: plat.accessibilityTrusted(prompt), needed: plat.IS_MAC }));
 ipcMain.handle('open-accessibility', () => plat.openAccessibilitySettings());
+// Accessibility first (see platform.js), then asks (the system's prompt the first time) and opens the setting
+ipcMain.handle('input-monitoring-open', () => {
+  if (!plat.accessibilityTrusted(false)) { plat.accessibilityTrusted(true); plat.openAccessibilitySettings(); return 'accessibility'; }
+  const s = plat.inputMonitoring(true);
+  if (s !== 'granted') plat.openInputMonitoringSettings();
+  return s;
+});
 ipcMain.handle('open-bluetooth', () => { if (!plat.IS_LINUX) return plat.openBluetooth(); execFile('gnome-control-center', ['bluetooth'], () => execFile('systemsettings', ['kcm_bluetooth'], () => {})); });
 // The latest release on GitHub. A renamed repository answers at its old address with a redirect,
 // so redirects are followed (a few, to the same API host).
@@ -91,7 +98,7 @@ ipcMain.handle('diag-report', async () => {
   lines.push(`| Agent | ${state.connected ? 'connected' : 'not connected'}, focus tracking ${st.tracker || 'n/a'}, receivers ${st.receivers || 'none'}, other tools running: ${((st.conflicts || []).map(c => c.name).join(', ')) || 'none'}${st.paused ? ', paused' : ''} |`);
   for (const d of devs) {
     const stt = d.state || {}, prof = ((d.config || {}).profiles || {}).default || {};
-    lines.push('', `**${d.name}** (${d.id}, ${d.kind}, ${d.transport || 'unknown link'}) firmware ${d.firmware || '?'}, battery ${d.battery ? d.battery.percent + '%' : 'n/a'}`);
+    lines.push('', `**${d.name}** (${d.id}, ${d.kind}, ${d.transport || 'unknown link'}) firmware ${d.firmware || '?'}, battery ${d.battery ? (d.battery.known === false ? 'level not reported' : d.battery.percent + '%') + (d.battery.charging ? ' charging' : d.battery.external_power ? ' on the cable' : '') : 'n/a'}`);
     lines.push(`- features: ${(d.features || []).join(' ')}`);
     lines.push(`- controls: ${(d.controls || []).map(c => c.cid + (c.diverted ? '*' : '')).join(' ')} (* = diverted)`);
     const asg = [];

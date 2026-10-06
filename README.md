@@ -89,7 +89,8 @@ then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `
 disk image, agree to the license and drag NotLogi to Applications. The app is not notarized yet, so
 the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
 Security > Open Anyway**). NotLogi then asks for the **Accessibility** permission, which it needs to
-press keys and buttons for you.
+press keys and buttons for you, and for **Input Monitoring**, without which macOS does not let it
+reach a keyboard (an MX Keys then never shows up).
 
 Quit Logi Options+ while NotLogi runs on Windows or macOS: both drive the same devices.
 

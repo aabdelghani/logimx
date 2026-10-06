@@ -179,6 +179,8 @@ json listApplications() {
     return out;
 }
 
+std::string inputMonitoring() { return "granted"; }
+
 json conflictingTools() {
     json out = json::array();
     static const wchar_t* kTools[] = {L"logioptionsplus_agent.exe", L"LogiOptionsMgr.exe", L"LogiOptions.exe", L"SetPoint.exe", L"LGHUB Agent.exe"};
