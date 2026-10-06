@@ -92,8 +92,12 @@ function setAutostart(on) {
     removeAgentUnit(unitPath);
   }
   const autostartDir = path.join(os.homedir(), '.config', 'autostart'), desktop = path.join(autostartDir, 'logimx.desktop');
-  if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=NotLogi\nIcon=notlogi\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
+  if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=NotLogi\nIcon=${iconName()}\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
   else { try { fs.unlinkSync(desktop); } catch (e) {} }
+}
+// the desktop icon's name: notlogi and a hash of the picture (see ensureDesktopEntry)
+function iconName() {
+  try { return 'notlogi-' + require('crypto').createHash('sha1').update(fs.readFileSync(path.join(ROOT, 'assets', 'icon.png'))).digest('hex').slice(0, 8); } catch (e) { return 'notlogi'; }
 }
 function ensureDesktopEntry() {
   if (!plat.IS_LINUX) return;          // the installer made the shortcuts
@@ -102,12 +106,14 @@ function ensureDesktopEntry() {
     const iconDir = path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor', '256x256', 'apps');
     const appDir = path.join(os.homedir(), '.local', 'share', 'applications');
     fs.mkdirSync(iconDir, { recursive: true }); fs.mkdirSync(appDir, { recursive: true });
-    // the icon goes by the name notlogi: the desktop keeps an icon it has shown by its name until the
-    // next login, so the old penguin (named logimx) would stay in the dock after an update
-    const iconSrc = path.join(ROOT, 'assets', 'icon.png'), iconDst = path.join(iconDir, 'notlogi.png');
-    if (!fs.existsSync(iconDst) || fs.statSync(iconDst).size !== fs.statSync(iconSrc).size) fs.copyFileSync(iconSrc, iconDst);
-    try { fs.unlinkSync(path.join(iconDir, 'logimx.png')); } catch (e) {}
-    const entry = `[Desktop Entry]\nType=Application\nName=NotLogi\nComment=Unofficial mouse & keyboard tools for Linux\nExec=${launchCmd()}\nIcon=notlogi\nTerminal=false\nCategories=Settings;HardwareSettings;\nKeywords=mouse;keyboard;MX;Bolt;\nStartupWMClass=${WM_CLASS}\nStartupNotify=true\n`;
+    // the desktop keeps an icon it has shown by its name until the next login: the name carries a
+    // hash of the picture, so a new logo shows in the dock at once; older copies are removed
+    const iconSrc = path.join(ROOT, 'assets', 'icon.png');
+    const icon = iconName();
+    const iconDst = path.join(iconDir, icon + '.png');
+    if (!fs.existsSync(iconDst)) fs.copyFileSync(iconSrc, iconDst);
+    for (const f of fs.readdirSync(iconDir)) if ((f === 'logimx.png' || /^notlogi(-[0-9a-f]{8})?\.png$/.test(f)) && f !== icon + '.png') { try { fs.unlinkSync(path.join(iconDir, f)); } catch (e) {} }
+    const entry = `[Desktop Entry]\nType=Application\nName=NotLogi\nComment=Unofficial mouse & keyboard tools for Linux\nExec=${launchCmd()}\nIcon=${icon}\nTerminal=false\nCategories=Settings;HardwareSettings;\nKeywords=mouse;keyboard;MX;Bolt;\nStartupWMClass=${WM_CLASS}\nStartupNotify=true\n`;
     const dst = path.join(appDir, 'logimx.desktop');
     let cur = ''; try { cur = fs.readFileSync(dst, 'utf8'); } catch (e) {}
     if (cur !== entry) { fs.writeFileSync(dst, entry); execFile('update-desktop-database', [appDir], () => {}); execFile('gtk-update-icon-cache', ['-f', '-t', path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor')], () => {}); }
