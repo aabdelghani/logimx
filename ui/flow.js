@@ -29,6 +29,18 @@ let udp = null, tcp = null;
 let searching = false, searchTimer = null, helloTimer = null, edgeTimer = null;
 const seen = new Map();             // id → { ip, name, os, searching, channels, at }
 let lastError = '';
+// what Flow did and why, in flow.log next to the settings (kept short), for finding out why a switch
+// did or did not happen
+let logPath = null;
+function log(...a) {
+  const line = `${new Date().toISOString().slice(11, 23)} ${a.map(x => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')}\n`;
+  try {
+    if (!logPath) logPath = require('path').join(app.getPath('userData'), 'flow.log');
+    const fs = require('fs');
+    try { if (fs.statSync(logPath).size > 512 * 1024) fs.renameSync(logPath, logPath + '.1'); } catch (e) {}
+    fs.appendFileSync(logPath, line);
+  } catch (e) {}
+}
 
 // ----------------------------------------------------------------- settings
 // this computer's name as people know it: the Mac's computer name, else the host name
@@ -117,7 +129,7 @@ function onHello(buf, rinfo) {
   if (p) {
     const ch = JSON.stringify(m.channels || {});
     if (p.name !== m.name || JSON.stringify(p.channels || {}) !== ch) { p.name = m.name; p.channels = m.channels || {}; save(c); }
-  } else if (searching && m.searching && c.id < m.id) pair(m.id);   // both searching: the smaller id asks
+  } else if (searching && m.searching && c.id < m.id) { log('pairing with', m.name, rinfo.address); pair(m.id); }   // both searching: the smaller id asks
   notify();
 }
 
@@ -161,6 +173,7 @@ async function onMessage(msg, ip) {
   const { m, peer } = o;
   const s = seen.get(peer.id); if (s) s.ip = ip;
   if (m.t === 'switch') {
+    log('switch from', peer.name, ip, m.clip ? (m.clip.text ? 'text' : 'image') : 'no clipboard');
     // the devices are coming here: take the clipboard
     if (m.clip && cfg().clipboard) writeClip(m.clip);
     return { ok: true };
@@ -269,25 +282,27 @@ let switching = false, coolUntil = 0;
 async function switchTo(peer) {
   if (switching || Date.now() < coolUntil) return;
   const devs = travellers(peer);
-  if (!devs.some(d => d.kind === 'mouse')) { lastError = `the mouse has no channel for ${peer.name}`; notify(); return; }
+  log('edge: switching to', peer.name, devs.map(d => `${d.name} -> channel ${channelFor(d, peer) + 1}`));
+  if (!devs.some(d => d.kind === 'mouse')) { lastError = `the mouse has no channel for ${peer.name}`; log(lastError); notify(); return; }
   switching = true;
   try {
     const s = seen.get(peer.id);
     // the other computer first (it takes the clipboard); if it does not answer, stay here
     const r = await sendTo(s.ip, sealed(peer, { t: 'switch', clip: cfg().clipboard ? readClip() : null }), 1200);
     if (!r || !r.ok) throw new Error('not accepted');
+    log(peer.name, 'accepted');
     // the mouse last, so the keyboard is already there when the pointer arrives
     for (const d of devs.sort((a, b) => (a.kind === 'mouse') - (b.kind === 'mouse'))) {
-      try { await rpc('change_host', { id: d.id, host: channelFor(d, peer) }); } catch (e) {}
+      try { await rpc('change_host', { id: d.id, host: channelFor(d, peer) }); log('switched', d.name, 'to channel', channelFor(d, peer) + 1); } catch (e) { log('change_host failed', d.name, String(e.message || e)); }
     }
     lastError = '';
-  } catch (e) { lastError = `${peer.name} did not answer`; }
+  } catch (e) { lastError = `${peer.name} did not answer`; log(lastError, String(e.message || e), (seen.get(peer.id) || {}).ip); }
   switching = false; coolUntil = Date.now() + 1000;
   notify();
 }
 // the pointer pushed against an edge of its screen that no other screen continues past (with
 // screens of different sizes, the edge of the main screen can be inside the desktop's outline)
-let atEdge = null, edgeSince = 0;
+let atEdge = null, edgeSince = 0, loggedEdge = 0;
 function edgeOf(pt) {
   const all = screen.getAllDisplays().map(d => d.bounds);
   const b = all.find(r => pt.x >= r.x && pt.x < r.x + r.width && pt.y >= r.y && pt.y < r.y + r.height);
@@ -308,6 +323,7 @@ function edgeTick() {
   if (!side || Date.now() - edgeSince < 40) return;   // held there, not just passing through a corner
   const peer = c.peers.find(p => p.pos === side && online(p));
   if (peer) { atEdge = null; switchTo(peer); }
+  else if (edgeSince !== loggedEdge) { loggedEdge = edgeSince; log('edge', side, 'reached: no computer online on that side', c.peers.map(p => `${p.name} ${p.pos} ${online(p) ? 'online' : 'away'}`)); }
 }
 function watchEdges() {
   clearInterval(edgeTimer);
@@ -339,6 +355,7 @@ function send(ch, msg) { try { if (win && !win.isDestroyed()) win.webContents.se
 
 function init(opts) {
   win = opts.win; getUi = opts.getUi; setUi = opts.setUi; rpc = opts.rpc;
+  log('start', computerName(), process.platform, 'peers', cfg().peers.map(p => `${p.name} ${p.pos}`));
   listen();
   learnChannels();
   schedule();
