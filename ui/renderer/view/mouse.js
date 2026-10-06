@@ -12,14 +12,18 @@ export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, devic
 const MOUSE_PHOTOS = (() => {
   const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, pt: [['wheel', 690, 300, 'r'], ['thumb', 520, 770, 'l'], ['pointer', 840, 800, 'r']], spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
   const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303, 'r'], ['thumb', 577, 899, 'l'], ['pointer', 850, 840, 'r']], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
-  return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4 };
+  // MX Anywhere 3S: the Options+ side view (the side buttons show), drawn at the others' width so the rings match
+  const a3 = { src: '../assets/devices/b037.png', w: 1021, h: 1708, pt: [['wheel', 715, 324, 'r'], ['pointer', 816, 768, 'r']], spots: [[82, 726, 274], [196, 767, 580], [86, 224, 701], [83, 286, 1025]] };
+  return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4, b037: a3 };
 })();
 // the underside, for Easy-Switch: where the printed 1, 2 and 3 sit above the switch button
 const MOUSE_BOTTOMS = (() => {
   const s3 = { src: '../assets/devices/b034-bottom.png', w: 692, h: 1024, hosts: [[0, 225, 672, 'l'], [1, 266, 650, 'r'], [2, 307, 672, 'r']] };
   // MX Master 4: Logitech's product photo of its underside, the lit channel light put out (the page lights the current one)
   const m4 = { src: '../assets/devices/b042-bottom.png', w: 706, h: 1024, hosts: [[0, 236, 705, 'l'], [1, 277, 690, 'r'], [2, 319, 705, 'r']] };
-  return { b034: s3, b035: s3, b043: s3, b042: m4 };
+  // MX Anywhere 3S: Logitech's product photo of its underside, the lit channel light put out
+  const a3 = { src: '../assets/devices/b037-bottom.png', w: 671, h: 1024, hosts: [[0, 281, 719, 'l'], [1, 334, 697, 'r'], [2, 389, 719, 'r']] };
+  return { b034: s3, b035: s3, b043: s3, b042: m4, b037: a3 };
 })();
 const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
 // The mouse photo: a ring on each button and its name beside it, on the side away from the mouse.

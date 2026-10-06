@@ -80,6 +80,28 @@ MX_MASTER_3S = {
     },
 }
 
+# MX Anywhere 3S: middle, back and forward, the SmartShift button behind the wheel; no thumb wheel
+# and no gesture button (a button can be given gestures or the action ring)
+MX_ANYWHERE_3S = {
+    "settings": {
+        "dpi": 1000,
+        "smartshift": {"mode": "ratchet", "threshold": 12},
+        "hires": {"enabled": True, "invert": False},
+    },
+    "profiles": {
+        "default": {
+            "name": "All applications",
+            "buttons": {
+                str(CID["middle"]): "native",
+                str(CID["back"]): "native",
+                str(CID["forward"]): "native",
+                str(CID["mode_shift"]): "native",
+            },
+            "thumbwheel": "native",
+        }
+    },
+}
+
 # MX Master 4: the 3S plus a haptic panel under the thumb, which opens the action ring, and
 # haptic feedback for the ring and for gestures
 MX_MASTER_4 = {
@@ -140,6 +162,7 @@ MX_KEYS_MINI_MAC = _keyboard(_MINI_ROW + ["do_not_disturb"], **_S_STYLE)
 DEFAULTS_BY_PID = {
     0xB034: MX_MASTER_3S, 0xB035: MX_MASTER_3S, 0xB043: MX_MASTER_3S,   # MX Master 3S (Bolt / business / BT)
     0xB042: MX_MASTER_4, 0xB048: MX_MASTER_4,                           # MX Master 4 / for Business
+    0xB037: MX_ANYWHERE_3S,                                             # MX Anywhere 3S (Bolt and Bluetooth)
     0xB378: MX_KEYS_S, 0xB379: MX_KEYS_S, 0xB37A: MX_KEYS_S,            # MX Keys S (Bolt / business / mac)
     0xB35B: MX_KEYS, 0x408A: MX_KEYS,                                   # MX Keys (Bluetooth / Unifying)
     0xB361: MX_KEYS_MAC, 0x4092: MX_KEYS_MAC,                           # MX Keys for Mac

@@ -99,7 +99,7 @@ function pageInfo(d) {
 // charging, how it is connected and which profile it is using. A card opens its device.
 const devicePhotoSrc = d => ((isMouse(d) ? MOUSE_PHOTOS : KEYBOARD_PHOTOS)[d.id] || {}).src;
 // Home shows a mouse from above; its own view shows it from the side with the buttons numbered
-const TOP_VIEWS = { b034: 'b034-top.png', b035: 'b034-top.png', b043: 'b034-top.png', b042: 'b042-top.png', b048: 'b042-top.png' };
+const TOP_VIEWS = { b034: 'b034-top.png', b035: 'b034-top.png', b043: 'b034-top.png', b042: 'b042-top.png', b048: 'b042-top.png', b037: 'b037-top.png' };
 const homePhotoSrc = d => isMouse(d) && TOP_VIEWS[d.id] ? '../assets/devices/' + TOP_VIEWS[d.id] : devicePhotoSrc(d);
 // the foot of the device's page list: battery icon and percentage on a pill, which opens Battery & info
 function navBattery(d) {

@@ -100,6 +100,7 @@ work, the **Report a problem** button in the app opens a pre-filled issue.
 |---|---|---|
 | MX Master 3S | b034 | Tested |
 | MX Master 4 | b042 | Tested |
+| MX Anywhere 3S | b037 | Photo, layout, Easy-Switch and defaults included; not yet tested |
 | MX Keys S | b378 | Tested |
 | MX Keys, MX Keys for Mac, MX Keys for Business | 408a, b35b, b361, b363 | Photo, layout and defaults included; reported working by users |
 | MX Keys Mini, Mini for Mac, Mini for Business | b369, b36a, b36e | Photo, layout and defaults included; not yet tested |
