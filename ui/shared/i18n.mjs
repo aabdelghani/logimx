@@ -10,6 +10,8 @@ export const LANGS = [
 let dict = {}, lang = 'en';
 // a window gets its language from the main process as it loads (its preload offers window.i18n)
 try { const r = globalThis.i18n && globalThis.i18n.load(); if (r) { dict = r.dict || {}; lang = r.lang || 'en'; } } catch (e) {}
+// the page says its language too, so Chinese and Japanese get their own forms of the characters
+if (typeof document !== 'undefined') document.documentElement.lang = lang;
 
 export function setLanguage(code, d) { lang = code || 'en'; dict = d || {}; }
 export const language = () => lang;
