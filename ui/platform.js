@@ -62,9 +62,13 @@ function openBluetooth() {
 }
 
 // Other software that drives the same devices (named by the agent's conflict list)
+// macOS: Options+'s agent is a launchd job that launchd restarts the moment it is killed (KeepAlive),
+// so it is unloaded instead, which holds until the next login
+const MAC_JOBS = { logioptionsplus_agent: 'com.logi.cp-dev-mgr' };
 function stopTool(name) {
   return new Promise(resolve => {
     if (IS_WIN) execFile('taskkill', ['/IM', name + '.exe', '/F'], { windowsHide: true }, err => resolve(err ? { ok: false, error: 'could not stop ' + name } : { ok: true }));
+    else if (IS_MAC && MAC_JOBS[name]) execFile('launchctl', ['bootout', `gui/${process.getuid()}/${MAC_JOBS[name]}`], () => execFile('pkill', ['-x', name], () => resolve({ ok: true })));
     else execFile('pkill', ['-x', name], () => resolve({ ok: true }));
   });
 }
