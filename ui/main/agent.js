@@ -114,7 +114,7 @@ function handleEvent(event, data) {
   if (event === 'device' || event === 'device_added') {
     const isNew = event === 'device_added' && !state.devices.some(d => d.id === data.id);
     mergeDevice(data);
-    if (isNew && state.general.notify_connect && Notification.isSupported()) new Notification({ title: `${data.name} connected`, body: data.battery ? `Battery ${data.battery.percent}%` : '', icon: path.join(ROOT, 'assets', 'icon.png') }).show();
+    if (isNew && state.general.notify_connect && Notification.isSupported()) new Notification({ title: `${data.name} connected`, body: state.Battery.known(data.battery) ? `Battery ${data.battery.percent}%` : '', icon: path.join(ROOT, 'assets', 'icon.png') }).show();
   }
   else if (event === 'device_removed') {
     const d = state.devices.find(x => x.id === data.id);

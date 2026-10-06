@@ -37,9 +37,10 @@ struct ControlInfo {
 
 struct Battery {
     int percent = 0;
+    bool known = true;          // false: the device did not say how full it is (percent is null)
     std::string level;
     bool charging = false, externalPower = false;
-    json toJson() const { return {{"percent", percent}, {"level", level}, {"charging", charging}, {"external_power", externalPower}}; }
+    json toJson() const { return {{"percent", known ? json(percent) : json(nullptr)}, {"level", level}, {"charging", charging}, {"external_power", externalPower}}; }
 };
 // torque: how hard the ratchet is to turn, on wheels that can tune it (0x2111)
 struct SmartShiftState { int mode = 0, threshold = 0, defaultThreshold = 0, torque = 0, defaultTorque = 0; bool tunable = false; };

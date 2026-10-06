@@ -223,7 +223,7 @@ bool ManagedDevice::cue(const std::string& name) {
 // battery saving: the backlight stays off while the keyboard runs on a battery at 20% or less
 static bool backlightSaving(const json& cfg, const std::optional<hidpp::Battery>& b) {
     return cfg.value("settings", json::object()).value("backlight", json::object()).value("battery_saving", false) &&
-           b && !b->charging && !b->externalPower && b->percent <= 20;
+           b && b->known && !b->charging && !b->externalPower && b->percent <= 20;
 }
 
 void ManagedDevice::applySettings(const std::string& only) {
@@ -395,8 +395,13 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
         engine_->thumbwheel(-ev.data["rotation"].get<int>(), profile_.value("thumbwheel", json("native")));
     } else if (ev.kind == "battery") {
         bool wasSaving = backlightSaving(cfg_, battery_);
-        battery_ = hidpp::Battery{ev.data["percent"].get<int>(), ev.data["level"].get<std::string>(),
-                                  ev.data["charging"].get<bool>(), ev.data["external_power"].get<bool>()};
+        hidpp::Battery nb;
+        nb.known = ev.data["percent"].is_number();
+        nb.percent = nb.known ? ev.data["percent"].get<int>() : 0;
+        nb.level = ev.data.value("level", "");
+        nb.charging = ev.data.value("charging", false);
+        nb.externalPower = ev.data.value("external_power", false);
+        battery_ = nb;
         batteryConfirmed_ = true;
         if (backlightSaving(cfg_, battery_) != wasSaving) applySettings("backlight");
         daemon_.broadcast("battery", {{"id", id()}, {"battery", batteryJson()}});
@@ -568,7 +573,7 @@ int Daemon::run() {
             for (auto& md : snapshot()) {
                 try {
                     md->setBattery(md->dev().battery(), true);
-                    if (auto b = md->battery()) { recordBattery(md->id(), b->percent, b->charging); broadcast("battery", {{"id", md->id()}, {"battery", md->batteryJson()}}); }
+                    if (auto b = md->battery()) { if (b->known) recordBattery(md->id(), b->percent, b->charging); broadcast("battery", {{"id", md->id()}, {"battery", md->batteryJson()}}); }
                 } catch (...) {
                 }
             }
@@ -740,7 +745,7 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
                 auto b = md->dev().battery();
                 if (b) {
                     md->setBattery(b, true);
-                    recordBattery(md->id(), b->percent, b->charging);
+                    if (b->known) recordBattery(md->id(), b->percent, b->charging);
                     broadcast("battery", {{"id", md->id()}, {"battery", md->batteryJson()}});
                 }
             } catch (...) {

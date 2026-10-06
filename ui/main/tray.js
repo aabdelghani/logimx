@@ -19,11 +19,11 @@ const menuIcon = n => nativeImage.createFromPath(path.join(ROOT, 'assets', 'tray
 const batteryBar = pct => { const n = Math.round(Math.max(0, Math.min(100, pct)) / 10); return '▰'.repeat(n) + '▱'.repeat(10 - n); };
 function updateTray() {
   if (!state.tray) return;
-  const warn = state.devices.some(d => d.battery && !d.battery.charging && d.battery.percent <= state.Battery.LOW);
+  const warn = state.devices.some(d => state.Battery.isLow(d.battery));
   state.tray.setImage(trayIcon(warn));
   const lines = state.devices.map(d => {
     const b = d.battery;
-    return `${d.name}: ${b ? b.percent + '%' + (b.charging ? ' charging' : '') : 'battery n/a'}`;
+    return `${d.name}: ${state.Battery.batteryText(b)}`;
   });
   state.tray.setToolTip(state.connected ? (lines.length ? lines.join('\n') + (state.paused ? '\nCustom buttons paused' : '') : 'NotLogi: no devices') : 'NotLogi: agent not running');
   const items = [];
@@ -35,7 +35,7 @@ function updateTray() {
     if (d.online === false) { items.push({ label: `${d.name}   not connected`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false }, { type: 'separator' }); continue; }
     const bat = state.Battery.batteryText(b);
     items.push({ label: `${d.name}   ${bat}`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false });
-    if (b) items.push({ label: `      ${batteryBar(b.percent)}`, enabled: false });
+    if (state.Battery.known(b)) items.push({ label: `      ${batteryBar(b.percent)}`, enabled: false });
     if (d.state && d.state.hosts) {
       items.push({ label: '      Easy-Switch', enabled: false });
       for (const h of d.state.hosts.names.filter(h => h.paired)) {

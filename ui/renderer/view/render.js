@@ -2,7 +2,7 @@
 // commands; plus the moves between pages (the panel sliding in, the keyboard gliding).
 import { isMouse } from '../../shared/profiles.mjs';
 import { toolName } from '../../shared/actions.mjs';
-import { batClass } from '../../shared/battery.mjs';
+import { batClass, pctText } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
 let MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
@@ -239,7 +239,7 @@ function devicePanel(d) {
     <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
     <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
     ${isMouse(d) && MOUSE_PHOTOS[d.id] ? '<div class="hint">Click a number to change what that button does.</div>' : ''}
-    ${others.length ? `<div class="dev-others"><div class="sec-title"><span>Other devices</span></div>${others.map(x => `<button class="other" data-act="home-open" data-key="${esc(x.id)}"><i class="fa-solid ${isMouse(x) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i><span class="grow">${esc(x.name)}</span>${x.battery ? `<span class="${batClass(x.battery)}">${x.battery.percent}%${x.battery.charging ? ' <i class="fa-solid fa-bolt"></i>' : ''}</span>` : ''}</button>`).join('')}</div>` : ''}
+    ${others.length ? `<div class="dev-others"><div class="sec-title"><span>Other devices</span></div>${others.map(x => `<button class="other" data-act="home-open" data-key="${esc(x.id)}"><i class="fa-solid ${isMouse(x) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i><span class="grow">${esc(x.name)}</span>${x.battery ? `<span class="${batClass(x.battery)}">${pctText(x.battery)}${x.battery.charging ? ' <i class="fa-solid fa-bolt"></i>' : ''}</span>` : ''}</button>`).join('')}</div>` : ''}
   </aside>`;
 }
 const THEMES = [['light', 'Light', 'linear-gradient(135deg,#fff 50%,#3584e4 50%)'], ['dark', 'Dark', 'linear-gradient(135deg,#222 50%,#3584e4 50%)'], ['ubuntu', 'Ubuntu', 'linear-gradient(135deg,#fafafa 50%,#e95420 50%)'], ['ubuntu-dark', 'Ubuntu dark', 'linear-gradient(135deg,#2c2c2c 50%,#e95420 50%)']];

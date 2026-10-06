@@ -131,13 +131,18 @@ Battery Device::decodeBattery(const Bytes& r) {
 
 // 0x1000, on older devices such as the original MX Keys: level in percent, next level, status
 // (0 discharging, 1 recharging, 2 almost full, 3 full, 4 slow recharge, 5+ battery or thermal error)
+// A level of 0 is not "empty": these devices send 0 while charging, when they do not measure it;
+// "full" (3) is 100% on the charger.
 Battery Device::decodeBatteryStatus(const Bytes& r) {
     Battery b;
     if (r.size() < 3) return b;
+    const int status = r[2];
+    b.charging = status == 1 || status == 2 || status == 4;
+    b.externalPower = status >= 1 && status <= 4;
+    if (status == 3) { b.percent = 100; b.level = "full"; return b; }
+    if (r[0] == 0) { b.known = false; b.level = "unknown"; return b; }
     b.percent = r[0];
     b.level = b.percent <= 5 ? "critical" : b.percent <= 20 ? "low" : b.percent >= 90 ? "full" : "good";
-    b.charging = r[2] == 1 || r[2] == 2 || r[2] == 4;
-    b.externalPower = r[2] >= 1 && r[2] <= 4;
     return b;
 }
 

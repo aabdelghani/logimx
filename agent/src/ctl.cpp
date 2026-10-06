@@ -31,8 +31,10 @@ static json parseValue(const std::string& v) {
 
 static void printDevice(const json& d) {
     std::string batt = "n/a";
-    if (d.contains("battery") && d["battery"].is_object())
-        batt = std::to_string(d["battery"].value("percent", 0)) + "%" + (d["battery"].value("charging", false) ? " charging" : "");
+    if (d.contains("battery") && d["battery"].is_object()) {
+        const json& p = d["battery"]["percent"];
+        batt = (p.is_number() ? std::to_string(p.get<int>()) + "%" : std::string("level unknown")) + (d["battery"].value("charging", false) ? " charging" : "");
+    }
     printf("%s  [%s]  %s  fw %s  via %s  battery %s  profile %s\n", d.value("name", "").c_str(), d.value("id", "").c_str(),
            d.value("kind", "").c_str(), d.value("firmware", "").c_str(), d.value("transport", "").c_str(), batt.c_str(),
            d.value("profile", "").c_str());

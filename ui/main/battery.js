@@ -30,6 +30,8 @@ function checkBattery(d) {
   // agent replaces it a few seconds later. Alerting on it produces a warning about a battery
   // that is actually full.
   if (b.confirmed === false) return;
+  // a device that does not say how full it is gets no battery notices
+  if (!state.Battery.known(b)) return;
   const seen = lastPercent.get(d.id);
   lastPercent.set(d.id, b.percent);
   // a battery does not fall thirty points between two readings: wait for the next one

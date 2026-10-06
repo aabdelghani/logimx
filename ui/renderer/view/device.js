@@ -1,6 +1,6 @@
 // View: what every device has: Easy-Switch, battery and information, its settings page.
 import { isMouse } from '../../shared/profiles.mjs';
-import { batIcon } from '../../shared/battery.mjs';
+import { batIcon, known, pctText, isLow } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
 let ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, card, chk, esc, isOffline, range, row, sec, sw;
@@ -83,12 +83,12 @@ function pageEasy(d) {
 
 function pageInfo(d) {
   const b = d.battery || { percent: 0 }; const hist = S.history[d.id] || [];
-  const bars = (hist.length ? hist : [b.percent]).slice(-14);
+  const bars = (hist.length ? hist : known(b) ? [b.percent] : []).slice(-14);
   const rows = [['Model', d.name], ['Connection', `${d.transport === 'bolt' ? 'Bolt receiver' : 'Bluetooth'} · host ${((d.state || {}).hosts || {}).current + 1 || 1}`], ['Firmware', d.firmware || 'n/a'], ['Serial', d.serial || 'n/a'], ['Protocol', 'HID++ 2.0'], ['Wireless PID', d.id.toUpperCase()]];
   const est = b.charging ? 'Charging over USB-C' : b.level ? `Level: ${b.level}` : '';
   const thr = S.general.notify_low_threshold ?? 20;
   return `<div class="grid2">
-    <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>Battery</span><span class="meta" style="color:var(--ok)">${b.charging ? 'Charging' : 'Discharging'}</span></div><div class="big">${b.percent}%</div><div class="meter ${b.percent <= 10 ? 'crit' : b.percent <= 20 ? 'low' : ''}"><i style="width:${b.percent}%"></i></div><div class="hint">${esc(est)}</div></div>
+    <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>Battery</span><span class="meta" style="color:var(--ok)">${b.charging ? 'Charging' : 'Discharging'}</span></div><div class="big">${known(b) ? b.percent + '%' : b.charging ? 'Charging' : 'n/a'}</div>${known(b) ? `<div class="meter ${isLow(b, 10) ? 'crit' : isLow(b) ? 'low' : ''}"><i style="width:${b.percent}%"></i></div>` : ''}<div class="hint">${esc(est)}</div></div>
     <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>Last 7 days</span></div><div class="hist">${bars.map(v => `<span style="height:${v}%" title="${v}%"></span>`).join('')}</div><div style="display:flex;justify-content:space-between" class="hint"><span>${hist.length > 1 ? 'Earlier' : ''}</span><span>Today</span></div></div></div>` +
     sec('Device', card(rows.map(([k, v]) => `<div class="row"><span class="grow lbl">${k}</span><span class="val">${esc(v)}</span></div>`).join(''))) +
     sec('Alerts', card(`<div class="row"><div class="grow"><div class="lbl">Low battery warning</div><div class="sub">Notify at</div></div>${range('data-act="general-range" data-key="notify_low_threshold" data-out="thr"', thr, 5, 50, 5)}<span class="val" data-out="thr" style="width:32px;text-align:right">${thr}%</span></div>` +
@@ -106,19 +106,20 @@ function navBattery(d) {
   // not connected: changes are kept and reach the device when it is back
   if (isOffline(d)) return `<div class="dnav-bat offline" title="Changes are saved and applied when it reconnects"><i class="fa-solid fa-link-slash"></i><span>Not connected</span></div>`;
   const b = d.battery, st = batteryState(b);
-  return `<div class="dnav-bat ${b ? st.cls : 'none'}" title="${esc(st.label)}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span>${b.percent}%</span>` : '<span>Info</span>'}${b && b.charging ? '<i class="fa-solid fa-bolt"></i>' : ''}</div>`;
+  return `<div class="dnav-bat ${b ? st.cls : 'none'}" title="${esc(st.label)}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span>${pctText(b) || (b.charging ? 'Charging' : 'Info')}</span>` : '<span>Info</span>'}${b && b.charging ? '<i class="fa-solid fa-bolt"></i>' : ''}</div>`;
 }
 function batteryState(b) {
   if (!b) return { label: 'Battery not reported', cls: '', icon: 'fa-battery-empty' };
   const plugged = b.charging || b.external_power;
   if (plugged && (b.percent >= 100 || b.level === 'full') && !b.charging) return { label: 'Fully charged, unplug when you like', cls: 'ok', icon: 'fa-plug-circle-check' };
   if (b.charging) return { label: 'Charging', cls: 'ok charging', icon: 'fa-bolt' };
+  if (!known(b)) return { label: b.external_power ? 'Plugged in' : 'Level not reported', cls: '', icon: batIcon(b) };
   if (b.percent <= 10) return { label: 'Low, charge soon', cls: 'err', icon: 'fa-battery-empty' };
   if (b.percent <= 20) return { label: 'Getting low', cls: 'warn', icon: 'fa-battery-quarter' };
   return { label: 'On battery', cls: 'ok', icon: batIcon(b) };
 }
 function batteryRing(b) {
-  const p = b ? Math.max(0, Math.min(100, b.percent)) : 0, st = batteryState(b), C = 2 * Math.PI * 26;
+  const p = known(b) ? Math.max(0, Math.min(100, b.percent)) : 0, st = batteryState(b), C = 2 * Math.PI * 26;
   return `<div class="bat-ring ${st.cls}" title="${esc(st.label)}"><svg viewBox="0 0 64 64"><circle class="trk" cx="32" cy="32" r="26"/><circle class="val" cx="32" cy="32" r="26" style="stroke-dasharray:${(C * p / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><span class="pct">${b ? p + '<small>%</small>' : '–'}</span>${b && b.charging ? '<i class="fa-solid fa-bolt bolt"></i>' : ''}</div>`;
 }
 // the device's own settings, as Options+ lists them: General, the keys it can switch off, backup

@@ -79,3 +79,18 @@ test('profiles: an app profile falls back to the global one', () => {
   assert.equal(isNative('native'), true); assert.equal(isNative('copy'), false);
   assert.equal(isMouse(d), true); assert.equal(isMouse({ kind: 'keyboard' }), false);
 });
+
+test('a battery that does not say its level is never low, and charging says so', async () => {
+  const { known, isLow, pctText, batteryText, batIcon, batClass } = await import('../shared/battery.mjs');
+  const charging = { percent: null, charging: true }, unknown = { percent: null, charging: false };
+  assert.equal(known(charging), false);
+  assert.equal(isLow(charging), false);
+  assert.equal(isLow(unknown), false);
+  assert.equal(isLow({ percent: 8, charging: false }), true);
+  assert.equal(isLow({ percent: 8, charging: true }), false);
+  assert.equal(pctText(charging), '');
+  assert.equal(batteryText(charging), 'charging');
+  assert.equal(batteryText({ percent: null, external_power: true }), 'plugged in');
+  assert.equal(batIcon(charging), 'fa-plug');
+  assert.equal(batClass(unknown), '');
+});

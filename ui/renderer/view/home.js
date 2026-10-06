@@ -1,6 +1,6 @@
 // View: Home, the devices side by side, and the window with no device yet.
 import { isMouse } from '../../shared/profiles.mjs';
-import { batIcon } from '../../shared/battery.mjs';
+import { batIcon, known, isLow } from '../../shared/battery.mjs';
 
 // from the rest of the window, filled in by link()
 let S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, root, themeMenu;
@@ -10,7 +10,7 @@ function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good nigh
 function pageHome() {
   const devs = S.devices;
   const charging = devs.filter(d => d.battery && d.battery.charging).length;
-  const low = devs.filter(d => d.battery && !d.battery.charging && d.battery.percent <= 20);
+  const low = devs.filter(d => isLow(d.battery));
   const summary = [`${devs.length} device${devs.length === 1 ? '' : 's'} connected`]
     .concat(charging ? [`${charging} charging`] : [], low.length ? [`${low.map(d => d.name).join(' and ')} ${low.length === 1 ? 'needs' : 'need'} charging`] : [], !charging && !low.length && devs.length ? ['batteries fine'] : []).join(' · ');
   const cards = homeDevices().map(d => {
@@ -24,7 +24,7 @@ function pageHome() {
     return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? 'Not connected' : esc(link)}">
       <div class="dev-photo">${src ? `<img src="${esc(src)}" alt="${esc(d.name)}">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i>`}</div>
       <div class="dev-body centered">
-        ${off ? `<div class="dev-inactive"><span class="inactive-tag" title="Not connected">Inactive</span><button class="inactive-del" data-act="dev-hide" data-key="${esc(d.id)}" title="Remove from NotLogi"><i class="fa-solid fa-trash-can"></i></button></div>` : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${b ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
+        ${off ? `<div class="dev-inactive"><span class="inactive-tag" title="Not connected">Inactive</span><button class="inactive-del" data-act="dev-hide" data-key="${esc(d.id)}" title="Remove from NotLogi"><i class="fa-solid fa-trash-can"></i></button></div>` : ''}<div class="dev-state ${st.cls}" ${off ? 'hidden' : ''}>${known(b) ? `<span class="dev-pct">${b.percent}%</span>` : ''}<i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b && b.charging ? '<i class="fa-solid fa-bolt dev-bolt"></i>' : ''}${st.label !== 'On battery' ? `<span class="dev-label">${esc(st.label)}</span>` : ''}${d.transport === 'bluetooth' ? `<span class="dev-link bt" title="${esc(link)}">${linkIcon}</span>` : ''}</div>
       </div></div>`;
   }).join('');
   // every device in one row, sharing the width; when they cannot all fit the row scrolls sideways
