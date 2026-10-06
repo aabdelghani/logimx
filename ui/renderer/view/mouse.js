@@ -2,8 +2,8 @@
 import { isNative } from '../../shared/profiles.mjs';
 
 // from the rest of the window, filled in by link()
-let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw;
-export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw } = ctx); }
+let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw;
+export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw } = ctx); }
 
 // ----------------------------------------------------------- photos
 // One photo per mouse model, keyed by device id like the keyboards. A spot is a control id (or
@@ -162,9 +162,9 @@ function ptSummary(d, k) {
   if (k === 'wheel') {
     // all three of the wheel's settings: direction, smooth scrolling, SmartShift (one per line on the photo)
     const ss = s.smartshift || {}, hr = s.hires || {};
-    const natural = hr.invert ?? (st.hires || {}).invert ?? false, smooth = (st.hires || {}).kernel || (hr.enabled ?? (st.hires || {}).hires ?? true);
+    const natural = hr.invert ?? (st.hires || {}).invert ?? false, speed = hr.speed ?? 1;
     const shift = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
-    return `${natural ? 'Natural' : 'Standard'} · Smooth ${smooth ? 'on' : 'off'} · SmartShift ${shift ? 'on' : 'off'}`;
+    return `${natural ? 'Natural' : 'Standard'} · Smooth ${hr.smooth ? 'on' : 'off'}${speed !== 1 ? ` · Speed ${fmtOut('wsp', speed)}` : ''} · SmartShift ${shift ? 'on' : 'off'}`;
   }
   const t = thumbInfo(d);
   return `Speed ${t.speed} · ${t.invert ? 'Inverted' : 'Standard'}`;
@@ -202,13 +202,17 @@ function pointerSettings(d, only) {
   const pointer = sec('Pointer', card(
     `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">DPI</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
     `<div class="row"><span class="grow lbl">Desktop pointer speed</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
-  // the wheel's three settings: direction, smooth scrolling, and SmartShift (its sensitivity, and
-  // the ratchet force on the MX Master 4, under it while it is on)
+  // the wheel's settings: direction, speed, smooth scrolling, its fine steps, and SmartShift (its
+  // sensitivity, and the ratchet force on the MX Master 4, under it while it is on). A speed other
+  // than 1 or smooth scrolling has the agent play the wheel into the desktop itself.
+  const wspeed = hr.speed ?? 1;
   const wheel = sec('Scroll wheel', card(
       row('Scroll direction', (hr.invert ?? (st.hires || {}).invert) ? 'Natural: the page follows your finger' : 'Standard', sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"')) +
-      // over Bluetooth Linux's own Logitech driver scales the wheel: smooth scrolling has to stay on
-      ((st.hires || {}).kernel ? row('Smooth scrolling', 'Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower', sw(true, 'disabled title="Managed by Linux on this connection"'))
-        : row('Smooth scrolling', 'High-resolution wheel events', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +
+      `<div class="row"><div class="grow"><div class="lbl">Scroll speed</div><div class="sub">How far each notch scrolls</div></div>${range('data-act="setting-range" data-path="hires.speed" data-out="wsp"', wspeed, 0.25, 3, 0.05)}<span class="val" data-out="wsp" style="width:40px;text-align:right">${fmtOut('wsp', wspeed)}</span></div>` +
+      row('Smooth scrolling', 'Each notch glides in over a moment instead of jumping', sw(!!hr.smooth, 'data-act="setting" data-path="hires.smooth"')) +
+      // over Bluetooth Linux's own Logitech driver scales the wheel: its fine steps have to stay on
+      ((st.hires || {}).kernel ? row('High-resolution wheel', 'Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower', sw(true, 'disabled title="Managed by Linux on this connection"'))
+        : row('High-resolution wheel', 'Fine steps within each notch', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +
       row('SmartShift', 'Switch from ratchet to free-spin when the wheel is flicked', sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
       (ssOn ? `<div class="row"><span class="grow lbl">SmartShift sensitivity</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` : '') +
       (ssOn && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">Ratchet force</div><div class="sub">How firm each step of the wheel feels</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));
@@ -224,6 +228,7 @@ function thumbSettings(d) {
   // its two settings; what it does is chosen on Buttons, like any other control
   return sec('Thumb wheel', card(
     `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>` +
+    row('Smooth scrolling', 'Each turn glides in over a moment instead of jumping', sw(!!((d.config.settings || {}).thumbwheel || {}).smooth, 'data-act="setting" data-path="thumbwheel.smooth"')) +
     row('Scroll direction', twInvert ? 'Inverted' : 'Standard', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"'))));
 }
 

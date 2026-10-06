@@ -29,9 +29,11 @@ class Injector {
     void emit(uint16_t type, uint16_t code, int32_t value);
     void syn();
     int fd_ = -1;
+    int notchY_ = 0, notchX_ = 0;   // hi-res units towards the next whole notch, for programs that read only notches
 #endif
 #ifdef __APPLE__
     uint64_t flags_ = 0;   // modifier flags of the keys held, stamped on every event posted
+    int restY_ = 0, restX_ = 0;   // hi-res units under one pixel, carried to the next scroll
 #endif
     std::mutex m_;
     std::set<int> held_;

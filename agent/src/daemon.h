@@ -72,6 +72,10 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     std::atomic<bool> online_{true};
     std::set<int> down_, diverted_;
     std::set<int> rawDiverted_;   // controls whose raw XY is diverted as well (gesture assignments)
+    // the wheels taken over by the agent for their speed or smooth scrolling (as Options+ does)
+    bool wheelTaken_ = false, wheelSmooth_ = false, wheelInvert_ = false, thumbTuned_ = false, thumbSmooth_ = false;
+    double wheelSpeed_ = 1.0, thumbSpeed_ = 1.0;
+    int wheelMult_ = 8;   // hi-res steps per notch
     json state_;
     json hostsCache_;
     std::unique_ptr<actions::Engine> engine_;

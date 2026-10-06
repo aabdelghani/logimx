@@ -86,10 +86,12 @@ void Injector::releaseAll() {
 void Injector::scroll(int dy, int dx, bool hires) {
     std::lock_guard<std::mutex> lk(m_);
     if (hires) {
+        // as the kernel does for a hi-res wheel: the fine steps, and a whole notch each time they add up to one
         if (dy) emit(EV_REL, REL_WHEEL_HI_RES, dy);
         if (dx) emit(EV_REL, REL_HWHEEL_HI_RES, dx);
-        if (dy && std::abs(dy) >= 120) emit(EV_REL, REL_WHEEL, dy / 120);
-        if (dx && std::abs(dx) >= 120) emit(EV_REL, REL_HWHEEL, dx / 120);
+        auto notches = [](int& acc, int d) { if ((acc > 0 && d < 0) || (acc < 0 && d > 0)) acc = 0; acc += d; int n = acc / 120; acc -= n * 120; return n; };
+        if (int n = dy ? notches(notchY_, dy) : 0) emit(EV_REL, REL_WHEEL, n);
+        if (int n = dx ? notches(notchX_, dx) : 0) emit(EV_REL, REL_HWHEEL, n);
     } else {
         if (dy) emit(EV_REL, REL_WHEEL, dy);
         if (dx) emit(EV_REL, REL_HWHEEL, dx);

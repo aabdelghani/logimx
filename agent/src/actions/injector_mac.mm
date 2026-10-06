@@ -144,8 +144,15 @@ void Injector::scroll(int dy, int dx, bool hires) {
     dy *= k;
     dx *= k;
     bool lines = dy % 120 == 0 && dx % 120 == 0;
-    int32_t wy = lines ? dy / 120 : dy / 10, wx = lines ? dx / 120 : dx / 10;
-    if (!wy && !wx) { wy = dy > 0 ? 1 : dy < 0 ? -1 : 0; wx = dx > 0 ? 1 : dx < 0 ? -1 : 0; }
+    int32_t wy, wx;
+    if (lines) { wy = dy / 120; wx = dx / 120; }
+    else {
+        // a pixel is 10 units: what is under one waits for the next small step (smooth scrolling)
+        restY_ += dy; restX_ += dx;
+        wy = restY_ / 10; wx = restX_ / 10;
+        restY_ -= wy * 10; restX_ -= wx * 10;
+        if (!wy && !wx) return;
+    }
     CGEventRef e = CGEventCreateScrollWheelEvent2(nullptr, lines ? kCGScrollEventUnitLine : kCGScrollEventUnitPixel, 2, wy, wx, 0);
     if (!e) return;
     CGEventSetFlags(e, static_cast<CGEventFlags>(flags_));

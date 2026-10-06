@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include <chrono>
+#include <cmath>
 #include <cstdlib>
 
 #include "../tables.gen.h"
@@ -190,18 +192,20 @@ void Engine::rawXY(int dx, int dy) {
     }
 }
 
-void Engine::thumbwheel(int rotation, const json& action) {
+void Engine::thumbwheel(int rotation, const json& action, double speed, bool smooth) {
     json a = resolve(action);
     std::string t = a.value("type", "native");
     if (rotation == 0 || t == "native" || t == "nothing") return;
     if (t == "scroll") {
-        double gain = a.value("gain", 8.0);
-        int amt = static_cast<int>(rotation * gain);
+        double amt = rotation * a.value("gain", 8.0) * speed;
         auto mods = keys(a, "modifiers");
-        if (!mods.empty()) inj_.press(mods);
-        if (a.value("axis", "x") == "x") inj_.scroll(0, amt);
-        else inj_.scroll(-amt, 0);
-        if (!mods.empty()) inj_.release(mods);
+        bool x = a.value("axis", "x") == "x";
+        if (mods.empty()) { scrollBy(x ? 0 : -amt, x ? amt : 0, smooth); return; }
+        // with keys held (zoom) the scroll goes out at once, while they are down
+        inj_.press(mods);
+        if (x) inj_.scroll(0, static_cast<int>(amt));
+        else inj_.scroll(-static_cast<int>(amt), 0);
+        inj_.release(mods);
     } else if (t == "adapter") {
         int step = std::max(1, a.value("step", 120));
         wheelAcc_ += rotation * a.value("gain", 8.0);
@@ -212,6 +216,52 @@ void Engine::thumbwheel(int rotation, const json& action) {
         }
     } else {
         play(a);
+    }
+}
+
+void Engine::wheel(double units, double speed, bool smooth) { scrollBy(units * speed, 0, smooth); }
+
+void Engine::scrollBy(double dy, double dx, bool smooth) {
+    if (smooth) { smooth_.add(dy, dx); return; }
+    restY_ += dy; restX_ += dx;
+    int y = static_cast<int>(restY_), x = static_cast<int>(restX_);
+    restY_ -= y; restX_ -= x;
+    if (y || x) inj_.scroll(y, x);
+}
+
+Smoother::Smoother(Injector& inj) : inj_(inj), t_([this] { run(); }) {}
+
+Smoother::~Smoother() {
+    { std::lock_guard<std::mutex> lk(m_); stop_ = true; }
+    cv_.notify_all();
+    if (t_.joinable()) t_.join();
+}
+
+void Smoother::add(double dy, double dx) {
+    {
+        std::lock_guard<std::mutex> lk(m_);
+        // turning the wheel the other way stops what is still playing
+        if (dy * py_ < 0) py_ = 0;
+        if (dx * px_ < 0) px_ = 0;
+        py_ += dy; px_ += dx;
+    }
+    cv_.notify_all();
+}
+
+void Smoother::run() {
+    constexpr double SHARE = 0.35;   // of what is left, played each step
+    std::unique_lock<std::mutex> lk(m_);
+    while (!stop_) {
+        cv_.wait(lk, [this] { return stop_ || py_ != 0 || px_ != 0; });
+        if (stop_) break;
+        auto take = [](double& left) { double d = std::abs(left) < 1.5 ? left : left * SHARE; left -= d; return d; };
+        ry_ += take(py_); rx_ += take(px_);
+        int y = static_cast<int>(ry_), x = static_cast<int>(rx_);
+        ry_ -= y; rx_ -= x;
+        lk.unlock();
+        if (y || x) inj_.scroll(y, x);
+        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+        lk.lock();
     }
 }
 

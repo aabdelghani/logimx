@@ -246,7 +246,18 @@ void ManagedDevice::applySettings(const std::string& only) {
         if (dev_->has(hidpp::FORCE_BUTTON) && want("panel_force") && s["panel_force"].is_number()) dev_->setForce(0, s["panel_force"].get<int>());
         if (dev_->has(hidpp::HIRES_WHEEL) && want("hires")) {
             const json& h = s["hires"];
-            dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", true), h.value("invert", false));
+            // a speed other than 1 or smooth scrolling: the wheel reports to the agent, which plays it
+            // into the desktop itself; otherwise it goes straight to the system as before
+            wheelSpeed_ = h.value("speed", 1.0);
+            wheelSmooth_ = h.value("smooth", false);
+            wheelInvert_ = h.value("invert", false);
+            wheelTaken_ = wheelSmooth_ || std::abs(wheelSpeed_ - 1.0) > 0.01;
+            if (wheelTaken_) {
+                if (auto hr = dev_->hires()) wheelMult_ = std::max(1, hr->multiplier);
+                dev_->setHires(true, true, false);
+            } else {
+                dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", true), wheelInvert_);
+            }
         }
         if (dev_->has(hidpp::BACKLIGHT2) && want("backlight")) {
             const json& b = s["backlight"];
@@ -323,9 +334,13 @@ void ManagedDevice::applyAssignments() {
     }
     if (dev_->has(hidpp::THUMB_WHEEL)) {
         json tw = actions::resolve(profile_.value("thumbwheel", json("native")));
-        bool invert = cfg_.value("settings", json::object()).value("thumbwheel", json::object()).value("invert", false);
+        const json ts = cfg_.value("settings", json::object()).value("thumbwheel", json::object());
+        bool invert = ts.value("invert", false);
+        thumbSpeed_ = ts.value("speed", 1.0);
+        thumbSmooth_ = ts.value("smooth", false);
+        thumbTuned_ = thumbSmooth_ || std::abs(thumbSpeed_ - 1.0) > 0.01;
         try {
-            dev_->setThumbwheel(tw.value("type", "native") != "native", invert);
+            dev_->setThumbwheel(tw.value("type", "native") != "native" || thumbTuned_, invert);
         } catch (const std::exception& e) {
             WARN("%s: thumbwheel: %s", dev_->name().c_str(), e.what());
         }
@@ -346,6 +361,12 @@ void ManagedDevice::releaseAll() {
     rawDiverted_.clear();
     if (dev_->has(hidpp::THUMB_WHEEL)) {
         try { dev_->setThumbwheel(false, false); } catch (...) {}
+    }
+    // the wheel back to the system, as the settings have it
+    if (wheelTaken_ && dev_->has(hidpp::HIRES_WHEEL)) {
+        const json h = cfg_.value("settings", json::object()).value("hires", json::object());
+        try { dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", true), h.value("invert", false)); } catch (...) {}
+        wheelTaken_ = false;
     }
 }
 
@@ -392,7 +413,15 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
     } else if (ev.kind == "thumbwheel") {
         // the wheel reports rotation towards the user as positive; normalise so forward (away) is positive,
         // which the engine maps to right / up / next
-        engine_->thumbwheel(-ev.data["rotation"].get<int>(), profile_.value("thumbwheel", json("native")));
+        // with its own speed or smooth scrolling, the thumb wheel left to the system scrolls sideways here
+        json a = profile_.value("thumbwheel", json("native"));
+        if (thumbTuned_ && actions::resolve(a).value("type", "native") == "native") a = "hscroll";
+        engine_->thumbwheel(-ev.data["rotation"].get<int>(), a, thumbSpeed_, thumbSmooth_);
+    } else if (ev.kind == "wheel") {
+        if (!wheelTaken_) return;
+        // hi-res steps (or whole notches) to 1/120 of a notch, positive = up
+        double units = ev.data["delta"].get<int>() * 120.0 / (ev.data["hires"].get<bool>() ? wheelMult_ : 1);
+        engine_->wheel(wheelInvert_ ? -units : units, wheelSpeed_, wheelSmooth_);
     } else if (ev.kind == "battery") {
         bool wasSaving = backlightSaving(cfg_, battery_);
         hidpp::Battery nb;
@@ -989,8 +1018,10 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
         if (fb.empty()) throw std::runtime_error("this device has no force-sensing button");
         return clampInt(fb[0].value("min", 0), fb[0].value("max", 65535));
     }
-    if (k == "hires" && path.size() == 2 && (path[1] == "enabled" || path[1] == "invert")) return boolean();
-    if (k == "thumbwheel" && path.size() == 2 && path[1] == "invert") return boolean();
+    auto speed = [&]() { if (!v.is_number()) throw std::runtime_error(path.back() + " must be a number"); return json(std::round(std::max(0.25, std::min(3.0, v.get<double>())) * 20) / 20); };
+    if (k == "hires" && path.size() == 2 && (path[1] == "enabled" || path[1] == "invert" || path[1] == "smooth")) return boolean();
+    if (k == "thumbwheel" && path.size() == 2 && (path[1] == "invert" || path[1] == "smooth")) return boolean();
+    if ((k == "hires" || k == "thumbwheel") && path.size() == 2 && path[1] == "speed") return speed();
     if (k == "backlight" && path.size() == 2) {
         if (path[1] == "enabled" || path[1] == "battery_saving") return boolean();
         if (path[1] == "mode") return oneOf({"auto", "manual", "temporary"});
