@@ -38,10 +38,10 @@ const PAGES = {
   haptics: [t('Haptic feedback'), 'fa-wave-square'], easy: [t('Easy-Switch'), 'fa-right-left'], info: [t('Battery & info'), 'fa-battery-three-quarters'], keys: [t('Keys'), 'fa-keyboard'], backlight: [t('Backlight'), 'fa-lightbulb'],
   home: [t('Home'), 'fa-house'], apps: [t('Profiles'), 'fa-layer-group'], ring: [t('Action ring'), 'fa-circle-notch'], notif: [t('Notifications'), 'fa-bell'], backup: [t('Backup & sync'), 'fa-cloud-arrow-down'], settings: [t('Settings'), 'fa-sliders'], about: [t('About'), 'fa-circle-info'], flow: [t('Flow'), 'fa-diagram-project'],
 };
-const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'flow', 'info'];
+const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'info'];   // Flow is set up from the mouse
 // what the device's left bar lists; the other device pages (Gestures, opened from a button set to
 // gestures, and the MX Master 4's haptics, folded into Settings) are reached from these
-const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy', 'flow'];
+const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy'];
 const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
 const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
 function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; changed(); }
