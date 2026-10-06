@@ -12,7 +12,7 @@ export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, devic
 // Buttons page, so the two always agree. A mouse without an entry shows the rows only.
 const MOUSE_PHOTOS = (() => {
   const s3 = { src: '../assets/devices/b034.png', w: 1021, h: 1644, pt: [['wheel', 690, 300, 'r'], ['thumb', 520, 770, 'l'], ['pointer', 840, 800, 'r']], spots: [[82, 690, 300], [196, 815, 590], [86, 357, 707], ['thumb', 520, 770], [83, 450, 975], [195, 82, 954]] };
-  const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303, 'r'], ['thumb', 577, 899, 'l'], ['pointer', 850, 840, 'r']], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899]] };
+  const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303, 'r'], ['thumb', 577, 899, 'l'], ['pointer', 850, 840, 'r']], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
   // MX Anywhere 3S: a side view (the side buttons show), drawn at the others' width so the rings match
   const a3 = { src: '../assets/devices/b037.png', w: 1021, h: 1708, pt: [['wheel', 715, 324, 'r'], ['pointer', 816, 768, 'r']], spots: [[82, 726, 274], [196, 767, 580], [86, 224, 701], [83, 286, 1025]] };
   return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4, b037: a3 };
@@ -60,7 +60,7 @@ function mousePhoto(d, plain) {
 }
 
 // ----------------------------------------------------------- pages
-const PHYS = [[82, t('Middle button')], [83, t('Back')], [86, t('Forward')], [195, t('Gesture button')], [196, t('Mode shift')]];
+const PHYS = [[82, t('Middle button')], [83, t('Back')], [86, t('Forward')], [195, t('Gesture button')], [196, t('Mode shift')], [416, t('Haptic panel')]];
 function pageButtons(d) {
   const rows = buttonRows(d).map(([cid, label], i) => {
     const a = assignment(d, 'buttons', cid);
