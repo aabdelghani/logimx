@@ -60,7 +60,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Installed-Size: $SIZE_KB
-Maintainer: aabdelghany <ahmedabdelghany15@gmail.com>
+Maintainer: aabdelghani <73991067+aabdelghani@users.noreply.github.com>
 Homepage: https://github.com/aabdelghani/notlogi
 Depends: libc6, libstdc++6, libx11-6, libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0, libgbm1, libasound2 | libasound2t64, udev
 Recommends: xdotool, pulseaudio-utils, libfuse2 | libfuse2t64, ddcutil
