@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "Quanto deve essere rapido un giro per sbloccare la rotella",
  "Spins freely, without steps": "Gira liberamente, senza scatti",
  "Steps you can feel, notch by notch": "Scatti percepibili, uno alla volta",
- "Wheel mode": "Modalità rotella"
+ "Wheel mode": "Modalità rotella",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>NotLogi ha bisogno di {what}.</strong> macOS gli consente di raggiungere i tuoi dispositivi solo dopo che NotLogi è stato attivato lì, in Privacy e sicurezza.",
+ "Accessibility, Input Monitoring": "Accessibilità, Monitoraggio dell’input",
+ "Auto": "Auto",
+ "Auto fits the window to the screen": "Auto adatta la finestra allo schermo",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Per le tastiere. Consentito insieme ad Accessibilità qui sopra, o richiesto subito dopo",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Per le tastiere. Impostazioni di Sistema > Privacy e sicurezza > Monitoraggio dell’input: attiva NotLogi",
+ "Input Monitoring": "Monitoraggio dell’input",
+ "Window size": "Dimensione finestra"
 }

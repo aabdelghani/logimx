@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "Πόσο γρήγορη πρέπει να είναι η κίνηση για να ελευθερωθεί ο τροχός",
  "Spins freely, without steps": "Περιστρέφεται ελεύθερα, χωρίς βήματα",
  "Steps you can feel, notch by notch": "Αισθητά βήματα, ένα-ένα",
- "Wheel mode": "Λειτουργία τροχού"
+ "Wheel mode": "Λειτουργία τροχού",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>Το NotLogi χρειάζεται {what}.</strong> Το macOS του επιτρέπει πρόσβαση στις συσκευές σας μόνο όταν το NotLogi ενεργοποιηθεί εκεί, στο Απόρρητο και ασφάλεια.",
+ "Accessibility, Input Monitoring": "Προσβασιμότητα, Παρακολούθηση εισόδου",
+ "Auto": "Αυτόματο",
+ "Auto fits the window to the screen": "Το Αυτόματο προσαρμόζει το παράθυρο στην οθόνη",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Για πληκτρολόγια. Επιτρέπεται μαζί με την Προσβασιμότητα παραπάνω ή ζητείται αμέσως μετά",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Για πληκτρολόγια. Ρυθμίσεις συστήματος > Απόρρητο και ασφάλεια > Παρακολούθηση εισόδου: ενεργοποιήστε το NotLogi",
+ "Input Monitoring": "Παρακολούθηση εισόδου",
+ "Window size": "Μέγεθος παραθύρου"
 }

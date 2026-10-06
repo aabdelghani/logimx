@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "휠이 풀리려면 얼마나 빠르게 돌려야 하는지",
  "Spins freely, without steps": "단계 없이 자유롭게 회전합니다",
  "Steps you can feel, notch by notch": "한 칸씩 느껴지는 단계",
- "Wheel mode": "휠 모드"
+ "Wheel mode": "휠 모드",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>NotLogi에 {what} 권한이 필요합니다.</strong> 개인정보 보호 및 보안에서 NotLogi를 켜야 macOS가 기기에 접근을 허용합니다.",
+ "Accessibility, Input Monitoring": "손쉬운 사용, 입력 모니터링",
+ "Auto": "자동",
+ "Auto fits the window to the screen": "자동은 창을 화면에 맞춥니다",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "키보드용. 위의 손쉬운 사용과 함께 허용되거나 바로 다음에 요청됩니다",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "키보드용. 시스템 설정 > 개인정보 보호 및 보안 > 입력 모니터링: NotLogi 켜기",
+ "Input Monitoring": "입력 모니터링",
+ "Window size": "창 크기"
 }

@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "Hur snabb en snurr måste vara för att frigöra hjulet",
  "Spins freely, without steps": "Snurrar fritt, utan steg",
  "Steps you can feel, notch by notch": "Steg du känner, ett i taget",
- "Wheel mode": "Hjulläge"
+ "Wheel mode": "Hjulläge",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>NotLogi behöver {what}.</strong> macOS ger åtkomst till dina enheter först när NotLogi är aktiverat där, under Integritet och säkerhet.",
+ "Accessibility, Input Monitoring": "Hjälpmedel, Övervakning av inmatning",
+ "Auto": "Auto",
+ "Auto fits the window to the screen": "Auto anpassar fönstret till skärmen",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "För tangentbord. Tillåts tillsammans med Hjälpmedel ovan, eller efterfrågas direkt efter",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "För tangentbord. Systeminställningar > Integritet och säkerhet > Övervakning av inmatning: aktivera NotLogi",
+ "Input Monitoring": "Övervakning av inmatning",
+ "Window size": "Fönsterstorlek"
 }

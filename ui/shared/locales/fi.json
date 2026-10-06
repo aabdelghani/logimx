@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "Kuinka nopea pyöräytyksen on oltava, jotta rulla vapautuu",
  "Spins freely, without steps": "Pyörii vapaasti ilman askelia",
  "Steps you can feel, notch by notch": "Tuntuvat askeleet, yksi kerrallaan",
- "Wheel mode": "Rullan tila"
+ "Wheel mode": "Rullan tila",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>NotLogi tarvitsee {what}.</strong> macOS päästää sen laitteisiisi vasta, kun NotLogi on otettu siellä käyttöön kohdassa Tietosuoja ja suojaus.",
+ "Accessibility, Input Monitoring": "Käyttöapu, Syötteen valvonta",
+ "Auto": "Auto",
+ "Auto fits the window to the screen": "Auto sovittaa ikkunan näyttöön",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Näppäimistöille. Sallitaan yhdessä yllä olevan Käyttöavun kanssa tai kysytään heti sen jälkeen",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Näppäimistöille. Järjestelmäasetukset > Tietosuoja ja suojaus > Syötteen valvonta: ota NotLogi käyttöön",
+ "Input Monitoring": "Syötteen valvonta",
+ "Window size": "Ikkunan koko"
 }

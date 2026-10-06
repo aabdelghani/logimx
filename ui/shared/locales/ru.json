@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "Насколько быстрым должен быть поворот, чтобы колесико освободилось",
  "Spins freely, without steps": "Вращается свободно, без щелчков",
  "Steps you can feel, notch by notch": "Ощутимые щелчки, шаг за шагом",
- "Wheel mode": "Режим колесика"
+ "Wheel mode": "Режим колесика",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>NotLogi нужно разрешение: {what}.</strong> macOS даёт доступ к вашим устройствам только после включения NotLogi в разделе «Конфиденциальность и безопасность».",
+ "Accessibility, Input Monitoring": "Универсальный доступ, Мониторинг ввода",
+ "Auto": "Авто",
+ "Auto fits the window to the screen": "«Авто» подгоняет окно под экран",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Для клавиатур. Разрешается вместе с универсальным доступом выше или запрашивается сразу после него",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Для клавиатур. Системные настройки > Конфиденциальность и безопасность > Мониторинг ввода: включите NotLogi",
+ "Input Monitoring": "Мониторинг ввода",
+ "Window size": "Размер окна"
 }

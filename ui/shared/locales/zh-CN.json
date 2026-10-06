@@ -981,5 +981,13 @@
  "How fast a flick has to be to free the wheel": "需要多快的拨动才能释放滚轮",
  "Spins freely, without steps": "自由转动，没有段落感",
  "Steps you can feel, notch by notch": "可感知的段落，一格一格",
- "Wheel mode": "滚轮模式"
+ "Wheel mode": "滚轮模式",
+ "<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.": "<strong>NotLogi 需要{what}权限。</strong>只有在“隐私与安全性”中打开 NotLogi 后，macOS 才允许它访问您的设备。",
+ "Accessibility, Input Monitoring": "辅助功能, 输入监控",
+ "Auto": "自动",
+ "Auto fits the window to the screen": "自动会让窗口适应屏幕",
+ "For keyboards. Allowed together with Accessibility above, or asked for right after it": "用于键盘。与上方的辅助功能一起授权，或紧接着请求",
+ "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "用于键盘。系统设置 > 隐私与安全性 > 输入监控：打开 NotLogi",
+ "Input Monitoring": "输入监控",
+ "Window size": "窗口大小"
 }
