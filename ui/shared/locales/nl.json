@@ -974,5 +974,12 @@
  "{s} s": "{s} s",
  "{tool} stopped": "{tool} gestopt",
  "Momentum": "Momentum",
- "A quick flick keeps scrolling and slows to a stop": "Een snelle draai blijft scrollen en komt geleidelijk tot stilstand"
+ "A quick flick keeps scrolling and slows to a stop": "Een snelle draai blijft scrollen en komt geleidelijk tot stilstand",
+ "Free-spin speed": "Snelheid vrij draaien",
+ "Gentle flick": "Zachte draai",
+ "Hard flick": "Harde draai",
+ "How fast a flick has to be to free the wheel": "Hoe snel een draai moet zijn om het wiel vrij te laten",
+ "Spins freely, without steps": "Draait vrij, zonder klikken",
+ "Steps you can feel, notch by notch": "Voelbare klikken, één voor één",
+ "Wheel mode": "Wielmodus"
 }

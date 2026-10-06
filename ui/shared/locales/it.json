@@ -974,5 +974,12 @@
  "{s} s": "{s} s",
  "{tool} stopped": "{tool} arrestato",
  "Momentum": "Inerzia",
- "A quick flick keeps scrolling and slows to a stop": "Un giro rapido continua a scorrere e rallenta fino a fermarsi"
+ "A quick flick keeps scrolling and slows to a stop": "Un giro rapido continua a scorrere e rallenta fino a fermarsi",
+ "Free-spin speed": "Velocità di rotazione libera",
+ "Gentle flick": "Giro leggero",
+ "Hard flick": "Giro deciso",
+ "How fast a flick has to be to free the wheel": "Quanto deve essere rapido un giro per sbloccare la rotella",
+ "Spins freely, without steps": "Gira liberamente, senza scatti",
+ "Steps you can feel, notch by notch": "Scatti percepibili, uno alla volta",
+ "Wheel mode": "Modalità rotella"
 }

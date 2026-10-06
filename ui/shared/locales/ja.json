@@ -974,5 +974,12 @@
  "{s} s": "{s} 秒",
  "{tool} stopped": "{tool} が停止しました",
  "Momentum": "慣性スクロール",
- "A quick flick keeps scrolling and slows to a stop": "素早く回すとスクロールが続き、徐々に止まります"
+ "A quick flick keeps scrolling and slows to a stop": "素早く回すとスクロールが続き、徐々に止まります",
+ "Free-spin speed": "フリースピンの速さ",
+ "Gentle flick": "軽く回す",
+ "Hard flick": "強く回す",
+ "How fast a flick has to be to free the wheel": "ホイールが解放されるのに必要な回転の速さ",
+ "Spins freely, without steps": "段なしで自由に回転します",
+ "Steps you can feel, notch by notch": "1 段ずつ手応えのある回転",
+ "Wheel mode": "ホイールモード"
 }

@@ -164,8 +164,8 @@ function ptSummary(d, k) {
     // all three of the wheel's settings: direction, smooth scrolling, SmartShift (one per line on the photo)
     const ss = s.smartshift || {}, hr = s.hires || {};
     const natural = hr.invert ?? (st.hires || {}).invert ?? false, speed = hr.speed ?? 1;
-    const shift = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
-    return `${natural ? t('Natural') : t('Standard')} · ${hr.smooth ? t('Smooth on') : t('Smooth off')}${speed !== 1 ? ` · ${t('Speed {n}', { n: fmtOut('wsp', speed) })}` : ''} · ${shift ? t('SmartShift on') : t('SmartShift off')}`;
+    const ratchet = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet', shift = ss.enabled ?? false;
+    return `${natural ? t('Natural') : t('Standard')} · ${hr.smooth ? t('Smooth on') : t('Smooth off')}${speed !== 1 ? ` · ${t('Speed {n}', { n: fmtOut('wsp', speed) })}` : ''} · ${!ratchet ? t('Free-spin') : shift ? t('SmartShift on') : t('Ratchet')}`;
   }
   const ti = thumbInfo(d);
   return `${t('Speed {n}', { n: ti.speed })} · ${ti.invert ? t('Inverted') : t('Standard')}`;
@@ -199,7 +199,10 @@ function pointerSettings(d, only) {
   const [min, max, step] = st.dpi && st.dpi.stepped ? st.dpi.levels : [200, 8000, 50];
   const speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
   const ss = s.smartshift || {}, hr = s.hires || {};
-  const ssOn = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
+  // the wheel ratchets unless set to spin freely; SmartShift (off unless turned on) frees a
+  // ratchet wheel when it is flicked faster than the speed chosen
+  const ratchet = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet', ssOn = ratchet && (ss.enabled ?? false);
+  const thr = ss.threshold ?? (st.smartshift || {}).threshold ?? 14;
   const pointer = sec(t('Pointer'), card(
     `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">${t('DPI')}</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
     `<div class="row"><span class="grow lbl">${t('Desktop pointer speed')}</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
@@ -217,9 +220,10 @@ function pointerSettings(d, only) {
       // over Bluetooth Linux's own Logitech driver scales the wheel: its fine steps have to stay on
       ((st.hires || {}).kernel ? row(t('High-resolution wheel'), t('Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower'), sw(true, `disabled title="${esc(t('Managed by Linux on this connection'))}"`))
         : row(t('High-resolution wheel'), t('Fine steps within each notch'), sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +
-      row(t('SmartShift'), t('Switch from ratchet to free-spin when the wheel is flicked'), sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
-      (ssOn ? `<div class="row"><span class="grow lbl">${t('SmartShift sensitivity')}</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` : '') +
-      (ssOn && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">${t('Ratchet force')}</div><div class="sub">${t('How firm each step of the wheel feels')}</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));
+      `<div class="row"><div class="grow"><div class="lbl">${t('Wheel mode')}</div><div class="sub">${ratchet ? t('Steps you can feel, notch by notch') : t('Spins freely, without steps')}</div></div><span class="seg"><button class="${ratchet ? 'on' : ''}" data-act="setting-val" data-path="smartshift.mode" data-val="ratchet">${t('Ratchet')}</button><button class="${ratchet ? '' : 'on'}" data-act="setting-val" data-path="smartshift.mode" data-val="freespin">${t('Free-spin')}</button></span></div>` +
+      (ratchet ? row(t('SmartShift'), t('Switch from ratchet to free-spin when the wheel is flicked'), sw(ssOn, 'data-act="setting" data-path="smartshift.enabled"')) : '') +
+      (ssOn ? `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between;gap:12px"><div><div class="lbl">${t('Free-spin speed')}</div><div class="sub">${t('How fast a flick has to be to free the wheel')}</div></div><span class="val" data-out="sst">${thr}</span></div>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst" style="width:100%"', thr, 1, 50, 1)}<div style="display:flex;justify-content:space-between" class="hint"><span>${t('Gentle flick')}</span><span>${t('Hard flick')}</span></div></div>` : '') +
+      (ratchet && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">${t('Ratchet force')}</div><div class="sub">${t('How firm each step of the wheel feels')}</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));
   return only === 'pointer' ? pointer : only === 'wheel' ? wheel : pointer + wheel;
 }
 // the thumb wheel's speed and direction

@@ -162,7 +162,7 @@ json ManagedDevice::readState(bool full) {
         battery_ = dev_->battery();
         batteryConfirmed_ = false;   // confirmed by the re-read a few seconds from now
         if (auto ss = dev_->smartshift())
-            st["smartshift"] = {{"mode", ss->mode == 2 ? "ratchet" : "freespin"}, {"threshold", ss->threshold}, {"default_threshold", ss->defaultThreshold},
+            st["smartshift"] = {{"mode", ss->mode == 2 ? "ratchet" : "freespin"}, {"enabled", ss->threshold != 255}, {"threshold", ss->threshold}, {"default_threshold", ss->defaultThreshold},
                                 {"tunable_torque", ss->tunable}, {"torque", ss->torque}, {"default_torque", ss->defaultTorque}};
         if (auto hp = dev_->haptic()) {
             json waves = json::array();
@@ -228,14 +228,28 @@ static bool backlightSaving(const json& cfg, const std::optional<hidpp::Battery>
 
 void ManagedDevice::applySettings(const std::string& only) {
     std::lock_guard<std::recursive_mutex> lk(m_);
+    // up to 0.10.0 the SmartShift switch set the wheel's mode itself (off was free-spin): such a
+    // setting becomes a ratchet wheel, with SmartShift as that switch had it
+    {
+        json& raw = daemon_.config().device(pid_, kind_)["settings"];
+        if (raw.contains("smartshift") && raw["smartshift"].is_object() && !raw["smartshift"].contains("enabled")) {
+            raw["smartshift"]["enabled"] = raw["smartshift"].value("mode", "ratchet") == "ratchet";
+            raw["smartshift"]["mode"] = "ratchet";
+            daemon_.config().save();
+            refreshConfig();
+        }
+    }
     const json& s = cfg_.value("settings", json::object());
     auto want = [&](const char* k) { return s.contains(k) && (only.empty() || only == k); };
     try {
         if (dev_->has(hidpp::ADJUSTABLE_DPI) && want("dpi")) dev_->setDpi(s["dpi"].get<int>());
         if ((dev_->has(hidpp::SMART_SHIFT) || dev_->has(hidpp::SMART_SHIFT_ENHANCED)) && want("smartshift")) {
+            // the wheel's mode (ratchet unless chosen otherwise) and SmartShift, which frees a ratchet
+            // wheel when it is flicked faster than the threshold; off, the device never frees it (255)
             const json& ss = s["smartshift"];
             int mode = ss.value("mode", "ratchet") == "freespin" ? 1 : 2;
-            dev_->setSmartshift(mode, ss.value("threshold", 0), ss.value("torque", 0));
+            int threshold = ss.value("enabled", false) ? std::max(1, std::min(254, ss.value("threshold", 12))) : 255;
+            dev_->setSmartshift(mode, threshold, ss.value("torque", 0));
         }
         if (dev_->has(hidpp::HAPTIC) && want("haptic")) {
             const json& h = s["haptic"];
@@ -1012,6 +1026,7 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
     }
     if (k == "smartshift" && path.size() == 2) {
         if (path[1] == "mode") return oneOf({"ratchet", "freespin"});
+        if (path[1] == "enabled") return boolean();
         if (path[1] == "threshold") return clampInt(1, 255);
         if (path[1] == "torque") return clampInt(1, 100);
     }
@@ -1230,7 +1245,11 @@ json Daemon::rpc(const std::string& method, const json& p) {
         json st = md->readState(true);
         json& settings = config_.device(md->pid(), md->dev().kind())["settings"];
         if (st.contains("dpi")) settings["dpi"] = st["dpi"]["dpi"];
-        if (st.contains("smartshift")) { settings["smartshift"]["mode"] = st["smartshift"]["mode"]; settings["smartshift"]["threshold"] = st["smartshift"]["threshold"]; }
+        if (st.contains("smartshift")) {
+            settings["smartshift"]["mode"] = st["smartshift"]["mode"];
+            settings["smartshift"]["enabled"] = st["smartshift"]["enabled"];
+            if (st["smartshift"]["enabled"].get<bool>()) settings["smartshift"]["threshold"] = st["smartshift"]["threshold"];
+        }
         if (st.contains("hires")) { settings["hires"]["enabled"] = st["hires"]["hires"]; settings["hires"]["invert"] = st["hires"]["invert"]; }
         if (st.contains("thumbwheel")) settings["thumbwheel"]["invert"] = st["thumbwheel"]["invert"];
         if (st.contains("backlight")) {

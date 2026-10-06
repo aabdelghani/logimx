@@ -974,5 +974,12 @@
  "{s} s": "{s}초",
  "{tool} stopped": "{tool} 중지됨",
  "Momentum": "관성 스크롤",
- "A quick flick keeps scrolling and slows to a stop": "빠르게 돌리면 스크롤이 계속되다가 서서히 멈춥니다"
+ "A quick flick keeps scrolling and slows to a stop": "빠르게 돌리면 스크롤이 계속되다가 서서히 멈춥니다",
+ "Free-spin speed": "프리 스핀 속도",
+ "Gentle flick": "가볍게 돌림",
+ "Hard flick": "세게 돌림",
+ "How fast a flick has to be to free the wheel": "휠이 풀리려면 얼마나 빠르게 돌려야 하는지",
+ "Spins freely, without steps": "단계 없이 자유롭게 회전합니다",
+ "Steps you can feel, notch by notch": "한 칸씩 느껴지는 단계",
+ "Wheel mode": "휠 모드"
 }

@@ -974,5 +974,12 @@
  "{s} s": "{s} s",
  "{tool} stopped": "{tool} pysähtyi",
  "Momentum": "Liikevoima",
- "A quick flick keeps scrolling and slows to a stop": "Nopea pyöräytys jatkaa vieritystä ja hidastuu pysähdyksiin"
+ "A quick flick keeps scrolling and slows to a stop": "Nopea pyöräytys jatkaa vieritystä ja hidastuu pysähdyksiin",
+ "Free-spin speed": "Vapaan pyörityksen nopeus",
+ "Gentle flick": "Kevyt pyöräytys",
+ "Hard flick": "Voimakas pyöräytys",
+ "How fast a flick has to be to free the wheel": "Kuinka nopea pyöräytyksen on oltava, jotta rulla vapautuu",
+ "Spins freely, without steps": "Pyörii vapaasti ilman askelia",
+ "Steps you can feel, notch by notch": "Tuntuvat askeleet, yksi kerrallaan",
+ "Wheel mode": "Rullan tila"
 }

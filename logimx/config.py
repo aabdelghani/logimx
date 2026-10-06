@@ -61,7 +61,7 @@ CONTROL_LABELS = {
 MX_MASTER_3S = {
     "settings": {
         "dpi": 1000,
-        "smartshift": {"mode": "ratchet", "threshold": 14},
+        "smartshift": {"mode": "ratchet", "enabled": False, "threshold": 14},
         "hires": {"enabled": True, "invert": False},
         "thumbwheel": {"invert": False},
     },
@@ -85,7 +85,7 @@ MX_MASTER_3S = {
 MX_ANYWHERE_3S = {
     "settings": {
         "dpi": 1000,
-        "smartshift": {"mode": "ratchet", "threshold": 12},
+        "smartshift": {"mode": "ratchet", "enabled": False, "threshold": 12},
         "hires": {"enabled": True, "invert": False},
     },
     "profiles": {

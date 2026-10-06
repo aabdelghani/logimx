@@ -974,5 +974,12 @@
  "{s} s": "{s} 秒",
  "{tool} stopped": "{tool} 已停止",
  "Momentum": "慣性捲動",
- "A quick flick keeps scrolling and slows to a stop": "快速撥動後繼續捲動並逐漸停下"
+ "A quick flick keeps scrolling and slows to a stop": "快速撥動後繼續捲動並逐漸停下",
+ "Free-spin speed": "自由捲動速度",
+ "Gentle flick": "輕撥",
+ "Hard flick": "用力撥",
+ "How fast a flick has to be to free the wheel": "需要多快的撥動才能釋放滾輪",
+ "Spins freely, without steps": "自由轉動，沒有段落感",
+ "Steps you can feel, notch by notch": "可感知的段落，一格一格",
+ "Wheel mode": "滾輪模式"
 }

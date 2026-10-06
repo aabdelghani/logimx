@@ -974,5 +974,12 @@
  "{s} s": "{s} s",
  "{tool} stopped": "{tool} zatrzymany",
  "Momentum": "Bezwładność",
- "A quick flick keeps scrolling and slows to a stop": "Szybki obrót przewija dalej i stopniowo zwalnia"
+ "A quick flick keeps scrolling and slows to a stop": "Szybki obrót przewija dalej i stopniowo zwalnia",
+ "Free-spin speed": "Prędkość swobodnego obrotu",
+ "Gentle flick": "Lekki obrót",
+ "Hard flick": "Mocny obrót",
+ "How fast a flick has to be to free the wheel": "Jak szybki musi być obrót, aby zwolnić kółko",
+ "Spins freely, without steps": "Obraca się swobodnie, bez skoków",
+ "Steps you can feel, notch by notch": "Wyczuwalne skoki, jeden po drugim",
+ "Wheel mode": "Tryb kółka"
 }

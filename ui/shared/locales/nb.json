@@ -974,5 +974,12 @@
  "{s} s": "{s} s",
  "{tool} stopped": "{tool} stoppet",
  "Momentum": "Moment",
- "A quick flick keeps scrolling and slows to a stop": "En rask sveip fortsetter å rulle og stopper gradvis"
+ "A quick flick keeps scrolling and slows to a stop": "En rask sveip fortsetter å rulle og stopper gradvis",
+ "Free-spin speed": "Hastighet for frispinn",
+ "Gentle flick": "Lett sveip",
+ "Hard flick": "Hardt sveip",
+ "How fast a flick has to be to free the wheel": "Hvor raskt et sveip må være for å frigjøre hjulet",
+ "Spins freely, without steps": "Spinner fritt, uten trinn",
+ "Steps you can feel, notch by notch": "Trinn du kjenner, ett om gangen",
+ "Wheel mode": "Hjulmodus"
 }

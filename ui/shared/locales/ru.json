@@ -974,5 +974,12 @@
  "{s} s": "{s} с",
  "{tool} stopped": "{tool} остановлен",
  "Momentum": "Инерция",
- "A quick flick keeps scrolling and slows to a stop": "Быстрый поворот продолжает прокрутку и плавно останавливается"
+ "A quick flick keeps scrolling and slows to a stop": "Быстрый поворот продолжает прокрутку и плавно останавливается",
+ "Free-spin speed": "Скорость свободной прокрутки",
+ "Gentle flick": "Лёгкий поворот",
+ "Hard flick": "Резкий поворот",
+ "How fast a flick has to be to free the wheel": "Насколько быстрым должен быть поворот, чтобы колесико освободилось",
+ "Spins freely, without steps": "Вращается свободно, без щелчков",
+ "Steps you can feel, notch by notch": "Ощутимые щелчки, шаг за шагом",
+ "Wheel mode": "Режим колесика"
 }

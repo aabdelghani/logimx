@@ -974,5 +974,12 @@
  "{s} s": "{s} s",
  "{tool} stopped": "{tool} stoppades",
  "Momentum": "Rörelsemängd",
- "A quick flick keeps scrolling and slows to a stop": "En snabb snurr fortsätter skrolla och stannar gradvis"
+ "A quick flick keeps scrolling and slows to a stop": "En snabb snurr fortsätter skrolla och stannar gradvis",
+ "Free-spin speed": "Hastighet för fritt rullningsläge",
+ "Gentle flick": "Lätt snurr",
+ "Hard flick": "Kraftig snurr",
+ "How fast a flick has to be to free the wheel": "Hur snabb en snurr måste vara för att frigöra hjulet",
+ "Spins freely, without steps": "Snurrar fritt, utan steg",
+ "Steps you can feel, notch by notch": "Steg du känner, ett i taget",
+ "Wheel mode": "Hjulläge"
 }

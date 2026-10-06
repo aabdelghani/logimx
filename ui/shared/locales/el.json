@@ -974,5 +974,12 @@
  "{s} s": "{s} δευτ.",
  "{tool} stopped": "Το {tool} σταμάτησε",
  "Momentum": "Ορμή",
- "A quick flick keeps scrolling and slows to a stop": "Μια γρήγορη κίνηση συνεχίζει την κύλιση και σταματά σταδιακά"
+ "A quick flick keeps scrolling and slows to a stop": "Μια γρήγορη κίνηση συνεχίζει την κύλιση και σταματά σταδιακά",
+ "Free-spin speed": "Ταχύτητα ελεύθερης περιστροφής",
+ "Gentle flick": "Απαλή κίνηση",
+ "Hard flick": "Δυνατή κίνηση",
+ "How fast a flick has to be to free the wheel": "Πόσο γρήγορη πρέπει να είναι η κίνηση για να ελευθερωθεί ο τροχός",
+ "Spins freely, without steps": "Περιστρέφεται ελεύθερα, χωρίς βήματα",
+ "Steps you can feel, notch by notch": "Αισθητά βήματα, ένα-ένα",
+ "Wheel mode": "Λειτουργία τροχού"
 }
