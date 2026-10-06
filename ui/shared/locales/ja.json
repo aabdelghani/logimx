@@ -972,5 +972,7 @@
  "{pct}% · charge soon": "{pct}% · 早めに充電",
  "{pct}% · charging": "{pct}% · 充電中",
  "{s} s": "{s} 秒",
- "{tool} stopped": "{tool} が停止しました"
+ "{tool} stopped": "{tool} が停止しました",
+ "Momentum": "慣性スクロール",
+ "A quick flick keeps scrolling and slows to a stop": "素早く回すとスクロールが続き、徐々に止まります"
 }

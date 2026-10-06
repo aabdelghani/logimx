@@ -972,5 +972,7 @@
  "{pct}% · charge soon": "{pct}% · 请尽快充电",
  "{pct}% · charging": "{pct}% · 正在充电",
  "{s} s": "{s} 秒",
- "{tool} stopped": "{tool} 已停止"
+ "{tool} stopped": "{tool} 已停止",
+ "Momentum": "惯性滚动",
+ "A quick flick keeps scrolling and slows to a stop": "快速拨动后继续滚动并逐渐停下"
 }

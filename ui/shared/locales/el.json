@@ -972,5 +972,7 @@
  "{pct}% · charge soon": "{pct}% · φορτίστε σύντομα",
  "{pct}% · charging": "{pct}% · φορτίζει",
  "{s} s": "{s} δευτ.",
- "{tool} stopped": "Το {tool} σταμάτησε"
+ "{tool} stopped": "Το {tool} σταμάτησε",
+ "Momentum": "Ορμή",
+ "A quick flick keeps scrolling and slows to a stop": "Μια γρήγορη κίνηση συνεχίζει την κύλιση και σταματά σταδιακά"
 }

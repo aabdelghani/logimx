@@ -31,22 +31,42 @@ struct DeviceOps {
     std::function<void()> gestureFired;   // a swipe was recognised and its action ran
 };
 
-// Smooth scrolling: each notch is played as a short burst of small steps, most of it at once and
-// the rest easing out over about 80 ms, the way Options+ plays a wheel it has taken over
+// Smooth scrolling, as Options+ does it (its SmoothScrollManager and ScrollController, read from
+// its Windows agent): each step of the wheel is added to a target, and once per display frame a
+// share of what is left is played. The share follows how fast the wheel turns: slow, deliberate
+// notches glide softly (down to 1% a frame), a fast spin follows the wheel almost at once; after
+// a step's first frame at most 20% a frame, and the first frame plays at most 60% of its share.
 class Smoother {
   public:
     explicit Smoother(Injector& inj);
     ~Smoother();
     void add(double dy, double dx);   // 1/120 detent units, positive = up / right
+    static void setFrameRate(double hz);   // the display's refresh rate (60 when not known)
+    // a fast flick keeps scrolling once the wheel stops, slowing as Options+ slows it; not in
+    // free-spin, where the wheel itself keeps turning
+    void setMomentum(bool on) { std::lock_guard<std::mutex> lk(m_); momentum_ = on; if (!on) cy_ = cx_ = 0; }
+    void setRatchet(bool on) { std::lock_guard<std::mutex> lk(m_); ratchet_ = on; }
 
   private:
+    struct Axis {
+        double target = 0, pos = 0;   // what was asked for and what was played, in units
+        double gain = 0, maxStep = 0;   // share of what is left played a frame, and its cap
+        double lastT = 0, lastD = 0, speed = 0;   // the wheel's speed (units/ms), smoothed
+        double rest = 0;   // played but under one unit, not sent yet
+        double flick = 0;   // the wheel's speed over its last 100 ms (units/ms), for momentum
+        void push(double d, double tms);
+        double step();
+    };
     void run();
     Injector& inj_;
     std::mutex m_;
     std::condition_variable cv_;
     bool stop_ = false;
-    double py_ = 0, px_ = 0;   // still to play
-    double ry_ = 0, rx_ = 0;   // played but under one unit, not sent yet
+    Axis y_, x_;
+    bool momentum_ = false, ratchet_ = true;
+    double lastInput_ = 0;   // when the wheel last turned (ms)
+    double cy_ = 0, cx_ = 0;   // coasting after a flick, units a frame
+    void coast();
     std::thread t_;
 };
 
@@ -60,6 +80,8 @@ class Engine {
     void thumbwheel(int rotation, const json& action, double speed = 1.0, bool smooth = false);
     // the main wheel when the agent has taken it over: 1/120 detent units, positive = up
     void wheel(double units, double speed, bool smooth);
+    void setMomentum(bool on) { smooth_.setMomentum(on); }
+    void setRatchet(bool on) { smooth_.setRatchet(on); }
 
   private:
     struct Gesture {

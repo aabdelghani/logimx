@@ -63,7 +63,14 @@ function mergeDevice(summary) {
 // ------------------------------------------------------------------- socket
 let autoRestarts = 0;
 let restartAgent = null;      // set once the app is ready (see startAgent below)
+// smooth scrolling plays one step a frame of the main display: the agent is told its refresh rate
+function tellDisplay() {
+  const { screen } = require('electron');
+  try { rpc('set_display', { hz: screen.getPrimaryDisplay().displayFrequency || 60 }).catch(() => {}); } catch (e) {}
+}
+let displayWatched = false;
 function connect() {
+  if (!displayWatched) { displayWatched = true; const { screen } = require('electron'); for (const ev of ['display-metrics-changed', 'display-added', 'display-removed']) screen.on(ev, () => { if (state.connected) tellDisplay(); }); }
   if (sock) return;
   sock = net.createConnection(SOCKET);
   sock.setEncoding('utf8');
@@ -72,6 +79,7 @@ function connect() {
     autoRestarts = 0;
     notify('agent-status', { connected: true });
     refreshDevices();
+    tellDisplay();
   });
   sock.on('data', chunk => {
     buffer += chunk;

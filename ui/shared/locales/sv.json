@@ -972,5 +972,7 @@
  "{pct}% · charge soon": "{pct} % · ladda snart",
  "{pct}% · charging": "{pct} % · laddas",
  "{s} s": "{s} s",
- "{tool} stopped": "{tool} stoppades"
+ "{tool} stopped": "{tool} stoppades",
+ "Momentum": "Rörelsemängd",
+ "A quick flick keeps scrolling and slows to a stop": "En snabb snurr fortsätter skrolla och stannar gradvis"
 }

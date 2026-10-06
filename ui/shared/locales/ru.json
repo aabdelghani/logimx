@@ -972,5 +972,7 @@
  "{pct}% · charge soon": "{pct}% · скоро зарядите",
  "{pct}% · charging": "{pct}% · заряжается",
  "{s} s": "{s} с",
- "{tool} stopped": "{tool} остановлен"
+ "{tool} stopped": "{tool} остановлен",
+ "Momentum": "Инерция",
+ "A quick flick keeps scrolling and slows to a stop": "Быстрый поворот продолжает прокрутку и плавно останавливается"
 }

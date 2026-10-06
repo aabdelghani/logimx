@@ -1,5 +1,6 @@
 #include "engine.h"
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -229,6 +230,54 @@ void Engine::scrollBy(double dy, double dx, bool smooth) {
     if (y || x) inj_.scroll(y, x);
 }
 
+// Options+'s default smoothing profile: the speeds (units/ms) between which the share grows from
+// its least to all, the share's least and its cap after the first frame, the first frame's cap,
+// and how speeds under the slowest are read (a lone notch counts as a moderate speed)
+namespace {
+constexpr double SLOW = 120.0 / 2000, FAST = 120.0 / 10, LEAST = 0.01, LATER = 0.2, FIRST = 0.6, SLOW_RATIO = 4, SLOW_POW = 2;
+constexpr double SLOPE = (1.0 - LEAST) / (FAST - SLOW), BASE = LEAST - SLOPE * SLOW;
+std::atomic<double> gFrameMs{1000.0 / 60};
+double nowMs() { return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
+double readSpeed(double s) {
+    double a = std::abs(s);
+    if (a >= SLOW) return a;
+    double r = SLOW / std::max(SLOW / SLOW_RATIO, a);
+    return SLOW * std::pow(r, SLOW_POW);
+}
+}  // namespace
+
+void Smoother::setFrameRate(double hz) { if (hz >= 24 && hz <= 500) gFrameMs = 1000.0 / hz; }
+
+void Smoother::Axis::push(double d, double t) {
+    // the wheel's speed: this step against the last, blended with the speed so far (more weight to
+    // this one the longer it has been); turning the other way starts afresh
+    double inst = 0;
+    bool fresh = lastT == 0 || t - lastT > 1000 || (lastD != 0 && (d > 0) != (lastD > 0));
+    if (!fresh) inst = d / std::max(t - lastT, 1.0);
+    double eff = readSpeed(inst);
+    if (fresh) speed = eff;
+    else {
+        double w = std::max(t - lastT, 8.0) / 1000.0 + 0.3;
+        speed = (eff * w + std::max(-1.0, std::min(1.0, speed))) / (w + 1);
+    }
+    // the speed over about the last 100 ms (a notch's fine steps come in a burst, so one notch on
+    // its own stays slow): what a coast starts from
+    flick = (fresh ? 0 : flick * std::exp(-(t - lastT) / 100.0)) + std::abs(d) / 100.0;
+    lastT = t; lastD = d;
+    gain = std::max(LEAST, std::min(1.0, SLOPE * std::abs(speed) + BASE));
+    target += d;
+    maxStep = (target - pos) * gain * FIRST;
+}
+
+double Smoother::Axis::step() {
+    double s = (target - pos) * gain;
+    if ((s > 0 && maxStep > 0 && s > maxStep) || (s < 0 && maxStep < 0 && s < maxStep)) s = maxStep;
+    gain = std::min(gain, LATER);
+    pos += s;
+    if (std::abs(s) < 0.04) { pos = target; return 0; }   // what is left is too little to show
+    return s;
+}
+
 Smoother::Smoother(Injector& inj) : inj_(inj), t_([this] { run(); }) {}
 
 Smoother::~Smoother() {
@@ -240,28 +289,58 @@ Smoother::~Smoother() {
 void Smoother::add(double dy, double dx) {
     {
         std::lock_guard<std::mutex> lk(m_);
-        // turning the wheel the other way stops what is still playing
-        if (dy * py_ < 0) py_ = 0;
-        if (dx * px_ < 0) px_ = 0;
-        py_ += dy; px_ += dx;
+        double t = nowMs();
+        if (dy) y_.push(dy, t);
+        if (dx) x_.push(dx, t);
+        cy_ = cx_ = 0;   // the wheel turning again stops a coast
+        lastInput_ = t;
     }
     cv_.notify_all();
 }
 
+// Momentum, as Options+ slows a flick (its smoothing thread): each frame the speed keeps 97%,
+// then a friction that grows as it slows (v * |v| / (|v| + 0.1), in Options+'s units: 1.83 units
+// a frame), and it stops at 0.04. A coast starts when the wheel has been still for 40 ms after
+// turning faster than about 17 notches a second (over its last 100 ms).
+namespace {
+constexpr double OPT_UNIT = 100.0 * 0.016 / 105.0 * 120.0, FLICK = 2.0, STILL_MS = 40;
+}
+void Smoother::coast() {
+    const double frame = gFrameMs.load();
+    auto start = [&](Axis& a, double& c) {
+        if (a.flick >= FLICK && a.target == a.pos) { c = (a.lastD > 0 ? 1 : -1) * a.flick * frame; a.flick = 0; }
+    };
+    if (momentum_ && ratchet_ && nowMs() - lastInput_ > STILL_MS) { start(y_, cy_); start(x_, cx_); }
+    auto slow = [&](double& c, Axis& a) {
+        if (!c) return;
+        a.rest += c;
+        double v = c / OPT_UNIT * std::pow(0.97, frame / (1000.0 / 60));
+        v = std::abs(v) / (std::abs(v) + 0.1) * v;
+        c = std::abs(v) <= 0.04 ? 0 : v * OPT_UNIT;
+    };
+    slow(cy_, y_); slow(cx_, x_);
+}
+
 void Smoother::run() {
-    constexpr double SHARE = 0.35;   // of what is left, played each step
     std::unique_lock<std::mutex> lk(m_);
+    auto busy = [this] { return y_.target != y_.pos || x_.target != x_.pos || cy_ || cx_ || (momentum_ && (y_.flick >= FLICK || x_.flick >= FLICK)); };
     while (!stop_) {
-        cv_.wait(lk, [this] { return stop_ || py_ != 0 || px_ != 0; });
+        cv_.wait(lk, [&] { return stop_ || busy(); });
         if (stop_) break;
-        auto take = [](double& left) { double d = std::abs(left) < 1.5 ? left : left * SHARE; left -= d; return d; };
-        ry_ += take(py_); rx_ += take(px_);
-        int y = static_cast<int>(ry_), x = static_cast<int>(rx_);
-        ry_ -= y; rx_ -= x;
-        lk.unlock();
-        if (y || x) inj_.scroll(y, x);
-        std::this_thread::sleep_for(std::chrono::milliseconds(8));
-        lk.lock();
+        // one step a display frame, as Options+ plays it in time with the screen
+        auto next = std::chrono::steady_clock::now();
+        while (!stop_ && busy()) {
+            y_.rest += y_.step(); x_.rest += x_.step();
+            coast();
+            if (!momentum_ || !ratchet_) y_.flick = x_.flick = 0;
+            int y = static_cast<int>(y_.rest), x = static_cast<int>(x_.rest);
+            y_.rest -= y; x_.rest -= x;
+            lk.unlock();
+            if (y || x) inj_.scroll(y, x);
+            next += std::chrono::microseconds(static_cast<long long>(gFrameMs.load() * 1000));
+            std::this_thread::sleep_until(next);
+            lk.lock();
+        }
     }
 }
 

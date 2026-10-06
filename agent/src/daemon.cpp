@@ -252,6 +252,7 @@ void ManagedDevice::applySettings(const std::string& only) {
             wheelSmooth_ = h.value("smooth", false);
             wheelInvert_ = h.value("invert", false);
             wheelTaken_ = wheelSmooth_ || std::abs(wheelSpeed_ - 1.0) > 0.01;
+            engine_->setMomentum(wheelSmooth_ && h.value("momentum", true));
             if (wheelTaken_) {
                 if (auto hr = dev_->hires()) wheelMult_ = std::max(1, hr->multiplier);
                 dev_->setHires(true, true, false);
@@ -422,6 +423,8 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
         // hi-res steps (or whole notches) to 1/120 of a notch, positive = up
         double units = ev.data["delta"].get<int>() * 120.0 / (ev.data["hires"].get<bool>() ? wheelMult_ : 1);
         engine_->wheel(wheelInvert_ ? -units : units, wheelSpeed_, wheelSmooth_);
+    } else if (ev.kind == "ratchet") {
+        engine_->setRatchet(ev.data["ratchet"].get<bool>());
     } else if (ev.kind == "battery") {
         bool wasSaving = backlightSaving(cfg_, battery_);
         hidpp::Battery nb;
@@ -1019,7 +1022,7 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
         return clampInt(fb[0].value("min", 0), fb[0].value("max", 65535));
     }
     auto speed = [&]() { if (!v.is_number()) throw std::runtime_error(path.back() + " must be a number"); return json(std::round(std::max(0.25, std::min(3.0, v.get<double>())) * 20) / 20); };
-    if (k == "hires" && path.size() == 2 && (path[1] == "enabled" || path[1] == "invert" || path[1] == "smooth")) return boolean();
+    if (k == "hires" && path.size() == 2 && (path[1] == "enabled" || path[1] == "invert" || path[1] == "smooth" || path[1] == "momentum")) return boolean();
     if (k == "thumbwheel" && path.size() == 2 && (path[1] == "invert" || path[1] == "smooth")) return boolean();
     if ((k == "hires" || k == "thumbwheel") && path.size() == 2 && path[1] == "speed") return speed();
     if (k == "backlight" && path.size() == 2) {
@@ -1196,6 +1199,11 @@ json Daemon::rpc(const std::string& method, const json& p) {
         // whether the ring takes the mouse's movement is part of its settings: apply it at once
         if (p.contains("ring")) for (auto& md : snapshot()) { try { md->applyAssignments(); } catch (...) {} }
         return config_.data()["general"];
+    }
+    // the display's refresh rate, from the app: smooth scrolling plays one step a frame
+    if (method == "set_display") {
+        if (p.contains("hz") && p["hz"].is_number()) actions::Smoother::setFrameRate(p["hz"].get<double>());
+        return true;
     }
     if (method == "set_host_name") {
         auto md = need(p);

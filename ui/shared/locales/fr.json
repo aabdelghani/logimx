@@ -972,5 +972,7 @@
  "{pct}% · charge soon": "{pct} % · rechargez bientôt",
  "{pct}% · charging": "{pct} % · en charge",
  "{s} s": "{s} s",
- "{tool} stopped": "{tool} arrêté"
+ "{tool} stopped": "{tool} arrêté",
+ "Momentum": "Inertie",
+ "A quick flick keeps scrolling and slows to a stop": "Un mouvement rapide continue de faire défiler puis ralentit jusqu’à l’arrêt"
 }
