@@ -437,8 +437,6 @@ tracking on KDE and Sway.
 
 ## License
 
-Copyright (C) 2026 Ahmed Abdelghany.
-
 NotLogi is free software: you can use, study, share and change it under the terms of the
 [GNU General Public License](LICENSE), version 3 or (at your option) any later version, for any
 purpose, personal or commercial. If you distribute NotLogi or a program built on it, you share its
