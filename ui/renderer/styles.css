@@ -1052,6 +1052,10 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 /* the app's logo, the penguin, on its own */
 .about-hero .mark.logo { width: 96px; height: 96px; border-radius: 0; background: none; }
 .about-hero .mark.logo img { width: 100%; height: 100%; object-fit: contain; }
+/* the dark themes get the logo with its white outline */
+.about-hero .mark.logo .logo-dark { display: none; }
+[data-theme="dark"] .about-hero .mark.logo .logo-light, [data-theme="ubuntu-dark"] .about-hero .mark.logo .logo-light { display: none; }
+[data-theme="dark"] .about-hero .mark.logo .logo-dark, [data-theme="ubuntu-dark"] .about-hero .mark.logo .logo-dark { display: block; }
 .act.soon { opacity: .45; cursor: default; pointer-events: none; }
 /* gestures: an action dragged over a direction of the pad */
 body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg) 60%, transparent); outline-offset: 3px; }

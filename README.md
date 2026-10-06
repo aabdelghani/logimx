@@ -1,4 +1,9 @@
-<p align="center"><img src="docs/logo.png" alt="NotLogi" width="260"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
+    <img src="docs/logo.png" alt="NotLogi" width="260">
+  </picture>
+</p>
 
 <p align="center"><b>Unofficial mouse &amp; keyboard tools for Linux</b> (formerly LogiMX)</p>
 
