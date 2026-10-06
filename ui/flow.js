@@ -14,6 +14,8 @@ const { spawn, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const state = require('./main/state');
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 const APP_ID = 'org.deskflow.deskflow';
 const IS_WIN = process.platform === 'win32', IS_MAC = process.platform === 'darwin';
@@ -180,9 +182,9 @@ function running() { return !!(child && !child.killed); }
 function start() {
   if (running()) return { ok: true, already: true };
   const cfg = flowCfg();
-  if (!cfg.peers.some(p => p && p.name)) return { ok: false, error: 'Add a computer first.' };
+  if (!cfg.peers.some(p => p && p.name)) return { ok: false, error: t('Add a computer first.') };
   let settingsPath;
-  try { settingsPath = writeConfigs(cfg); } catch (e) { push('error', 'Could not write the Flow config.'); return { ok: false, error: String(e) }; }
+  try { settingsPath = writeConfigs(cfg); } catch (e) { push('error', t('Could not write the Flow config.')); return { ok: false, error: String(e) }; }
   lastSettings = settingsPath;
   peerConnected = false;
   push('starting');
@@ -192,7 +194,7 @@ function start() {
     // Own process group: the flatpak child runs deskflow-core under bwrap, so killing the
     // wrapper alone leaves it running. Starting a group lets stop() take down the whole tree.
     p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], detached: !IS_WIN, windowsHide: true });
-  } catch (e) { push('error', 'Could not start Flow.'); return { ok: false, error: String(e) }; }
+  } catch (e) { push('error', t('Could not start Flow.')); return { ok: false, error: String(e) }; }
   child = p;
   const line = buf => {
     const s = buf.toString();
@@ -205,7 +207,7 @@ function start() {
   p.stderr.on('data', line);
   // if nothing told us otherwise, the server is up a moment after it launches
   setTimeout(() => { if (running() && lastStatus === 'starting') push('running'); }, 1500);
-  p.on('error', () => { child = null; push('error', 'Flow failed to start.'); });
+  p.on('error', () => { child = null; push('error', t('Flow failed to start.')); });
   p.on('exit', code => { child = null; peerConnected = false; push(code && code !== 0 && code !== 143 ? 'error' : 'stopped'); });
   return { ok: true };
 }
@@ -241,7 +243,7 @@ function stop() {
 // and installs in a minute). Windows with winget installs it in place.
 function openDownload() {
   shell.openExternal(DOWNLOAD_URL);
-  push('stopped', 'Opened the Deskflow download page. Install it, then come back here.');
+  push('stopped', t('Opened the Deskflow download page. Install it, then come back here.'));
   return { ok: true, page: true };
 }
 function install() {
@@ -258,20 +260,20 @@ function install() {
     w.on('error', () => { installing = null; openDownload(); });
     w.on('exit', () => {
       installing = null; installed = null;
-      checkInstalled(ok => { if (ok) push('stopped', 'Flow support installed.'); else openDownload(); });
+      checkInstalled(ok => { if (ok) push('stopped', t('Flow support installed.')); else openDownload(); });
     });
     return { ok: true };
   }
   push('installing');
   let p;
   try { p = spawn('flatpak', ['install', '-y', '--noninteractive', 'flathub', APP_ID], { stdio: ['ignore', 'pipe', 'pipe'] }); }
-  catch (e) { push('error', 'Could not run flatpak.'); return { ok: false, error: String(e) }; }
+  catch (e) { push('error', t('Could not run flatpak.')); return { ok: false, error: String(e) }; }
   installing = p;
   const line = buf => { const s = buf.toString().trim(); if (s) push('installing', s.split('\n').pop().slice(0, 80)); };
   p.stdout.on('data', line); p.stderr.on('data', line);
   p.on('exit', code => {
     installing = null; installed = null;
-    checkInstalled(ok => push(ok ? 'stopped' : 'error', ok ? 'Flow support installed.' : 'Install did not complete.'));
+    checkInstalled(ok => push(ok ? 'stopped' : 'error', ok ? t('Flow support installed.') : t('Install did not complete.')));
   });
   return { ok: true };
 }

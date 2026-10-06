@@ -1,7 +1,10 @@
 // Emoji picker overlay: search, categories, recents; Enter inserts the highlighted emoji, Esc closes.
 (() => {
+  // the language the main process chose (preload: window.i18n)
+  const I18N = (window.i18n && window.i18n.load()) || { dict: {} };
+  const t = (s, v) => { const o = I18N.dict[s] || s; return v ? o.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : o; };
   const $ = s => document.querySelector(s);
-  const TITLES = { recent: 'Recently used', smileys: 'Smileys & people', animals: 'Animals & nature', food: 'Food & drink', activity: 'Activities', travel: 'Travel & places', objects: 'Objects', symbols: 'Symbols', flags: 'Flags' };
+  const TITLES = { recent: t('Recently used'), smileys: t('Smileys & people'), animals: t('Animals & nature'), food: t('Food & drink'), activity: t('Activities'), travel: t('Travel & places'), objects: t('Objects'), symbols: t('Symbols'), flags: t('Flags') };
   const cats = [{ key: 'recent', icon: 'fa-clock-rotate-left', items: [] }].concat(window.EMOJI);
   let recent = [], sel = 0, visible = [], cat = 'all';
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,7 +22,7 @@
     if (q) {
       const terms = q.split(/\s+/);
       for (const c of cats.slice(1)) for (const e of c.items) if (terms.every(t => e[1].includes(t))) visible.push(e);
-      html = visible.length ? section('Results', visible, 0) : '<div class="empty">No emoji match</div>';
+      html = visible.length ? section(t('Results'), visible, 0) : `<div class="empty">${t('No emoji match')}</div>`;
     } else {
       const list = cat === 'all' ? [{ key: 'recent', items: recent }].concat(cats.slice(1)) : cat === 'recent' ? [{ key: 'recent', items: recent }] : cats.filter(c => c.key === cat);
       for (const c of list) { html += section(TITLES[c.key], c.items, visible.length); visible = visible.concat(c.items); }
@@ -51,12 +54,14 @@
   });
   window.emoji.onShow(msg => {
     document.documentElement.setAttribute('data-theme', msg.theme || 'light');
-    recent = (msg.recent || []).map(ch => { for (const c of cats.slice(1)) for (const e of c.items) if (e[0] === ch) return e; return [ch, 'emoji']; });
+    recent = (msg.recent || []).map(ch => { for (const c of cats.slice(1)) for (const e of c.items) if (e[0] === ch) return e; return [ch, t('emoji')]; });
     cats[0].items = recent;
-    $('#src').textContent = msg.source || 'Emoji key';
+    $('#src').textContent = msg.source || t('Emoji key');
     cat = 'all'; sel = 0; $('#q').value = '';
     renderCats(); renderBody();
     setTimeout(() => $('#q').focus(), 30);
   });
+  $('#q').placeholder = t('Search emoji');
+  $('#src').textContent = t('Emoji key');
   renderCats(); renderBody();
 })();

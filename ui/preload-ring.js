@@ -1,4 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
+// the language the main process chose, with its translations
+contextBridge.exposeInMainWorld('i18n', { load: () => ipcRenderer.sendSync('i18n') });
 contextBridge.exposeInMainWorld('ring', {
   onShow: cb => ipcRenderer.on('ring-show', (_e, msg) => cb(msg)),
   onRelease: cb => ipcRenderer.on('ring-release', () => cb()),

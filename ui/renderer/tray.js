@@ -1,25 +1,26 @@
 // Tray status panel: device battery, Easy-Switch, and the three tray actions.
 import { batteryText, batteryColor } from '../shared/battery.mjs';
+import { t } from '../shared/i18n.mjs';
 (() => {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function render(st) {
     document.documentElement.setAttribute('data-theme', st.theme || 'light');
     const devs = (st.devices || []).map(d => {
       // not connected: greyed, no battery or Easy-Switch to act on
-      if (d.online === false) return `<div class="dev off"><div class="top"><span class="name"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i>${esc(d.name)}</span><span class="bat" style="color:var(--dim)">not connected</span></div></div>`;
+      if (d.online === false) return `<div class="dev off"><div class="top"><span class="name"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i>${esc(d.name)}</span><span class="bat" style="color:var(--dim)">${t('not connected')}</span></div></div>`;
       const b = d.battery; const pct = b ? b.percent : null;
       const color = batteryColor(b), label = batteryText(b);
-      const hosts = d.state && d.state.hosts ? d.state.hosts.names.filter(h => h.paired).map(h => `<button class="${h.index === d.state.hosts.current ? 'on' : ''}" data-dev="${d.id}" data-host="${h.index}" title="${esc(h.name || 'host ' + (h.index + 1))}">${h.index + 1}</button>`).join('') : '';
+      const hosts = d.state && d.state.hosts ? d.state.hosts.names.filter(h => h.paired).map(h => `<button class="${h.index === d.state.hosts.current ? 'on' : ''}" data-dev="${d.id}" data-host="${h.index}" title="${esc(h.name || t('host {n}', { n: h.index + 1 }))}">${h.index + 1}</button>`).join('') : '';
       return `<div class="dev"><div class="top"><span class="name"><i class="fa-solid ${d.kind === 'keyboard' ? 'fa-keyboard' : 'fa-computer-mouse'}"></i>${esc(d.name)}</span><span class="bat" style="color:${color}">${label}</span></div>` +
         `<div class="bar"><div style="width:${pct === null ? 0 : pct}%;background:${color}"></div></div>` +
-        (hosts ? `<div class="hosts"><span class="l">Easy-Switch</span>${hosts}</div>` : '') + `</div>`;
+        (hosts ? `<div class="hosts"><span class="l">${t('Easy-Switch')}</span>${hosts}</div>` : '') + `</div>`;
     }).join('');
     document.getElementById('pop').innerHTML =
-      (st.connected ? (devs || '<div class="empty">No devices found</div>') : '<div class="empty">Agent not running</div>') +
+      (st.connected ? (devs || `<div class="empty">${t('No devices found')}</div>`) : `<div class="empty">${t('Agent not running')}</div>`) +
       `<div class="sep"></div>` +
-      `<button class="act" data-act="open"><i class="fa-solid fa-window-maximize"></i>Open NotLogi</button>` +
-      `<button class="act" data-act="pause"><i class="fa-solid ${st.paused ? 'fa-play' : 'fa-pause'}"></i>${st.paused ? 'Resume custom buttons' : 'Pause custom buttons'}</button>` +
-      `<button class="act" data-act="quit"><i class="fa-solid fa-power-off"></i>Quit</button>`;
+      `<button class="act" data-act="open"><i class="fa-solid fa-window-maximize"></i>${t('Open NotLogi')}</button>` +
+      `<button class="act" data-act="pause"><i class="fa-solid ${st.paused ? 'fa-play' : 'fa-pause'}"></i>${st.paused ? t('Resume custom buttons') : t('Pause custom buttons')}</button>` +
+      `<button class="act" data-act="quit"><i class="fa-solid fa-power-off"></i>${t('Quit')}</button>`;
   }
   document.addEventListener('click', ev => {
     const h = ev.target.closest('.hosts button'); if (h) { window.tray.action('host', { id: h.dataset.dev, host: Number(h.dataset.host) }); return; }

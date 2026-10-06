@@ -8,6 +8,7 @@ const os = require('os');
 const fs = require('fs');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let refreshGeneral, rpc, updateTray;
@@ -33,7 +34,7 @@ ipcMain.handle('screen-info', () => ({ cursor: screen.getCursorScreenPoint(), di
 
 function registerShortcuts() {
   for (const n of [1, 2, 3]) globalShortcut.register(`Super+Alt+${n}`, () => { for (const d of state.devices) rpc('change_host', { id: d.id, host: n - 1 }).catch(() => {}); });
-  globalShortcut.register('Super+Alt+O', async () => { const on = state.general.osd_enabled === false; try { state.general = await rpc('set_general', { osd_enabled: on }); } catch (e) {} if (Notification.isSupported()) new Notification({ title: `Overlays ${on ? 'on' : 'off'}`, icon: path.join(ROOT, 'assets', 'icon.png') }).show(); });
+  globalShortcut.register('Super+Alt+O', async () => { const on = state.general.osd_enabled === false; try { state.general = await rpc('set_general', { osd_enabled: on }); } catch (e) {} if (Notification.isSupported()) new Notification({ title: on ? t('Overlays on') : t('Overlays off'), icon: path.join(ROOT, 'assets', 'icon.png') }).show(); });
   globalShortcut.register('Super+Alt+P', () => rpc(state.paused ? 'resume_diversion' : 'pause_diversion').then(() => refreshGeneral().then(updateTray)).catch(() => {}));
 }
 

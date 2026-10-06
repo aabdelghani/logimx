@@ -1,5 +1,6 @@
 // A battery reading as shown everywhere (window, tray, notifications): the same levels for low and
 // critical, the same icon and colour.
+import { t } from './i18n.mjs';
 
 export const LOW = 20, CRITICAL = 10;
 
@@ -13,6 +14,6 @@ export const batIcon = b => !b ? 'fa-battery-empty' : !known(b) ? (b.charging ||
 // ok, warn (low) or err (critical); charging is always fine
 export const batClass = b => !b ? '' : b.charging ? 'ok' : !known(b) ? '' : b.percent <= CRITICAL ? 'err' : b.percent <= LOW ? 'warn' : 'ok';
 // the reading in words, as the tray says it
-export const batteryText = b => !b ? 'battery n/a' : !known(b) ? (b.charging ? 'charging' : b.external_power ? 'plugged in' : 'battery n/a') : `${b.percent}%${b.charging ? ' · charging' : b.percent <= LOW ? ' · charge soon' : ''}`;
+export const batteryText = b => !b ? t('battery n/a') : !known(b) ? (b.charging ? t('charging') : b.external_power ? t('plugged in') : t('battery n/a')) : b.charging ? t('{pct}% · charging', { pct: b.percent }) : b.percent <= LOW ? t('{pct}% · charge soon', { pct: b.percent }) : `${b.percent}%`;
 // the colour of a reading in the tray's own palette
 export const batteryColor = b => !known(b) ? (b && b.charging ? 'var(--ok)' : 'var(--dim)') : b.percent <= CRITICAL ? 'var(--err)' : b.percent <= LOW ? 'var(--warn)' : 'var(--ok)';

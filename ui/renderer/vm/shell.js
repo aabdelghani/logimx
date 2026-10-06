@@ -1,5 +1,6 @@
 // View model of the window itself: which page and device are on screen, menus, theme, the
 // agent's state, first run.
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast;
@@ -43,9 +44,9 @@ export const commands = {
   },
   'dev-hide': async (it, e, d, key) => {
     const dd = S.devices.find(x => x.id === key); if (!dd) return;
-    S.confirm = { title: `Remove ${dd.name}?`, text: `${dd.name} is not connected. It leaves the list, and comes back with its settings when it connects again.`, ok: 'Remove', onOk: async () => {
+    S.confirm = { title: t('Remove {name}?', { name: dd.name }), text: t('{name} is not connected. It leaves the list, and comes back with its settings when it connects again.', { name: dd.name }), ok: t('Remove'), onOk: async () => {
       S.ui = await api.host.uiSettings({ hidden_devices: hiddenDevices().concat(key) }) || S.ui;
-      toast(`${dd.name} removed`);
+      toast(t('{name} removed', { name: dd.name }));
     } };
     S.dlg = 'confirm'; changed(); return;
   },
@@ -64,28 +65,30 @@ export const commands = {
   'menu-theme': async (it, e, d, key) => { S.menu = S.menu === 'theme' ? null : 'theme'; changed(); return; },
   'menu-ringprof': async (it, e, d, key) => { S.menu = S.menu === 'ringprof' ? null : 'ringprof'; changed(); return; },
   'theme': async (it, e, d, key) => { S.theme = key; try { localStorage.setItem('theme', key); } catch (x) {} api.host.setTheme(key); S.menu = null; changed(); return; },
+  // the main process loads every window again in the language chosen
+  'lang-select': async (it, e, d, key) => { const v = it.value === 'system' ? null : it.value; S.ui = await api.host.uiSettings({ language: v }) || S.ui; return; },
   'theme-select': async (it, e, d, key) => { S.theme = it.value; try { localStorage.setItem('theme', it.value); } catch (x) {} api.host.setTheme(it.value); changed(); return; },
   'start-agent': async (it, e, d, key) => {
     const build = agentNeedsBuild();
-    S.agentBusy = true; S.agentErr = null; S.buildStep = build ? 'Preparing the build…' : null; changed();
+    S.agentBusy = true; S.agentErr = null; S.buildStep = build ? t('Preparing the build…') : null; changed();
     let r;
     try { r = build ? await api.host.buildAgent() : await api.host.startAgent(); }
     catch (x) { r = { ok: false, error: x.message }; }
     S.agentBusy = false; S.buildStep = null;
     try { S.agentInfo = await api.host.agentInfo(); } catch (x) {}
-    if (r && r.ok) { toast('Agent started'); try { await refresh(); } catch (x) {} }
-    else { S.agentErr = (r && r.error) || 'could not start'; toast('Could not start the agent: ' + S.agentErr, true); }
+    if (r && r.ok) { toast(t('Agent started')); try { await refresh(); } catch (x) {} }
+    else { S.agentErr = (r && r.error) || t('could not start'); toast(t('Could not start the agent: {error}', { error: S.agentErr }), true); }
     changed(); return;
   },
   'osd-test': async (it, e, d, key) => { api.host.osdTest(key); return; },
   'pause': async (it, e, d, key) => { await call(S.status.paused ? 'resume_diversion' : 'pause_diversion'); S.status = await call('status'); changed(); return; },
   'dismiss-conflict': async (it, e, d, key) => { S.conflictDismissed = true; changed(); return; },
-  'stop-tool': async (it, e, d, key) => { const r = await api.host.stopTool(it.data.tool); toast(r && r.ok ? `${it.data.tool} stopped` : (r && r.error) || 'Could not stop', !(r && r.ok)); setTimeout(refresh, 1500); return; },
+  'stop-tool': async (it, e, d, key) => { const r = await api.host.stopTool(it.data.tool); toast(r && r.ok ? t('{tool} stopped', { tool: it.data.tool }) : (r && r.error) || t('Could not stop'), !(r && r.ok)); setTimeout(refresh, 1500); return; },
   'open': async (it, e, d, key) => { api.host.openExternal(it.data.url); return; },
   'close-dlg': async (it, e, d, key) => { if (S.dlg === 'prompt' && S.prompt && S.prompt.back) { S.dlg = S.prompt.back; changed(); return; } if (drawerUp()) { fx.closeDrawer(); return; } fx.stopRecorder(); if (S.dlg === 'pair') { call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) api.host.btClose(); } S.dlg = null; changed(); return; },
   'dir': async (it, e, d, key) => { S.dir = key; changed(); return; },
   'ax-open': async (it, e, d, key) => { api.host.accessibility(true); api.host.openAccessibility(); setTimeout(async () => { S.ax = await api.host.accessibility(false); changed(); }, 4000); return; },
-  'install-udev': async (it, e, d, key) => { const r = await api.host.installUdev(); toast(r && r.ok ? 'Rule installed, re-plug the receiver' : (r && r.error) || 'Failed', !(r && r.ok)); setTimeout(refresh, 2000); return; },
+  'install-udev': async (it, e, d, key) => { const r = await api.host.installUdev(); toast(r && r.ok ? t('Rule installed, re-plug the receiver') : (r && r.error) || t('Failed'), !(r && r.ok)); setTimeout(refresh, 2000); return; },
   'onboard': async (it, e, d, key) => { S.mode = 'onboard'; S.ob = { step: 1, preset: IS_WIN() ? 'win' : IS_MAC() ? 'mac' : 'gnome' }; changed(); return; },
   'ob-close': async (it, e, d, key) => { S.mode = 'app'; try { localStorage.setItem('onboarded', '1'); } catch (x) {} changed(); return; },
   'ob-step': async (it, e, d, key) => { S.ob.step = Number(key); changed(); return; },

@@ -1,6 +1,7 @@
 // View: what every device has: Easy-Switch, battery and information, its settings page.
 import { isMouse } from '../../shared/profiles.mjs';
 import { batIcon, known, pctText, isLow } from '../../shared/battery.mjs';
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_PHOTOS, S, card, chk, esc, isOffline, range, row, sec, sw;
@@ -10,8 +11,8 @@ export function link(ctx) { ({ ALT, KEYBOARD_PHOTOS, META, MOUSE_BOTTOMS, MOUSE_
 function hostInfo(h, i) {
   const n = h.names[i] || { index: i, paired: false, name: '', bus_type: 0 };
   const cur = h.current === i, empty = !n.paired;
-  const bus = n.bus_type === 1 ? ['fa-usb', 'Bolt receiver'] : n.bus_type === 2 || n.bus_type === 3 ? ['fa-bluetooth-b', 'Bluetooth'] : empty ? ['fa-link-slash', 'Not paired'] : ['fa-usb', 'Receiver'];
-  return { n, cur, empty, bus, name: n.name || (empty ? 'Empty slot' : 'Unnamed computer'), state: cur ? 'Connected' : empty ? 'Empty' : 'Paired' };
+  const bus = n.bus_type === 1 ? ['fa-usb', t('Bolt receiver')] : n.bus_type === 2 || n.bus_type === 3 ? ['fa-bluetooth-b', t('Bluetooth')] : empty ? ['fa-link-slash', t('Not paired')] : ['fa-usb', t('Receiver')];
+  return { n, cur, empty, bus, name: n.name || (empty ? t('Empty slot') : t('Unnamed computer')), state: cur ? t('Connected') : empty ? t('Empty') : t('Paired') };
 }
 // The mouse turned over, laid out like Buttons: a ring on each printed number of the Easy-Switch
 // button, with the computer on that channel named beside it; a ring opens that computer's panel
@@ -26,8 +27,8 @@ function easyPhoto(d) {
   }
   const lines = P.hosts.map(([i, x, y, side]) => `<polyline class="ms-line ${on(i) ? 'on' : ''}" points="${side === 'l' ? x - 16 : x + 16},${y} ${side === 'l' ? -20 : P.w + 20},${place[i]}"/>`).join('');
   const labels = P.hosts.map(([i, , , side]) => {
-    const t = hostInfo(h, i);
-    return `<div class="ms-lab es-lab ${side} ${on(i) ? 'on' : ''} ${t.cur ? 'custom' : ''}" data-ring="${i}" style="top:${(place[i] / P.h * 100).toFixed(2)}%"><span class="k">${t.state}</span><span class="d"><b class="es-n">${i + 1}</b>${esc(t.name)}</span></div>`;
+    const hi = hostInfo(h, i);
+    return `<div class="ms-lab es-lab ${side} ${on(i) ? 'on' : ''} ${hi.cur ? 'custom' : ''}" data-ring="${i}" style="top:${(place[i] / P.h * 100).toFixed(2)}%"><span class="k">${hi.state}</span><span class="d"><b class="es-n">${i + 1}</b>${esc(hi.name)}</span></div>`;
   }).join('');
   return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
 }
@@ -42,57 +43,57 @@ function keyboardEasyPhoto(d) {
   const keys = P.hosts.map(([i, x, y]) => `<g class="hotspot kb-es es ${h.current === i ? 'cur' : ''} ${on(i) ? 'selected' : ''}" data-cid="${i}"><rect x="${x - P.kw / 2}" y="${y - P.kh / 2}" width="${P.kw}" height="${P.kh}" rx="14"/></g>`).join('');
   const lines = P.hosts.map(([i, x, y]) => `<polyline class="ms-line ${on(i) ? 'on' : ''}" points="${x},${y - P.kh / 2} ${x},${ly(i)} ${lx},${ly(i)}"/>`).join('');
   const labels = P.hosts.map(([i]) => {
-    const t = hostInfo(h, i);
-    return `<div class="ms-lab es-lab kbl ${on(i) ? 'on' : ''} ${t.cur ? 'custom' : ''}" data-ring="${i}" style="left:${(lx / P.w * 100).toFixed(2)}%;top:${(ly(i) / P.h * 100).toFixed(2)}%"><span class="k">${t.state}</span><span class="d"><b class="es-n">${i + 1}</b>${esc(t.name)}</span></div>`;
+    const hi = hostInfo(h, i);
+    return `<div class="ms-lab es-lab kbl ${on(i) ? 'on' : ''} ${hi.cur ? 'custom' : ''}" data-ring="${i}" style="left:${(lx / P.w * 100).toFixed(2)}%;top:${(ly(i) / P.h * 100).toFixed(2)}%"><span class="k">${hi.state}</span><span class="d"><b class="es-n">${i + 1}</b>${esc(hi.name)}</span></div>`;
   }).join('');
   return `<div class="es-kbwrap"><svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${keys}</svg>${labels}</div>`;
 }
 // the computer picked on the photo: switch to it, pair, rename; and switching for every device at once
 function renderEasyPanel(d) {
-  const h = d.state.hosts, i = S.esSel ?? h.current, t = hostInfo(h, i);
-  const acts = t.cur ? '' : t.empty ? '<button class="btn primary" data-act="pair"><i class="fa-solid fa-plus"></i>Pair a computer…</button>'
-    : `<button class="btn primary" data-act="host" data-key="${i}"><i class="fa-solid fa-right-left"></i>Switch to this computer</button>`;
-  const body = card(row('Name', '', `<span class="val">${esc(t.name)}</span>${t.empty ? '' : `<button class="btn sm" data-act="rename-host" data-key="${i}" title="Rename"><i class="fa-solid fa-pen"></i></button>`}`) +
-      row('Status', '', `<span class="val">${t.state}</span>`) +
-      row('Connection', '', `<span class="val"><i class="fa-${t.bus[0] === 'fa-bluetooth-b' || t.bus[0] === 'fa-usb' ? 'brands' : 'solid'} ${t.bus[0]}"></i> ${t.bus[1]}</span>`)) +
+  const h = d.state.hosts, i = S.esSel ?? h.current, hi = hostInfo(h, i);
+  const acts = hi.cur ? '' : hi.empty ? `<button class="btn primary" data-act="pair"><i class="fa-solid fa-plus"></i>${t('Pair a computer…')}</button>`
+    : `<button class="btn primary" data-act="host" data-key="${i}"><i class="fa-solid fa-right-left"></i>${t('Switch to this computer')}</button>`;
+  const body = card(row(t('Name'), '', `<span class="val">${esc(hi.name)}</span>${hi.empty ? '' : `<button class="btn sm" data-act="rename-host" data-key="${i}" title="${t('Rename')}"><i class="fa-solid fa-pen"></i></button>`}`) +
+      row(t('Status'), '', `<span class="val">${hi.state}</span>`) +
+      row(t('Connection'), '', `<span class="val"><i class="fa-${hi.bus[0] === 'fa-bluetooth-b' || hi.bus[0] === 'fa-usb' ? 'brands' : 'solid'} ${hi.bus[0]}"></i> ${hi.bus[1]}</span>`)) +
     (acts ? `<div style="margin-top:12px">${acts}</div>` : '') +
-    sec('All devices', card(row('Linked switching', 'Move all devices to the same computer together', sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
-      row('Keyboard shortcut', '', `<span class="val">${META()} + ${ALT()} + 1…3</span>`)));
+    sec(t('All devices'), card(row(t('Linked switching'), t('Move all devices to the same computer together'), sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
+      row(t('Keyboard shortcut'), '', `<span class="val">${META()} + ${ALT()} + 1…3</span>`)));
   return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
-    <div class="dlg-head"><span class="dh-key">Computer ${i + 1}</span><span class="dh-sub">Easy-Switch</span></div>
+    <div class="dlg-head"><span class="dh-key">${t('Computer {n}', { n: i + 1 })}</span><span class="dh-sub">${t('Easy-Switch')}</span></div>
     <div class="dlg-body">${body}</div>
   </div></div>`;
 }
 function pageEasy(d) {
   const h = (d.state || {}).hosts;
-  if (!h) return sec('Easy-Switch', card(row('Not supported by this device', '', '')));
+  if (!h) return sec(t('Easy-Switch'), card(row(t('Not supported by this device'), '', '')));
   if (easyView(d)) return isMouse(d) ? `<div class="photo-card ms-photo es-photo">${easyPhoto(d)}</div>` : `<div class="kb-photo es-kbp">${keyboardEasyPhoto(d)}</div>`;
   const cards = [0, 1, 2].map(i => {
     const n = h.names[i] || { index: i, paired: false, name: '', bus_type: 0 };
     const cur = h.current === i, empty = !n.paired;
-    const bus = n.bus_type === 1 ? ['fa-usb', 'Bolt receiver'] : n.bus_type === 2 || n.bus_type === 3 ? ['fa-bluetooth-b', 'Bluetooth'] : empty ? ['fa-link-slash', 'Not paired'] : ['fa-usb', 'Receiver'];
-    return `<div class="host ${cur ? 'cur' : ''}"><div class="top"><span class="n">${i + 1}</span><span class="st">${cur ? 'Connected' : empty ? '' : 'Paired'}</span></div>
-      <div class="name">${esc(n.name || (empty ? 'Empty slot' : 'Unnamed host'))}</div>
+    const bus = n.bus_type === 1 ? ['fa-usb', t('Bolt receiver')] : n.bus_type === 2 || n.bus_type === 3 ? ['fa-bluetooth-b', t('Bluetooth')] : empty ? ['fa-link-slash', t('Not paired')] : ['fa-usb', t('Receiver')];
+    return `<div class="host ${cur ? 'cur' : ''}"><div class="top"><span class="n">${i + 1}</span><span class="st">${cur ? t('Connected') : empty ? '' : t('Paired')}</span></div>
+      <div class="name">${esc(n.name || (empty ? t('Empty slot') : t('Unnamed host')))}</div>
       <div class="conn"><i class="fa-${bus[0] === 'fa-bluetooth-b' || bus[0] === 'fa-usb' ? 'brands' : 'solid'} ${bus[0]}"></i>${bus[1]}</div>
-      <div class="hacts">${cur ? '<button class="btn sm flat" disabled>Current</button>' : empty ? '<button class="btn sm" data-act="pair">Pair…</button>' : `<button class="btn sm primary" data-act="host" data-key="${i}">Switch</button>`}${empty ? '' : `<button class="btn sm" data-act="rename-host" data-key="${i}" title="Rename"><i class="fa-solid fa-pen"></i></button>`}</div></div>`;
+      <div class="hacts">${cur ? `<button class="btn sm flat" disabled>${t('Current')}</button>` : empty ? `<button class="btn sm" data-act="pair">${t('Pair…')}</button>` : `<button class="btn sm primary" data-act="host" data-key="${i}">${t('Switch')}</button>`}${empty ? '' : `<button class="btn sm" data-act="rename-host" data-key="${i}" title="${t('Rename')}"><i class="fa-solid fa-pen"></i></button>`}</div></div>`;
   }).join('');
-  return sec(`Hosts · ${esc(d.name)}`, `<div class="hosts">${cards}</div>`) +
-    `<div class="easy-opts">` + card(row('Linked switching', `Move all devices to the same host together`, sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
-      row('Keyboard shortcut', 'Switch host from the tray or with a shortcut', `<span class="val">${META()} + ${ALT()} + 1…3</span>`)) + `</div>`;
+  return sec(`${t('Hosts')} · ${esc(d.name)}`, `<div class="hosts">${cards}</div>`) +
+    `<div class="easy-opts">` + card(row(t('Linked switching'), t('Move all devices to the same host together'), sw(!!S.general.linked_easy_switch, 'data-act="general" data-key="linked_easy_switch"')) +
+      row(t('Keyboard shortcut'), t('Switch host from the tray or with a shortcut'), `<span class="val">${META()} + ${ALT()} + 1…3</span>`)) + `</div>`;
 }
 
 function pageInfo(d) {
   const b = d.battery || { percent: 0 }; const hist = S.history[d.id] || [];
   const bars = (hist.length ? hist : known(b) ? [b.percent] : []).slice(-14);
-  const rows = [['Model', d.name], ['Connection', `${d.transport === 'bolt' ? 'Bolt receiver' : 'Bluetooth'} · host ${((d.state || {}).hosts || {}).current + 1 || 1}`], ['Firmware', d.firmware || 'n/a'], ['Serial', d.serial || 'n/a'], ['Protocol', 'HID++ 2.0'], ['Wireless PID', d.id.toUpperCase()]];
-  const est = b.charging ? 'Charging over USB-C' : b.level ? `Level: ${b.level}` : '';
+  const rows = [[t('Model'), d.name], [t('Connection'), `${d.transport === 'bolt' ? t('Bolt receiver') : t('Bluetooth')} · ${t('host {n}', { n: ((d.state || {}).hosts || {}).current + 1 || 1 })}`], [t('Firmware'), d.firmware || t('n/a')], [t('Serial'), d.serial || t('n/a')], [t('Protocol'), 'HID++ 2.0'], [t('Wireless PID'), d.id.toUpperCase()]];
+  const est = b.charging ? t('Charging over USB-C') : b.level ? t('Level: {level}', { level: b.level }) : '';
   const thr = S.general.notify_low_threshold ?? 20;
   return `<div class="grid2">
-    <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>Battery</span><span class="meta" style="color:var(--ok)">${b.charging ? 'Charging' : 'Discharging'}</span></div><div class="big">${known(b) ? b.percent + '%' : b.charging ? 'Charging' : 'n/a'}</div>${known(b) ? `<div class="meter ${isLow(b, 10) ? 'crit' : isLow(b) ? 'low' : ''}"><i style="width:${b.percent}%"></i></div>` : ''}<div class="hint">${esc(est)}</div></div>
-    <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>Last 7 days</span></div><div class="hist">${bars.map(v => `<span style="height:${v}%" title="${v}%"></span>`).join('')}</div><div style="display:flex;justify-content:space-between" class="hint"><span>${hist.length > 1 ? 'Earlier' : ''}</span><span>Today</span></div></div></div>` +
-    sec('Device', card(rows.map(([k, v]) => `<div class="row"><span class="grow lbl">${k}</span><span class="val">${esc(v)}</span></div>`).join(''))) +
-    sec('Alerts', card(`<div class="row"><div class="grow"><div class="lbl">Low battery warning</div><div class="sub">Notify at</div></div>${range('data-act="general-range" data-key="notify_low_threshold" data-out="thr"', thr, 5, 50, 5)}<span class="val" data-out="thr" style="width:32px;text-align:right">${thr}%</span></div>` +
-      row('Firmware update', 'Check with fwupd / LVFS', `<button class="btn sm" data-act="fwupd">Check…</button>`)));
+    <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>${t('Battery')}</span><span class="meta" style="color:var(--ok)">${b.charging ? t('Charging') : t('Discharging')}</span></div><div class="big">${known(b) ? b.percent + '%' : b.charging ? t('Charging') : t('n/a')}</div>${known(b) ? `<div class="meter ${isLow(b, 10) ? 'crit' : isLow(b) ? 'low' : ''}"><i style="width:${b.percent}%"></i></div>` : ''}<div class="hint">${esc(est)}</div></div>
+    <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="sec-title"><span>${t('Last 7 days')}</span></div><div class="hist">${bars.map(v => `<span style="height:${v}%" title="${v}%"></span>`).join('')}</div><div style="display:flex;justify-content:space-between" class="hint"><span>${hist.length > 1 ? t('Earlier') : ''}</span><span>${t('Today')}</span></div></div></div>` +
+    sec(t('Device'), card(rows.map(([k, v]) => `<div class="row"><span class="grow lbl">${k}</span><span class="val">${esc(v)}</span></div>`).join(''))) +
+    sec(t('Alerts'), card(`<div class="row"><div class="grow"><div class="lbl">${t('Low battery warning')}</div><div class="sub">${t('Notify at')}</div></div>${range('data-act="general-range" data-key="notify_low_threshold" data-out="thr"', thr, 5, 50, 5)}<span class="val" data-out="thr" style="width:32px;text-align:right">${thr}%</span></div>` +
+      row(t('Firmware update'), t('Check with fwupd / LVFS'), `<button class="btn sm" data-act="fwupd">${t('Check…')}</button>`)));
 }
 // ----------------------------------------------------------- home
 // The first thing seen: every connected device with its photo, its battery and whether it is
@@ -104,35 +105,35 @@ const homePhotoSrc = d => isMouse(d) && TOP_VIEWS[d.id] ? '../assets/devices/' +
 // the foot of the device's page list: battery icon and percentage on a pill, which opens Battery & info
 function navBattery(d) {
   // not connected: changes are kept and reach the device when it is back
-  if (isOffline(d)) return `<div class="dnav-bat offline" title="Changes are saved and applied when it reconnects"><i class="fa-solid fa-link-slash"></i><span>Not connected</span></div>`;
+  if (isOffline(d)) return `<div class="dnav-bat offline" title="${t('Changes are saved and applied when it reconnects')}"><i class="fa-solid fa-link-slash"></i><span>${t('Not connected')}</span></div>`;
   const b = d.battery, st = batteryState(b);
-  return `<div class="dnav-bat ${b ? st.cls : 'none'}" title="${esc(st.label)}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span>${pctText(b) || (b.charging ? 'Charging' : 'Info')}</span>` : '<span>Info</span>'}${b && b.charging ? '<i class="fa-solid fa-bolt"></i>' : ''}</div>`;
+  return `<div class="dnav-bat ${b ? st.cls : 'none'}" title="${esc(st.label)}"><i class="fa-solid ${b ? batIcon(b) : 'fa-battery-empty'}"></i>${b ? `<span>${pctText(b) || (b.charging ? t('Charging') : t('Info'))}</span>` : `<span>${t('Info')}</span>`}${b && b.charging ? '<i class="fa-solid fa-bolt"></i>' : ''}</div>`;
 }
 function batteryState(b) {
-  if (!b) return { label: 'Battery not reported', cls: '', icon: 'fa-battery-empty' };
+  if (!b) return { label: t('Battery not reported'), cls: '', icon: 'fa-battery-empty' };
   const plugged = b.charging || b.external_power;
-  if (plugged && (b.percent >= 100 || b.level === 'full') && !b.charging) return { label: 'Fully charged, unplug when you like', cls: 'ok', icon: 'fa-plug-circle-check' };
-  if (b.charging) return { label: 'Charging', cls: 'ok charging', icon: 'fa-bolt' };
-  if (!known(b)) return { label: b.external_power ? 'Plugged in' : 'Level not reported', cls: '', icon: batIcon(b) };
-  if (b.percent <= 10) return { label: 'Low, charge soon', cls: 'err', icon: 'fa-battery-empty' };
-  if (b.percent <= 20) return { label: 'Getting low', cls: 'warn', icon: 'fa-battery-quarter' };
-  return { label: 'On battery', cls: 'ok', icon: batIcon(b) };
+  if (plugged && (b.percent >= 100 || b.level === 'full') && !b.charging) return { label: t('Fully charged, unplug when you like'), cls: 'ok', icon: 'fa-plug-circle-check' };
+  if (b.charging) return { label: t('Charging'), cls: 'ok charging', icon: 'fa-bolt' };
+  if (!known(b)) return { label: b.external_power ? t('Plugged in') : t('Level not reported'), cls: '', icon: batIcon(b) };
+  if (b.percent <= 10) return { label: t('Low, charge soon'), cls: 'err', icon: 'fa-battery-empty' };
+  if (b.percent <= 20) return { label: t('Getting low'), cls: 'warn', icon: 'fa-battery-quarter' };
+  return { label: t('On battery'), cls: 'ok', icon: batIcon(b) };
 }
 function batteryRing(b) {
   const p = known(b) ? Math.max(0, Math.min(100, b.percent)) : 0, st = batteryState(b), C = 2 * Math.PI * 26;
   return `<div class="bat-ring ${st.cls}" title="${esc(st.label)}"><svg viewBox="0 0 64 64"><circle class="trk" cx="32" cy="32" r="26"/><circle class="val" cx="32" cy="32" r="26" style="stroke-dasharray:${(C * p / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><span class="pct">${b ? p + '<small>%</small>' : '–'}</span>${b && b.charging ? '<i class="fa-solid fa-bolt bolt"></i>' : ''}</div>`;
 }
 // the device's own settings, as Options+ lists them: General, the keys it can switch off, backup
-const DISABLE_KEYS = [['num_lock', 0x02, 'Num Lock'], ['caps_lock', 0x01, 'Caps Lock'], ['scroll_lock', 0x04, 'Scroll Lock'], ['insert', 0x08, 'Insert'], ['win', 0x10, 'Windows / Start key']];
+const DISABLE_KEYS = [['num_lock', 0x02, 'Num Lock'], ['caps_lock', 0x01, 'Caps Lock'], ['scroll_lock', 0x04, 'Scroll Lock'], ['insert', 0x08, 'Insert'], ['win', 0x10, t('Windows / Start key')]];
 function pageDeviceSettings(d) {
   const st = d.state || {}, s = d.config.settings || {}, dk = st.disable_keys, ks = s.disable_keys || {};
-  const general = (typeof st.fn_swap === 'boolean' ? row('Use F1, F2, etc. keys as standard function keys', 'Hold Fn for the printed functions', sw(!(s.fn_swap ?? st.fn_swap), 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"')) : '') +
-    (st.platform ? row('Always keep the keyboard layout', 'The keyboard stops switching its layout by itself', sw(!!s.keep_layout, 'data-act="setting" data-path="keep_layout"')) : '');
-  const keys = dk ? DISABLE_KEYS.filter(([, bit]) => dk.supported & bit).map(([k, bit, l]) => row(l, '', chk(ks[k] ?? !!(dk.disabled & bit), `data-act="setting" data-path="disable_keys.${k}" title="Disable ${esc(l)}"`))).join('') : '';
-  const backup = row('Back up settings', 'Save NotLogi settings for all devices to a file', '<button class="btn sm" data-act="export"><i class="fa-solid fa-download"></i>Save…</button>') +
-    row('Restore settings', 'Load settings saved earlier', '<button class="btn sm" data-act="import"><i class="fa-solid fa-upload"></i>Restore…</button>') +
-    row('Read from device', 'Settings kept in the device\'s memory', `<button class="btn sm" data-act="sync-device" data-key="${esc(d.id)}"><i class="fa-solid fa-arrows-rotate"></i>Sync</button>`);
-  return (general ? sec('General', card(general)) : '') + (keys ? sec('Disabled keys', card(keys), 'switched off while on') : '') + sec('Device backup', card(backup));
+  const general = (typeof st.fn_swap === 'boolean' ? row(t('Use F1, F2, etc. keys as standard function keys'), t('Hold Fn for the printed functions'), sw(!(s.fn_swap ?? st.fn_swap), 'data-act="setting" data-path="fn_swap" data-on="false" data-off="true"')) : '') +
+    (st.platform ? row(t('Always keep the keyboard layout'), t('The keyboard stops switching its layout by itself'), sw(!!s.keep_layout, 'data-act="setting" data-path="keep_layout"')) : '');
+  const keys = dk ? DISABLE_KEYS.filter(([, bit]) => dk.supported & bit).map(([k, bit, l]) => row(l, '', chk(ks[k] ?? !!(dk.disabled & bit), `data-act="setting" data-path="disable_keys.${k}" title="${t('Disable {key}', { key: esc(l) })}"`))).join('') : '';
+  const backup = row(t('Back up settings'), t('Save NotLogi settings for all devices to a file'), `<button class="btn sm" data-act="export"><i class="fa-solid fa-download"></i>${t('Save…')}</button>`) +
+    row(t('Restore settings'), t('Load settings saved earlier'), `<button class="btn sm" data-act="import"><i class="fa-solid fa-upload"></i>${t('Restore…')}</button>`) +
+    row(t('Read from device'), t('Settings kept in the device\'s memory'), `<button class="btn sm" data-act="sync-device" data-key="${esc(d.id)}"><i class="fa-solid fa-arrows-rotate"></i>${t('Sync')}</button>`);
+  return (general ? sec(t('General'), card(general)) : '') + (keys ? sec(t('Disabled keys'), card(keys), t('switched off while on')) : '') + sec(t('Device backup'), card(backup));
 }
 
 const easyView = d => !!(d && (d.state || {}).hosts && (isMouse(d) ? MOUSE_BOTTOMS[d.id] : (KEYBOARD_PHOTOS[d.id] || {}).hosts));

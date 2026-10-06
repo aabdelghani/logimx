@@ -1,20 +1,24 @@
 // The action ring's settings, without any window: which ring an application gets, its slots and
 // folders, and the shape saved back to the agent. Used by the settings window and the main process
 // (which opens the real ring), so both read a ring the same way.
+import { en, t } from './i18n.mjs';
 
-export const RING_DIRS = ['Top', 'Top right', 'Right', 'Bottom right', 'Bottom', 'Bottom left', 'Left', 'Top left'];
-export const RING_NEXT_PROFILE = { type: 'ring_profile', label: 'Next ring profile' };
-export const RING_BRIGHTNESS = { type: 'brightness_dial', label: 'Brightness (drag to set)' };
+// shown only, never saved (the main process does not use them)
+export const RING_DIRS = [t('Top'), t('Top right'), t('Right'), t('Bottom right'), t('Bottom'), t('Bottom left'), t('Left'), t('Top left')];
+// the labels below and the default profile names are saved in the config: they stay English here
+// and are translated where they are shown
+export const RING_NEXT_PROFILE = { type: 'ring_profile', label: en('Next ring profile') };
+export const RING_BRIGHTNESS = { type: 'brightness_dial', label: en('Brightness (drag to set)') };
 
 // a slot saved by an earlier build with the ring's own key instead of its action
-export const fixSlot = sl => sl && sl.action === 'ring:profile' ? { action: RING_NEXT_PROFILE, label: 'Next ring profile', icon: 'fa-layer-group' } : sl;
+export const fixSlot = sl => sl && sl.action === 'ring:profile' ? { action: RING_NEXT_PROFILE, label: en('Next ring profile'), icon: 'fa-layer-group' } : sl;
 export const eight = a => Array.from({ length: 8 }, (_, i) => fixSlot((a || [])[i]) || null);
 
 // general.ring as the settings window edits it: the shared profiles, the one in use, the apps
 // pointing at them and the ring's own behaviour
 export function ringState(general) {
   const r = (general && general.ring) || {};
-  const profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map((p, i) => ({ id: p.id || 'p' + i, name: p.name || 'Profile', slots: eight(p.slots) })) : [{ id: 'p0', name: 'Default', slots: eight(r.slots) }];
+  const profiles = Array.isArray(r.profiles) && r.profiles.length ? r.profiles.map((p, i) => ({ id: p.id || 'p' + i, name: p.name || en('Profile'), slots: eight(p.slots) })) : [{ id: 'p0', name: en('Default'), slots: eight(r.slots) }];
   const active = Math.max(0, Math.min(profiles.length - 1, Number(r.active) || 0));
   const apps = r.apps && typeof r.apps === 'object' ? JSON.parse(JSON.stringify(r.apps)) : {};
   return { profiles, active, apps, size: r.size || 'medium', travel: r.travel || 30, free_pointer: !!r.free_pointer };

@@ -12,4 +12,5 @@ module.exports = {
   currentApp: '',   // ring.js
   btTimer: null,   // bluetooth.js
   btMode: null,   // bluetooth.js
+  I18n: null,   // shared/i18n.mjs: the language in use, t()
 };

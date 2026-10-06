@@ -3,6 +3,7 @@ const { Notification } = require('electron');
 const path = require('path');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 exports.link = () => {};
 
@@ -51,8 +52,8 @@ function checkBattery(d) {
     alerted.delete(d.id);
     if (state.general.notify_low !== false && Notification.isSupported()) {
       new Notification({
-        title: `${d.name} is fully charged`,
-        body: 'You can unplug the charger.',
+        title: t('{name} is fully charged', { name: d.name }),
+        body: t('You can unplug the charger.'),
         icon: path.join(ROOT, 'assets', d.kind === 'keyboard' ? 'full-keyboard.png' : 'full-mouse.png'),
       }).show();
     }
@@ -64,7 +65,7 @@ function checkBattery(d) {
     if (state.general.notify_low !== false && Notification.isSupported()) {
       dropChargeNotice(d.id);
       const c = new Notification({
-        title: `${d.name} is charging`,
+        title: t('{name} is charging', { name: d.name }),
         icon: path.join(ROOT, 'assets', d.kind === 'keyboard' ? 'charging-keyboard.png' : 'charging-mouse.png'),
       });
       c.show();
@@ -89,8 +90,8 @@ function checkBattery(d) {
   if (Notification.isSupported()) {
     dropLowNotice(d.id);
     const n = new Notification({
-      title: `${d.name}: battery ${level}`,
-      body: `${b.percent}% left. ${d.kind === 'keyboard' ? 'Plug in the USB-C cable to charge.' : 'Charge it soon.'}`,
+      title: level === 'critical' ? t('{name}: battery critical', { name: d.name }) : t('{name}: battery low', { name: d.name }),
+      body: d.kind === 'keyboard' ? t('{pct}% left. Plug in the USB-C cable to charge.', { pct: b.percent }) : t('{pct}% left. Charge it soon.', { pct: b.percent }),
       urgency: 'normal',
       icon: path.join(ROOT, 'assets', d.kind === 'keyboard' ? 'low-keyboard.png' : 'low-mouse.png'),
     });

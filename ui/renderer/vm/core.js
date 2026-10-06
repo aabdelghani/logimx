@@ -3,6 +3,7 @@
 import * as Prof from '../../shared/profiles.mjs';
 import { isMouse } from '../../shared/profiles.mjs';
 import * as Act from '../../shared/actions.mjs';
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let S, changed, fx, sec;
@@ -33,9 +34,9 @@ const CID = { middle: 82, back: 83, forward: 86, gesture: 195, mode: 196 };
 
 // ------------------------------------------------------------- nav
 const PAGES = {
-  buttons: ['Buttons', 'fa-computer-mouse'], gestures: ['Gestures & action ring', 'fa-hand-pointer'], pointer: ['Point & scroll', 'fa-arrow-pointer'], thumb: ['Thumb wheel', 'fa-arrows-left-right'],
-  haptics: ['Haptic feedback', 'fa-wave-square'], easy: ['Easy-Switch', 'fa-right-left'], info: ['Battery & info', 'fa-battery-three-quarters'], keys: ['Keys', 'fa-keyboard'], backlight: ['Backlight', 'fa-lightbulb'],
-  home: ['Home', 'fa-house'], apps: ['Profiles', 'fa-layer-group'], ring: ['Action ring', 'fa-circle-notch'], notif: ['Notifications', 'fa-bell'], backup: ['Backup & sync', 'fa-cloud-arrow-down'], settings: ['Settings', 'fa-sliders'], about: ['About', 'fa-circle-info'], flow: ['Flow', 'fa-diagram-project'],
+  buttons: [t('Buttons'), 'fa-computer-mouse'], gestures: [t('Gestures & action ring'), 'fa-hand-pointer'], pointer: [t('Point & scroll'), 'fa-arrow-pointer'], thumb: [t('Thumb wheel'), 'fa-arrows-left-right'],
+  haptics: [t('Haptic feedback'), 'fa-wave-square'], easy: [t('Easy-Switch'), 'fa-right-left'], info: [t('Battery & info'), 'fa-battery-three-quarters'], keys: [t('Keys'), 'fa-keyboard'], backlight: [t('Backlight'), 'fa-lightbulb'],
+  home: [t('Home'), 'fa-house'], apps: [t('Profiles'), 'fa-layer-group'], ring: [t('Action ring'), 'fa-circle-notch'], notif: [t('Notifications'), 'fa-bell'], backup: [t('Backup & sync'), 'fa-cloud-arrow-down'], settings: [t('Settings'), 'fa-sliders'], about: [t('About'), 'fa-circle-info'], flow: [t('Flow'), 'fa-diagram-project'],
 };
 const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'flow', 'info'];
 // what the device's left bar lists; the other device pages (Gestures, opened from a button set to

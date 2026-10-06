@@ -1,4 +1,5 @@
 // View model: a gesture button's directions, presets and sensitivity.
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let S, api, assignment, changed, setAssign, toast;
@@ -9,7 +10,7 @@ export const state = {
   holdCid: undefined,
 };
 
-const SLOTS = { tap: ['Tap', 'click'], up: ['Swipe up', 'up'], down: ['Swipe down', 'down'], left: ['Swipe left', 'left'], right: ['Swipe right', 'right'] };
+const SLOTS = { tap: [t('Tap'), 'click'], up: [t('Swipe up'), 'up'], down: [t('Swipe down'), 'down'], left: [t('Swipe left'), 'left'], right: [t('Swipe right'), 'right'] };
 const gestureCapable = d => d.controls.filter(c => c.divertable && c.raw_xy && c.cid !== 0xD7);
 const isRingAction = a => a === 'action_ring' || (!!a && typeof a === 'object' && a.type === 'ui' && a.event === 'ring');
 // the button that is held: the one carrying gestures or the action ring (they share it, one at a time)
@@ -42,7 +43,7 @@ export const commands = {
     if (key === 'ring') await setAssign(d, 'buttons', cid, 'action_ring');
     else if (key === 'gestures') { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); }
     else await setAssign(d, 'buttons', cid, 'native');
-    toast(key === 'ring' ? 'Action ring on this button' : key === 'gestures' ? 'Gestures on this button' : 'Button left to the mouse');
+    toast(key === 'ring' ? t('Action ring on this button') : key === 'gestures' ? t('Gestures on this button') : t('Button left to the mouse'));
     changed(); return;
   },
   'gest-sens': async (it, e, d, key) => { const cid = gestureControl(d), g = gestureObject(d, cid); g.threshold = 165 - 15 * Number(it.value); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); return; },

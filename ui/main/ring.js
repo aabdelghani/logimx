@@ -44,7 +44,10 @@ function ensureRing() {
   });
   ringWin.setAlwaysOnTop(true, 'pop-up-menu');
   // ready once its page has loaded: a ring shown before that stays empty (the first press on macOS)
-  ringLoaded = new Promise(resolve => ringWin.webContents.once('did-finish-load', resolve));
+  // (and again each time it loads anew, as when the language changes)
+  const loading = () => { ringLoaded = new Promise(resolve => ringWin.webContents.once('did-finish-load', resolve)); };
+  loading();
+  ringWin.webContents.on('did-start-navigation', (_e, _url, inPlace, main) => { if (main && !inPlace) loading(); });
   ringWin.loadFile(path.join(ROOT, 'renderer', 'ring.html'));
   ringWin.on('hide', ringKeysOff);
   return ringWin;

@@ -5,6 +5,7 @@ const plat = require('../platform');
 const { execFile } = require('child_process');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let loadUi, offTaskbar, rpc, saveUi;
@@ -52,7 +53,7 @@ async function showEmoji(source) {
   const send = () => {
     w.setPosition(X, Y); w.show(); offTaskbar(w); place(); w.focus();
     setTimeout(place, 40); setTimeout(place, 160);   // the window manager may re-place a freshly mapped window
-    w.webContents.send('emoji-show', { theme: state.uiSettings.theme || 'light', recent: state.uiSettings.emojiRecent || [], source: source || 'Emoji key' });
+    w.webContents.send('emoji-show', { theme: state.uiSettings.theme || 'light', recent: state.uiSettings.emojiRecent || [], source: source || t('Emoji key') });
   };
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
 }
@@ -66,9 +67,9 @@ ipcMain.on('emoji-pick', async (_e, { ch }) => {
   clipboard.writeText(ch);
   await new Promise(r => setTimeout(r, 120));   // let focus return to the previous window
   try { await rpc('play_action', { action: { type: 'keystroke', keys: plat.PASTE_KEYS } }); }
-  catch (e) { if (Notification.isSupported()) new Notification({ title: 'Emoji copied', body: `${ch} is on the clipboard (agent not reachable to paste)`, icon: path.join(ROOT, 'assets', 'icon.png') }).show(); }
+  catch (e) { if (Notification.isSupported()) new Notification({ title: t('Emoji copied'), body: t('{emoji} is on the clipboard (agent not reachable to paste)', { emoji: ch }), icon: path.join(ROOT, 'assets', 'icon.png') }).show(); }
   setTimeout(() => { try { if (clipboard.readText() === ch && previous) clipboard.writeText(previous); } catch (e) {} }, 800);
 });
-ipcMain.handle('emoji-show', () => showEmoji('Preview'));
+ipcMain.handle('emoji-show', () => showEmoji(t('Preview')));
 
 exports.provide = { EMOJI_W, EMOJI_H, ensureEmoji, cursorPoint, showEmoji };

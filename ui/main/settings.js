@@ -5,8 +5,8 @@ const fs = require('fs');
 const state = require('./state');
 
 // from the other parts of the main process, filled in by link()
-let btSetMode, createTray, setAutostart;
-exports.link = ctx => { ({ btSetMode, createTray, setAutostart } = ctx); };
+let btSetMode, changeLanguage, createTray, setAutostart;
+exports.link = ctx => { ({ btSetMode, changeLanguage, createTray, setAutostart } = ctx); };
 
 const UI_SETTINGS_PATH = path.join(app.getPath('userData'), 'ui-settings.json');
 function loadUi() {
@@ -27,6 +27,7 @@ ipcMain.handle('ui-settings', (_e, patch) => {
     if ('tray' in patch) { if (patch.tray && !state.tray) createTray(); else if (!patch.tray && state.tray) { state.tray.destroy(); state.tray = null; } }
     if ('autostart' in patch) setAutostart(!!patch.autostart);
     if ('bt_watch' in patch) btSetMode();
+    if ('language' in patch) setTimeout(changeLanguage, 50);   // after this answer reaches the window
   }
   return state.uiSettings;
 });

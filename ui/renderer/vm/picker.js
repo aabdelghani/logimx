@@ -3,6 +3,7 @@
 import { isFolderSlot, RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS } from '../../shared/ring.mjs';
 import * as Act from '../../shared/actions.mjs';
 import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
+import { en, inEnglish, t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast;
@@ -14,12 +15,12 @@ export const state = {
 };
 
 // ----------------------------------------------------------- dialogs
-const PICKER_CATS = [['all', 'All', 'fa-list'], ['key', 'Keystroke', 'fa-keyboard'], ['media', 'Media', 'fa-play'], ['window', 'Window', 'fa-window-maximize'], ['ws', 'Workspaces', 'fa-table-cells-large'], ['cmd', 'Command', 'fa-terminal'], ['app', 'Apps', 'fa-rocket'], ['device', 'Device', 'fa-computer-mouse']];
+const PICKER_CATS = [['all', t('All'), 'fa-list'], ['key', t('Keystroke'), 'fa-keyboard'], ['media', t('Media'), 'fa-play'], ['window', t('Window'), 'fa-window-maximize'], ['ws', t('Workspaces'), 'fa-table-cells-large'], ['cmd', t('Command'), 'fa-terminal'], ['app', t('Apps'), 'fa-rocket'], ['device', t('Device'), 'fa-computer-mouse']];
 const CAT_OF = { media: ['volume_up', 'volume_down', 'mute', 'mic_mute', 'play_pause', 'next_track', 'prev_track', 'brightness_up', 'brightness_down'],
   window: ['close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'show_desktop', 'app_switcher', 'screenshot', 'screenshot_area', 'lock', 'terminal', 'calculator', 'emoji_picker', 'action_ring', 'emoji', 'context_menu', 'copy', 'paste', 'undo', 'redo', 'zoom_in', 'zoom_out', 'tab_next', 'tab_prev'],
   ws: ['overview', 'workspace_next', 'workspace_prev'],
   device: ['native', 'nothing', 'middle_click', 'back', 'forward', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'dpi_cycle', 'smartshift_toggle', 'open_home', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel'] };
-const CAT_LABEL = { media: 'Media', window: 'Window', ws: 'Shell', device: 'Device' };
+const CAT_LABEL = { media: t('Media'), window: t('Window'), ws: t('Shell'), device: t('Device') };
 function pickerItems(p) {
   const all = S.presets.all;
   const allowed = new Set(p.section === 'ring' ? S.presets.buttons.filter(k => !['native', 'nothing', 'action_ring'].includes(k) && all[k] && all[k].type !== 'gesture') : p.section === 'thumbwheel' ? S.presets.wheel : p.section === 'gesture' ? Object.keys(all).filter(k => ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'].includes(all[k].type)) : p.section === 'keys' ? S.presets.keys.filter(k => k !== 'action_ring') : S.presets.buttons);
@@ -27,7 +28,7 @@ function pickerItems(p) {
   for (const [cat, keys] of Object.entries(CAT_OF)) for (const k of keys) if (allowed.has(k) && all[k] && (p.cat === 'all' || p.cat === cat)) {
     if (all[k].type === 'gesture' && p.section !== 'buttons') continue;
     if (p.section === 'buttons' && all[k].type === 'gesture' && !(p.ctl && p.ctl.raw_xy)) continue;
-    items.push({ key: k, cat, icon: PRESET_ICON[k] || ICON[all[k].type], label: all[k].label, meta: CAT_LABEL[cat] });
+    items.push({ key: k, cat, icon: PRESET_ICON[k] || ICON[all[k].type], label: t(all[k].label), meta: CAT_LABEL[cat] }); // i18n: data
   }
   const q = (p.q || '').toLowerCase();
   return q ? items.filter(i => i.label.toLowerCase().includes(q)) : items;
@@ -38,7 +39,7 @@ function pickerItems(p) {
 // Options+ card -> LogiMX preset, for the cards it recommends past a key's own function
 const OPTS_CARD = { win_print_screen: 'screenshot', win_emoji: 'emoji' };
 // key control id -> what Options+ names the key's own function, plus any extra card it offers
-const RECOMMEND = { 10: ['Calculator'], 110: ['Show desktop'], 111: ['Lock screen'], 191: ['Screen capture', 'win_print_screen'], 199: ['Brightness down'], 200: ['Brightness up'], 212: ['Search'], 224: ['Task view'], 225: ['Notifications'], 226: ['Backlight down'], 227: ['Backlight up'], 228: ['Previous track'], 229: ['Play / Pause'], 230: ['Next track'], 231: ['Mute'], 232: ['Volume down'], 233: ['Volume up'], 234: ['Context menu'], 259: ['Dictation'], 264: ['Emoji menu', 'win_emoji'], 266: ['Screen snip'], 284: ['Mute microphone'] };
+const RECOMMEND = { 10: [t('Calculator')], 110: [t('Show desktop')], 111: [t('Lock screen')], 191: [t('Screen capture'), 'win_print_screen'], 199: [t('Brightness down')], 200: [t('Brightness up')], 212: [t('Search')], 224: [t('Task view')], 225: [t('Notifications')], 226: [t('Backlight down')], 227: [t('Backlight up')], 228: [t('Previous track')], 229: [t('Play / Pause')], 230: [t('Next track')], 231: [t('Mute')], 232: [t('Volume down')], 233: [t('Volume up')], 234: [t('Context menu')], 259: [t('Dictation')], 264: [t('Emoji menu'), 'win_emoji'], 266: [t('Screen snip')], 284: [t('Mute microphone')] };
 // a mouse's buttons and thumb wheel: what Options+ recommends for each (recommendations_slot_win.json,
 // MX Master 3S), as LogiMX presets; its own function comes first as Default
 const MOUSE_RECOMMEND = { 82: ['smartshift_toggle', 'overview', 'show_desktop', 'gesture_navigation', 'action_ring'], 83: ['copy', 'volume_down', 'undo', 'action_ring'], 86: ['paste', 'volume_up', 'redo', 'action_ring'],
@@ -49,15 +50,15 @@ const MOUSE_RECOMMEND = { 82: ['smartshift_toggle', 'overview', 'show_desktop', 
 const AK = (keys, label, icon) => ({ type: 'keystroke', keys, label, icon });
 const AW = (plus, minus, label) => ({ type: 'adapter', step: 120, label, plus: { type: 'keystroke', keys: plus }, minus: { type: 'keystroke', keys: minus } });
 const APP_ACTIONS = {
-  new_tab: AK(['KEY_LEFTCTRL', 'KEY_T'], 'New tab'), close_tab: AK(['KEY_LEFTCTRL', 'KEY_W'], 'Close tab'), reopen_tab: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_T'], 'Reopen closed tab'),
-  refresh: AK(['KEY_F5'], 'Refresh page'), save: AK(['KEY_LEFTCTRL', 'KEY_S'], 'Save'), find: AK(['KEY_LEFTCTRL', 'KEY_F'], 'Find'),
-  paste_special: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_V'], 'Paste special'), page_up: AK(['KEY_PAGEUP'], 'Page up'), page_down: AK(['KEY_PAGEDOWN'], 'Page down'),
-  slide_prev: AK(['KEY_PAGEUP'], 'Previous slide'), slide_next: AK(['KEY_PAGEDOWN'], 'Next slide'), start_show: AK(['KEY_F5'], 'Start slide show'),
-  zoom_mic: AK(['KEY_LEFTALT', 'KEY_A'], 'Mute / unmute microphone'), zoom_cam: AK(['KEY_LEFTALT', 'KEY_V'], 'Camera on / off'),
-  teams_mic: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_M'], 'Mute / unmute microphone'), teams_cam: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_O'], 'Camera on / off'),
-  back_forward_wheel: AW(['KEY_LEFTALT', 'KEY_RIGHT'], ['KEY_LEFTALT', 'KEY_LEFT'], 'Back / forward'), page_wheel: AW(['KEY_PAGEDOWN'], ['KEY_PAGEUP'], 'Page down / up'),
-  slide_wheel: AW(['KEY_PAGEDOWN'], ['KEY_PAGEUP'], 'Next / previous slide'), undo_redo_wheel: AW(['KEY_LEFTCTRL', 'KEY_Y'], ['KEY_LEFTCTRL', 'KEY_Z'], 'Redo / undo'),
-  text_size_wheel: AW(['KEY_LEFTCTRL', 'KEY_RIGHTBRACE'], ['KEY_LEFTCTRL', 'KEY_LEFTBRACE'], 'Text size'),
+  new_tab: AK(['KEY_LEFTCTRL', 'KEY_T'], en('New tab')), close_tab: AK(['KEY_LEFTCTRL', 'KEY_W'], en('Close tab')), reopen_tab: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_T'], en('Reopen closed tab')),
+  refresh: AK(['KEY_F5'], en('Refresh page')), save: AK(['KEY_LEFTCTRL', 'KEY_S'], en('Save')), find: AK(['KEY_LEFTCTRL', 'KEY_F'], en('Find')),
+  paste_special: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_V'], en('Paste special')), page_up: AK(['KEY_PAGEUP'], en('Page up')), page_down: AK(['KEY_PAGEDOWN'], en('Page down')),
+  slide_prev: AK(['KEY_PAGEUP'], en('Previous slide')), slide_next: AK(['KEY_PAGEDOWN'], en('Next slide')), start_show: AK(['KEY_F5'], en('Start slide show')),
+  zoom_mic: AK(['KEY_LEFTALT', 'KEY_A'], en('Mute / unmute microphone')), zoom_cam: AK(['KEY_LEFTALT', 'KEY_V'], en('Camera on / off')),
+  teams_mic: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_M'], en('Mute / unmute microphone')), teams_cam: AK(['KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_O'], en('Camera on / off')),
+  back_forward_wheel: AW(['KEY_LEFTALT', 'KEY_RIGHT'], ['KEY_LEFTALT', 'KEY_LEFT'], en('Back / forward')), page_wheel: AW(['KEY_PAGEDOWN'], ['KEY_PAGEUP'], en('Page down / up')),
+  slide_wheel: AW(['KEY_PAGEDOWN'], ['KEY_PAGEUP'], en('Next / previous slide')), undo_redo_wheel: AW(['KEY_LEFTCTRL', 'KEY_Y'], ['KEY_LEFTCTRL', 'KEY_Z'], en('Redo / undo')),
+  text_size_wheel: AW(['KEY_LEFTCTRL', 'KEY_RIGHTBRACE'], ['KEY_LEFTCTRL', 'KEY_LEFTBRACE'], en('Text size')),
 };
 for (const [k, a] of Object.entries(APP_ACTIONS)) a.preset = 'app:' + k;   // so the list can tell which one is in use
 const BROWSER = { name: 'browser', match: /chrom|firefox|edge|brave|vivaldi|opera|librewolf|zen/i,
@@ -81,9 +82,10 @@ function appSet(p) {
   const hay = [key].concat(prof ? prof.match : []).join(' ');
   return APP_SETS.find(a => a.match.test(hay)) || null;
 }
-const appLabel = set => set.name === 'browser' ? 'For browsers' : 'For ' + set.name;
-// an item of the list: a preset, or one of the ready-made keystrokes above
-const recItem = k => k.startsWith('app:') ? { key: k, icon: (APP_ACTIONS[k.slice(4)].type === 'adapter' ? 'fa-arrows-up-down' : 'fa-keyboard'), label: APP_ACTIONS[k.slice(4)].label } : presetItem(k);
+const appLabel = set => set.name === 'browser' ? t('For browsers') : t('For {app}', { app: set.name });
+// an item of the list: a preset, or one of the ready-made keystrokes above (their labels are kept
+// in English, as stored in the config, and shown translated)
+const recItem = k => k.startsWith('app:') ? { key: k, icon: (APP_ACTIONS[k.slice(4)].type === 'adapter' ? 'fa-arrows-up-down' : 'fa-keyboard'), label: t(APP_ACTIONS[k.slice(4)].label) } : presetItem(k); // i18n: data
 const MOUSE_GROUP = ['middle_click', 'back', 'forward', 'dpi_cycle', 'smartshift_toggle', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'action_ring'];
 const WHEEL_GROUP = ['hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel', 'nothing'];
 const K = (code, label) => ({ code: 'KEY_' + code, label: label || code });
@@ -95,8 +97,8 @@ const keyGroups = () => ({
   numbers: keyRange('1 2 3 4 5 6 7 8 9 0'),
   symbols: [K('GRAVE', '`'), K('MINUS', '-'), K('EQUAL', '='), K('LEFTBRACE', '['), K('RIGHTBRACE', ']'), K('BACKSLASH', '\\'), K('SEMICOLON', ';'), K('APOSTROPHE', "'"), K('COMMA', ','), K('DOT', '.'), K('SLASH', '/'), K('102ND', '< >')],
   numpad: keyRange('KP0 KP1 KP2 KP3 KP4 KP5 KP6 KP7 KP8 KP9', c => 'Num ' + c.slice(2)).concat([K('KPENTER', 'Num Enter'), K('KPEQUAL', 'Num ='), K('NUMLOCK', 'Num Lock'), K('KPMINUS', 'Num -'), K('KPDOT', 'Num .'), K('KPPLUS', 'Num +'), K('KPSLASH', 'Num /'), K('KPASTERISK', 'Num *')]),
-  modifiers: [K('LEFTCTRL', 'Left Ctrl'), K('RIGHTCTRL', 'Right Ctrl'), K('LEFTSHIFT', 'Left Shift'), K('RIGHTSHIFT', 'Right Shift'), K('LEFTALT', 'Left ' + ALT()), K('RIGHTALT', 'Right ' + ALT()), K('LEFTMETA', 'Left ' + META()), K('RIGHTMETA', 'Right ' + META())],
-  arrows: [K('UP', 'Up arrow'), K('DOWN', 'Down arrow'), K('LEFT', 'Left arrow'), K('RIGHT', 'Right arrow'), K('HOME', 'Home'), K('END', 'End'), K('PAGEUP', 'Page up'), K('PAGEDOWN', 'Page down'), K('INSERT', 'Insert')],
+  modifiers: [K('LEFTCTRL', t('Left {key}', { key: 'Ctrl' })), K('RIGHTCTRL', t('Right {key}', { key: 'Ctrl' })), K('LEFTSHIFT', t('Left {key}', { key: 'Shift' })), K('RIGHTSHIFT', t('Right {key}', { key: 'Shift' })), K('LEFTALT', t('Left {key}', { key: ALT() })), K('RIGHTALT', t('Right {key}', { key: ALT() })), K('LEFTMETA', t('Left {key}', { key: META() })), K('RIGHTMETA', t('Right {key}', { key: META() }))],
+  arrows: [K('UP', t('Up arrow')), K('DOWN', t('Down arrow')), K('LEFT', t('Left arrow')), K('RIGHT', t('Right arrow')), K('HOME', 'Home'), K('END', 'End'), K('PAGEUP', 'Page up'), K('PAGEDOWN', 'Page down'), K('INSERT', 'Insert')],
   others: [K('CAPSLOCK', 'Caps Lock'), K('SCROLLLOCK', 'Scroll Lock'), K('BACKSPACE', 'Backspace'), K('DELETE', 'Delete'), K('ESC', 'Escape'), K('TAB', 'Tab'), K('SPACE', 'Space'), K('ENTER', 'Enter')],
 });
 
@@ -110,12 +112,12 @@ const OPTS_CATS = {
 };
 // three sections, as Options+ shows a key: what it recommends, Smart actions (things that run,
 // type or open), and every other action grouped under small headings
-const DRAWER_SECTIONS = [['rec', 'Recommended'], ['smart', 'Smart actions'], ['more', 'Other actions']];
-const ACTION_GROUPS = [['nav', 'Navigate computer'], ['edit', 'Edit files and folders'], ['media', 'Media and audio'], ['other', 'Device']];
+const DRAWER_SECTIONS = [['rec', t('Recommended')], ['smart', t('Smart actions')], ['more', t('Other actions')]];
+const ACTION_GROUPS = [['nav', t('Navigate computer')], ['edit', t('Edit files and folders')], ['media', t('Media and audio')], ['other', t('Device')]];
 // what each kind of control lists: a key, a mouse button (with a mouse group first), or the thumb wheel
-const groupsFor = p => p.section === 'thumbwheel' ? [['wheel', 'Wheel']] : p.section === 'buttons' ? [['mouse', 'Mouse']].concat(ACTION_GROUPS) : ACTION_GROUPS;
+const groupsFor = p => p.section === 'thumbwheel' ? [['wheel', t('Wheel')]] : p.section === 'buttons' ? [['mouse', t('Mouse')]].concat(ACTION_GROUPS) : ACTION_GROUPS;
 const sectionsFor = p => p.section === 'thumbwheel' ? DRAWER_SECTIONS.filter(([k]) => k !== 'smart') : DRAWER_SECTIONS;
-const KEY_GROUP_NAMES = [['fkeys', 'F keys'], ['letters', 'Letters'], ['numbers', 'Numbers'], ['symbols', 'Symbols'], ['numpad', 'Num pad'], ['modifiers', 'Modifier keys'], ['arrows', 'Arrow and navigation'], ['others', 'Others']];
+const KEY_GROUP_NAMES = [['fkeys', t('F keys')], ['letters', t('Letters')], ['numbers', t('Numbers')], ['symbols', t('Symbols')], ['numpad', t('Num pad')], ['modifiers', t('Modifier keys')], ['arrows', t('Arrow and navigation')], ['others', t('Others')]];
 const curOf = p => typeof p.current === 'string' ? p.current : (p.current && (p.current.preset || (p.current.type === 'brightness_dial' ? 'ring:brightness' : undefined)));
 // a single key: its keystroke, so the panel can say which one is in use
 const keyCur = p => p.current && typeof p.current === 'object' && p.current.type === 'keystroke' && (p.current.keys || []).length === 1 ? p.current.keys[0] : null;
@@ -131,7 +133,7 @@ function easyLabel(k) {
   const m = /^easy_switch_(\d)$/.exec(k || ''); if (!m) return null;
   const d = S.devices.find(x => x.id === S.dev && (x.state || {}).hosts) || S.devices.find(x => (x.state || {}).hosts);
   const n = d && ((d.state.hosts.names || [])[Number(m[1]) - 1] || {}).name;
-  return n ? `Switch to ${n}` : null;
+  return n ? t('Switch to {name}', { name: n }) : null;
 }
 const GESTURE_RECOMMEND = ['overview', 'show_desktop', 'app_switcher', 'workspace_next', 'workspace_prev', 'volume_up', 'volume_down', 'play_pause'];
 const GESTURE_TYPES = ['nothing', 'keystroke', 'button', 'command', 'change_host', 'dpi_cycle', 'scroll', 'smartshift_toggle', 'open'];
@@ -142,34 +144,34 @@ function drawerItems(sec, p) {
   const ok = allowedFor(p || S.picker);
   return (OPTS_CATS[sec] || []).filter(k => ok.has(k) && S.presets.all[k]).map(presetItem);
 }
-function openPicker(t) {
+function openPicker(o) {
   // what is open right now, so the launch list can lead with it instead of 122 alphabetical entries
   api.quiet('running_apps').then(r => { S.running = r; if (S.picker && S.picker.cat === 'app') fx.refreshAppList(); }).catch(() => { S.running = []; });
-  const d = t.dev || dev();
-  const section = t.section, cid = t.cid;
-  const gslot = section === 'gesture' && d && t.slot ? gestureObject(d, cid)[t.slot] : null;
-  const current = section === 'gesture' ? (gslot ? gslot.preset || gslot : null) : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, t.profile);
+  const d = o.dev || dev();
+  const section = o.section, cid = o.cid;
+  const gslot = section === 'gesture' && d && o.slot ? gestureObject(d, cid)[o.slot] : null;
+  const current = section === 'gesture' ? (gslot ? gslot.preset || gslot : null) : section === 'ring' ? (ringSlots()[cid] || {}).action || null : assignment(d, section, cid, o.profile);
   const ctl = typeof cid === 'number' && section !== 'ring' && d ? d.controls.find(c => c.cid === cid) : null;
-  S.picker = { drawer: !!t.drawer, fold: t.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: t.label, profile: t.profile || S.editProfile || 'default', cat: t.cat || 'all', current, ctl, sel: null, slot: t.slot, recording: t.drawer ? false : t.cat === 'key' };
+  S.picker = { drawer: !!o.drawer, fold: o.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: o.label, profile: o.profile || S.editProfile || 'default', cat: o.cat || 'all', current, ctl, sel: null, slot: o.slot, recording: o.drawer ? false : o.cat === 'key' };
   S.dlg = 'picker'; changed();
 }
 async function assignPicked(action) {
   const p = S.picker; const d = S.devices.find(x => x.id === p.dev);
   if (p.section === 'ring') {
-    const entry = { action, label: easyLabel(action) || presetLabel(action), icon: actionIcon(action) };
+    const entry = { action, label: inEnglish(() => easyLabel(action) || presetLabel(action)), icon: actionIcon(action) };   // saved in English, shown translated
     if (p.insert) {
       const list = ringSlots().filter(Boolean);
-      if (list.length >= 8) { toast('A folder holds 8 actions', true); return; }
+      if (list.length >= 8) { toast(t('A folder holds 8 actions'), true); return; }
       if (p.insert === 'start') list.unshift(entry); else list.push(entry);
       await saveRingSlots(list);
-      p.cid = p.insert === 'start' ? 0 : list.length - 1; p.insert = null; p.label = `Action ${p.cid + 1}`;
+      p.cid = p.insert === 'start' ? 0 : list.length - 1; p.insert = null; p.label = t('Action {n}', { n: p.cid + 1 });
     } else {
       const slots = ringSlots();
       slots[p.cid] = entry;
       await saveRingSlots(slots);
     }
-    if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; changed(); toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); return; }
-    S.dlg = null; toast(`Slot ${p.cid + 1}: ${presetLabel(action)}`); changed(); return;
+    if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; changed(); toast(t('Slot {n}: {action}', { n: p.cid + 1, action: presetLabel(action) })); return; }
+    S.dlg = null; toast(t('Slot {n}: {action}', { n: p.cid + 1, action: presetLabel(action) })); changed(); return;
   }
   if (p.section === 'gesture') {
     const cid = gestureControl(d), g = gestureObject(d, cid);
@@ -181,11 +183,11 @@ async function assignPicked(action) {
   } else {
     await setAssign(d, p.section, p.cid, action, p.profile);
   }
-  if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; changed(); toast('Assigned ' + presetLabel(action)); return; }
-  S.dlg = null; toast('Assigned ' + presetLabel(action)); changed();
+  if (p.drawer) { p.current = action; p.sel = null; p.selKey = null; p.cat = 'all'; p.chord = []; p.typed = ''; changed(); toast(t('Assigned {action}', { action: presetLabel(action) })); return; }
+  S.dlg = null; toast(t('Assigned {action}', { action: presetLabel(action) })); changed();
 }
 
-const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: S.presets.all[k].label });
+const presetItem = k => ({ key: k, icon: PRESET_ICON[k] || ICON[(S.presets.all[k] || {}).type] || 'fa-circle-dot', label: t(S.presets.all[k].label) }); // i18n: data
 // keys from the recorder: the chord so far, and whether it is still listening
 function setChord(chord, recording) { if (!S.picker) return; S.picker.chord = chord; if (recording !== undefined) S.picker.recording = recording; }
 // an action dropped on a gesture direction: the panel turns to that direction, then assigns it
@@ -220,7 +222,7 @@ export const commands = {
     await setAssign(dd, 'buttons', p.cid, g, p.profile);
     S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
     p.current = g; p.sel = null;
-    toast(`Gestures on ${p.label || 'this button'}`);
+    toast(p.label ? t('Gestures on {button}', { button: p.label }) : t('Gestures on this button'));
     changed(); return;
   },
   'gest-config': async (it, e, d, key) => {
@@ -260,22 +262,22 @@ export const commands = {
     if (key.startsWith('app:')) return assignPicked(JSON.parse(JSON.stringify(APP_ACTIONS[key.slice(4)])));
     if (key === 'wheel:keys') {
       const typedKeys = Act.typedKeys;
-      prompt('Two keystrokes', [{ key: 'up', label: 'Turning one way', placeholder: 'ctrl+tab' }, { key: 'down', label: 'Turning the other way', placeholder: 'ctrl+shift+tab' }], async v => {
+      prompt(t('Two keystrokes'), [{ key: 'up', label: t('Turning one way'), placeholder: 'ctrl+tab' }, { key: 'down', label: t('Turning the other way'), placeholder: 'ctrl+shift+tab' }], async v => {
         const plus = typedKeys(v.up || ''), minus = typedKeys(v.down || '');
-        if (!plus || !minus) { toast('Type a keystroke for each way', true); return changed(); }
+        if (!plus || !minus) { toast(t('Type a keystroke for each way'), true); return changed(); }
         await assignPicked({ type: 'adapter', step: 120, label: `${plus.map(keyName).join(' + ')} / ${minus.map(keyName).join(' + ')}`, plus: { type: 'keystroke', keys: plus }, minus: { type: 'keystroke', keys: minus } });
-      }, 'Assign');
+      }, t('Assign'));
       return;
     }
     if (key === 'ring:profile') return assignPicked(RING_NEXT_PROFILE);
     if (key === 'ring:brightness') return assignPicked(RING_BRIGHTNESS);
     if (key === 'ring:folder') {
       if (isFolderSlot({ action: S.picker.current })) return;
-      prompt('New folder', [{ key: 'name', label: 'Name', placeholder: 'Media, Windows, Apps…' }], async v => {
-        const name = (v.name || '').trim() || 'Folder';
+      prompt(t('New folder'), [{ key: 'name', label: t('Name'), placeholder: t('Media, Windows, Apps…') }], async v => {
+        const name = (v.name || '').trim() || t('Folder');
         await assignPicked({ type: 'folder', label: name, slots: [] });
         const slots = ringSlots(); slots[S.picker.cid].label = name; slots[S.picker.cid].icon = 'fa-folder'; await saveRingSlots(slots); changed();
-      }, 'Create');
+      }, t('Create'));
       return;
     }
     if (S.picker.drawer) return assignPicked(key); S.picker.sel = key; fx.markPicked('item', key, S.picker.drawer); return;
@@ -285,33 +287,33 @@ export const commands = {
   'pick-disable': async (it, e, d, key) => { await assignPicked('nothing'); return; },
   'pick-default': async (it, e, d, key) => {
     const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
-    if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await saveRingSlots(slots); S.dlg = null; toast(`Slot ${p.cid + 1} cleared`); changed(); return; }
+    if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await saveRingSlots(slots); S.dlg = null; toast(t('Slot {n} cleared', { n: p.cid + 1 })); changed(); return; }
     const defs = ((await api.quiet('defaults', { id: dd.id })).profiles || {}).default || {};
     let a = 'native';
     if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';
     else if (p.section === 'gesture') a = 'nothing';
     else a = (defs[p.section] || {})[String(p.cid)] || 'native';
-    if (p.profile && p.profile !== 'default') { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[p.profile] && profs[p.profile][p.section]) { delete profs[p.profile][p.section][String(p.cid)]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } S.picker = null; toast('Override removed, follows All applications'); changed(); return; }
+    if (p.profile && p.profile !== 'default') { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[p.profile] && profs[p.profile][p.section]) { delete profs[p.profile][p.section][String(p.cid)]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } S.picker = null; toast(t('Override removed, follows All applications')); changed(); return; }
     await assignPicked(a); return;
   },
   'pick-assign': async (it, e, d, key) => {
     const p = S.picker;
     if (p.cat === 'key') {
-      const t = (p.typed || '').trim();
-      if (t) { fx.stopRecorder(); return assignPicked({ type: 'keystroke', keys: Act.typedKeys(t) }); }
+      const typed = (p.typed || '').trim();
+      if (typed) { fx.stopRecorder(); return assignPicked({ type: 'keystroke', keys: Act.typedKeys(typed) }); }
       // whatever the box shows is what the user wants, whether or not the recorder saw a release
       if ((p.chord || []).length) { fx.stopRecorder(); p.recording = false; return assignPicked({ type: 'keystroke', keys: p.chord.slice() }); }
-      return toast('Record or type a keystroke first', true);
+      return toast(t('Record or type a keystroke first'), true);
     }
-    if (p.cat === 'cmd') { if (p.cmd) return assignPicked({ type: 'command', cmd: p.cmd, label: 'Run: ' + p.cmd }); if (p.text) return assignPicked({ type: 'type_text', text: p.text }); if (p.open) return assignPicked({ type: 'open', target: p.open, label: 'Open ' + p.open.replace(/^https?:\/\//, '').slice(0, 24) }); return toast('Enter a command, text or target', true); }
+    if (p.cat === 'cmd') { if (p.cmd) return assignPicked({ type: 'command', cmd: p.cmd, label: 'Run: ' + p.cmd }); if (p.text) return assignPicked({ type: 'type_text', text: p.text }); if (p.open) return assignPicked({ type: 'open', target: p.open, label: 'Open ' + p.open.replace(/^https?:\/\//, '').slice(0, 24) }); return toast(t('Enter a command, text or target'), true); }
     if (p.cat === 'app') {
-      if (!p.launch) return toast('Pick an application first', true);
+      if (!p.launch) return toast(t('Pick an application first'), true);
       const a = (S.apps || []).concat(S.running || []).find(x => x.id === p.launch);
       if (a && a.url) return assignPicked({ type: 'open', target: a.url, label: a.name });
       return assignPicked({ type: 'launch', app: p.launch, label: a ? a.name : p.launch });
     }
     if (p.sel) return assignPicked(p.sel);
-    return toast('Pick an action first', true);
+    return toast(t('Pick an action first'), true);
   },
 };
 

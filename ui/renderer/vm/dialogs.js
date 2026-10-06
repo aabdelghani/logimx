@@ -1,4 +1,5 @@
 // View model: prompts, wishes and problem reports.
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let IS_MAC, IS_WIN, S, VERSION, api, call, changed, fx, loadLogs, toast;
@@ -31,19 +32,19 @@ export const commands = {
     const w = S.wish, what = ((w && w.what) || '').trim(); if (!what) return;
     const title = 'Wish: ' + (what.split('\n')[0].length > 70 ? what.split('\n')[0].slice(0, 67) + '…' : what.split('\n')[0]);
     api.host.openExternal(`${ISSUE_URL}?labels=enhancement&title=${encodeURIComponent(title)}&body=${encodeURIComponent(wishBody(w))}`);
-    S.dlg = null; toast('Wish received by the genie! Submit it on GitHub and the 24-hour clock starts'); changed(); return;
+    S.dlg = null; toast(t('Wish received by the genie! Submit it on GitHub and the 24-hour clock starts')); changed(); return;
   },
-  'report-copy': async (it, e, d, key) => { api.host.copy(reportBody(S.report, true)); toast('Report copied'); return; },
+  'report-copy': async (it, e, d, key) => { api.host.copy(reportBody(S.report, true)); toast(t('Report copied')); return; },
   'report-open': async (it, e, d, key) => {
     const r = S.report; if (!r || !r.summary) return;
     // a link can only carry so much: past that the log travels on the clipboard instead
     let body = reportBody(r, true), full = true;
     if (encodeURIComponent(body).length > 6000) { body = reportBody(r, false); full = false; api.host.copy('```\n' + r.log + '\n```'); }
     api.host.openExternal(`${ISSUE_URL}?title=${encodeURIComponent(r.title)}&body=${encodeURIComponent(body)}`);
-    S.dlg = null; toast(full ? 'Issue opened in your browser' : 'Issue opened; the log is on the clipboard to paste', false); changed(); return;
+    S.dlg = null; toast(full ? t('Issue opened in your browser') : t('Issue opened; the log is on the clipboard to paste'), false); changed(); return;
   },
-  'export-diag': async (it, e, d, key) => { const diag = { status: S.status, devices: S.devices, config: await call('export_config'), logs: S.logs, ui: S.ui, when: new Date().toISOString() }; const p = await api.host.saveJson('logimx-diagnostics.json', diag); if (p) toast('Saved ' + p); return; },
-  'copy-diag': async (it, e, d, key) => { api.host.copy(S.logs.map(l => l.t).join('\n') || JSON.stringify(S.status)); toast('Copied'); return; },
+  'export-diag': async (it, e, d, key) => { const diag = { status: S.status, devices: S.devices, config: await call('export_config'), logs: S.logs, ui: S.ui, when: new Date().toISOString() }; const p = await api.host.saveJson('logimx-diagnostics.json', diag); if (p) toast(t('Saved {path}', { path: p })); return; },
+  'copy-diag': async (it, e, d, key) => { api.host.copy(S.logs.map(l => l.t).join('\n') || JSON.stringify(S.status)); toast(t('Copied')); return; },
   'refresh-logs': async (it, e, d, key) => { await loadLogs(); changed(); return; },
 };
 

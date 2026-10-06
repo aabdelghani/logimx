@@ -5,6 +5,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let rpc, showEmoji;
@@ -46,17 +47,17 @@ async function micMuted() {
 async function showOsd(data) {
   if (!osdEnabled(data.kind)) return;
   let msg = { kind: data.kind, duration: state.general.osd_duration || 1500, theme: (state.uiSettings && state.uiSettings.theme) || 'light' };
-  if (data.kind === 'mic') { const m = await micMuted(); msg.title = m === null ? 'Microphone' : m ? 'Microphone muted' : 'Microphone on'; msg.sub = m === null ? 'Toggled' : m ? 'Press again to unmute' : 'Press again to mute'; }
-  else if (data.kind === 'smartshift') { msg.title = data.mode === 'ratchet' ? 'Ratchet' : 'Free-spin'; msg.sub = `Scroll wheel · SmartShift ${data.mode === 'ratchet' ? 'on' : 'off'}`; }
+  if (data.kind === 'mic') { const m = await micMuted(); msg.title = m === null ? t('Microphone') : m ? t('Microphone muted') : t('Microphone on'); msg.sub = m === null ? t('Toggled') : m ? t('Press again to unmute') : t('Press again to mute'); }
+  else if (data.kind === 'smartshift') { msg.title = data.mode === 'ratchet' ? t('Ratchet') : t('Free-spin'); msg.sub = data.mode === 'ratchet' ? t('Scroll wheel · SmartShift on') : t('Scroll wheel · SmartShift off'); }
   else if (data.kind === 'backlight' && !(data.num_levels >= 2 && data.level >= 0 && data.level < data.num_levels)) return;   // not a level: nothing to show
-  else if (data.kind === 'backlight') { msg.title = 'Backlight'; msg.sub = `Level ${data.level} of ${(data.num_levels || 8) - 1}`; msg.level = data.level; msg.num_levels = (data.num_levels || 8) - 1; }
-  else if (data.kind === 'host') { const d = state.devices.find(x => x.id === data.id); const name = d && d.state && d.state.hosts && d.state.hosts.names[data.host] ? d.state.hosts.names[data.host].name : ''; msg.title = `Switched to ${name || 'host ' + (data.host + 1)}`; msg.sub = `${data.device || ''} · host ${data.host + 1}`; msg.host = data.host; }
-  else if (data.kind === 'dpi') { msg.title = `${data.dpi} DPI`; msg.sub = data.device || ''; }
+  else if (data.kind === 'backlight') { msg.title = t('Backlight'); msg.sub = t('Level {level} of {max}', { level: data.level, max: (data.num_levels || 8) - 1 }); msg.level = data.level; msg.num_levels = (data.num_levels || 8) - 1; }
+  else if (data.kind === 'host') { const d = state.devices.find(x => x.id === data.id); const name = d && d.state && d.state.hosts && d.state.hosts.names[data.host] ? d.state.hosts.names[data.host].name : ''; msg.title = name ? t('Switched to {name}', { name }) : t('Switched to host {n}', { n: data.host + 1 }); msg.sub = `${data.device || ''} · ${t('host {n}', { n: data.host + 1 })}`; msg.host = data.host; }
+  else if (data.kind === 'dpi') { msg.title = t('{dpi} DPI', { dpi: data.dpi }); msg.sub = data.device || ''; }
   const w = ensureOsd();
   const send = () => { positionOsd(); w.showInactive(); w.webContents.send('osd-show', msg); clearTimeout(osdTimer); osdTimer = setTimeout(() => { if (w && !w.isDestroyed()) w.hide(); }, (msg.duration || 1500) + 400); };
   if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
 }
 ipcMain.on('osd-hidden', () => { if (osdWin && !osdWin.isDestroyed()) osdWin.hide(); });
-ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji('Preview') : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
+ipcMain.handle('osd-test', (_e, kind) => kind === 'emoji' ? showEmoji(t('Preview')) : showOsd({ kind, mode: 'freespin', level: 5, num_levels: 8, host: 1, dpi: 1600, device: 'MX Master 3S' }));
 
 exports.provide = { osdEnabled, ensureOsd, positionOsd, micMuted, showOsd };

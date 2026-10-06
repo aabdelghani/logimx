@@ -1,4 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
+// the language the main process chose, with its translations
+contextBridge.exposeInMainWorld('i18n', { load: () => ipcRenderer.sendSync('i18n') });
 
 contextBridge.exposeInMainWorld('agent', {
   call: (method, params) => ipcRenderer.invoke('rpc', method, params || {}),

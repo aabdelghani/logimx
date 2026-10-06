@@ -4,6 +4,8 @@ const plat = require('../platform');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const state = require('./state');
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let resPath, rpc, run;
@@ -67,7 +69,7 @@ ipcMain.handle('ring-bri-get', async () => {
   briTarget = null;
   if (!plat.IS_LINUX) return { level: null, reason: 'platform' };
   const d = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-  const name = d.label || 'Screen';
+  const name = d.label || t('Screen');
   const bl = backlightDev();
   if (bl && (d.internal || screen.getAllDisplays().length === 1)) {
     try {
@@ -84,7 +86,7 @@ ipcMain.handle('ring-bri-get', async () => {
   const v = await ddcGet(buses[0]);
   if (!v) return { level: null, name, reason: 'ddc' };
   briTarget = { kind: 'ddc', buses, max: v.max };
-  return { level: Math.round(v.level * 100 / v.max), name: m || buses.length === 1 ? (m ? name : found.list[0].model || name) : 'All screens' };
+  return { level: Math.round(v.level * 100 / v.max), name: m || buses.length === 1 ? (m ? name : found.list[0].model || name) : t('All screens') };
 });
 let briPending = null, briBusy = false, ddcSlow = false;
 function ddcSet(bus, raw) {
@@ -125,18 +127,18 @@ ipcMain.handle('bri-status', async () => {
 // one-time setup with the administrator's password: ddcutil from the distribution, the I2C device
 // nodes loaded now and at boot, and the rule that lets the logged-in user open them
 ipcMain.handle('bri-setup', async () => {
-  if (!plat.IS_LINUX) return { ok: false, error: 'not needed on this system' };
+  if (!plat.IS_LINUX) return { ok: false, error: t('not needed on this system') };
   const rule = resPath('udev', '60-logimx.rules'), mod = resPath('udev', 'logimx-i2c.conf');
   const has = c => fs.existsSync('/usr/bin/' + c) || fs.existsSync('/bin/' + c);
   const install = has('ddcutil') ? 'true' : has('apt-get') ? 'DEBIAN_FRONTEND=noninteractive apt-get install -y ddcutil' : has('dnf') ? 'dnf install -y ddcutil'
     : has('pacman') ? 'pacman -S --noconfirm --needed ddcutil' : has('zypper') ? 'zypper --non-interactive install ddcutil' : null;
-  if (!install) return { ok: false, error: 'Install ddcutil with your package manager, then try again' };
+  if (!install) return { ok: false, error: t('Install ddcutil with your package manager, then try again') };
   const script = [install, `cp '${mod}' /etc/modules-load.d/logimx-i2c.conf`, 'modprobe i2c_dev',
     fs.existsSync(rule) ? `cp '${rule}' /etc/udev/rules.d/60-logimx.rules` : 'true',
     'udevadm control --reload', 'udevadm trigger --subsystem-match=i2c-dev --action=add', 'udevadm settle || true'].join(' && ');
   const r = await run('pkexec', ['sh', '-c', script]);
   ddcList = null;
-  return r.ok ? { ok: true } : { ok: false, error: r.error || 'cancelled' };
+  return r.ok ? { ok: true } : { ok: false, error: r.error || t('cancelled') };
 });
 
 exports.provide = { volApply, ddcMonitors, briI2cReady, backlightDev, ddcGet, ddcSet, backlightSet, briApply };

@@ -3,6 +3,7 @@ const { nativeImage, app, Menu, BrowserWindow, screen, ipcMain, Tray } = require
 const path = require('path');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let loadUi, offTaskbar, refreshGeneral, rpc, showWindow;
@@ -25,30 +26,30 @@ function updateTray() {
     const b = d.battery;
     return `${d.name}: ${state.Battery.batteryText(b)}`;
   });
-  state.tray.setToolTip(state.connected ? (lines.length ? lines.join('\n') + (state.paused ? '\nCustom buttons paused' : '') : 'NotLogi: no devices') : 'NotLogi: agent not running');
+  state.tray.setToolTip(state.connected ? (lines.length ? lines.join('\n') + (state.paused ? '\n' + t('Custom buttons paused') : '') : t('NotLogi: no devices')) : t('NotLogi: agent not running'));
   const items = [];
-  if (!state.connected) items.push({ label: 'Agent not running', enabled: false });
-  else if (!state.devices.length) items.push({ label: 'No devices', enabled: false });
+  if (!state.connected) items.push({ label: t('Agent not running'), enabled: false });
+  else if (!state.devices.length) items.push({ label: t('No devices'), enabled: false });
   for (const d of state.devices) {
     const b = d.battery;
     // not connected: its name only, nothing to switch or read until it is back
-    if (d.online === false) { items.push({ label: `${d.name}   not connected`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false }, { type: 'separator' }); continue; }
+    if (d.online === false) { items.push({ label: `${d.name}   ${t('not connected')}`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false }, { type: 'separator' }); continue; }
     const bat = state.Battery.batteryText(b);
     items.push({ label: `${d.name}   ${bat}`, icon: menuIcon(d.kind === 'keyboard' ? 'keyboard' : 'mouse'), enabled: false });
     if (state.Battery.known(b)) items.push({ label: `      ${batteryBar(b.percent)}`, enabled: false });
     if (d.state && d.state.hosts) {
-      items.push({ label: '      Easy-Switch', enabled: false });
+      items.push({ label: '      ' + t('Easy-Switch'), enabled: false });
       for (const h of d.state.hosts.names.filter(h => h.paired)) {
         const cur = h.index === d.state.hosts.current;
-        items.push({ label: `      ${cur ? '●' : '○'}  ${h.index + 1}   ${h.name || 'host ' + (h.index + 1)}`, enabled: !cur, click: () => rpc('change_host', { id: d.id, host: h.index }).catch(() => {}) });
+        items.push({ label: `      ${cur ? '●' : '○'}  ${h.index + 1}   ${h.name || t('host {n}', { n: h.index + 1 })}`, enabled: !cur, click: () => rpc('change_host', { id: d.id, host: h.index }).catch(() => {}) });
       }
     }
     items.push({ type: 'separator' });
   }
-  items.push({ label: 'Open NotLogi', icon: menuIcon('window'), click: showWindow });
-  items.push({ label: state.paused ? 'Resume custom buttons' : 'Pause custom buttons', icon: menuIcon(state.paused ? 'play' : 'pause'), enabled: state.connected, click: () => rpc(state.paused ? 'resume_diversion' : 'pause_diversion').then(() => refreshGeneral().then(updateTray)).catch(() => {}) });
-  items.push({ label: 'Status panel', icon: menuIcon('panel'), click: () => showTrayPanel() });
-  items.push({ label: 'Quit', icon: menuIcon('power'), click: () => { app.isQuitting = true; app.quit(); } });
+  items.push({ label: t('Open NotLogi'), icon: menuIcon('window'), click: showWindow });
+  items.push({ label: state.paused ? t('Resume custom buttons') : t('Pause custom buttons'), icon: menuIcon(state.paused ? 'play' : 'pause'), enabled: state.connected, click: () => rpc(state.paused ? 'resume_diversion' : 'pause_diversion').then(() => refreshGeneral().then(updateTray)).catch(() => {}) });
+  items.push({ label: t('Status panel'), icon: menuIcon('panel'), click: () => showTrayPanel() });
+  items.push({ label: t('Quit'), icon: menuIcon('power'), click: () => { app.isQuitting = true; app.quit(); } });
   state.tray.setContextMenu(Menu.buildFromTemplate(items));
   pushTrayState();
 }

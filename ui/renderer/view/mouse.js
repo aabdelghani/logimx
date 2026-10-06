@@ -1,5 +1,6 @@
 // View: a mouse's pages: its photo with the buttons, gestures, haptics, point and scroll.
 import { isNative } from '../../shared/profiles.mjs';
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw;
@@ -37,7 +38,7 @@ function mousePhoto(d, plain) {
   const shown = P.spots.filter(([k]) => k === 'thumb' ? d.controls.length : order.includes(k));
   const spots = shown.map(([k, x, y]) => {
     const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
-    const nm = k === 'thumb' ? 'Thumb wheel' : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || 'Button');
+    const nm = k === 'thumb' ? t('Thumb wheel') : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || t('Button'));
     return `<g class="hotspot ms ${editing(k) ? 'selected' : ''}" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}" data-name="${esc(nm)}" data-does="${esc(presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><circle class="ring" cx="${x}" cy="${y}" r="40"/></g>`;
   }).join('');
   // names sit in two columns just outside the photo, each joined to its ring by a thin line; on
@@ -50,7 +51,7 @@ function mousePhoto(d, plain) {
   const lines = shown.map(([k, x, y]) => { const left = x < P.w / 2, ly = place[k]; return `<polyline class="ms-line ${editing(k) ? 'on' : ''}" points="${left ? x - 40 : x + 40},${y} ${left ? -20 : P.w + 20},${ly}"/>`; }).join('');
   const labels = shown.map(([k, x]) => {
     const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
-    const nm = k === 'thumb' ? 'Thumb wheel' : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || 'Button');
+    const nm = k === 'thumb' ? t('Thumb wheel') : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || t('Button'));
     const left = x < P.w / 2;
     const ov = k === 'thumb' ? overridden(d, 'thumbwheel') : overridden(d, 'buttons', k);
     return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'} ${ov ? 'pv' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
@@ -59,7 +60,7 @@ function mousePhoto(d, plain) {
 }
 
 // ----------------------------------------------------------- pages
-const PHYS = [[82, 'Middle button'], [83, 'Back'], [86, 'Forward'], [195, 'Gesture button'], [196, 'Mode shift'], [416, 'Haptic panel']];
+const PHYS = [[82, t('Middle button')], [83, t('Back')], [86, t('Forward')], [195, t('Gesture button')], [196, t('Mode shift')], [416, t('Haptic panel')]];
 function pageButtons(d) {
   const rows = buttonRows(d).map(([cid, label], i) => {
     const a = assignment(d, 'buttons', cid);
@@ -69,22 +70,22 @@ function pageButtons(d) {
   const twInvert = !!((d.config.settings || {}).thumbwheel || {}).invert;
   const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
   const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
-  const twRow = d.controls.length ? `<div class="row"><span class="num">${buttonRows(d).length + 1}</span><span class="grow lbl">Thumb wheel</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="Thumb wheel"`)}</div>` : '';
+  const twRow = d.controls.length ? `<div class="row"><span class="num">${buttonRows(d).length + 1}</span><span class="grow lbl">${t('Thumb wheel')}</span>${drop(tw, `data-act="pick" data-section="thumbwheel" data-cid="thumb" data-label="${esc(t('Thumb wheel'))}"`)}</div>` : '';
   const photo = mousePhoto(d);
   if (photo) return `<div class="photo-card ms-photo">${photo}</div>`;
   return `<div class="${photo ? 'photo-col' : ''}">${photo ? `<div class="photo-card">${photo}<div class="kb-tip" hidden></div></div>` : ''}
-    <div style="display:flex;flex-direction:column;gap:18px">${sec('Buttons', card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>Restore defaults</button></div><div class="hint">Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Profiles</a>.</div>`)}${twRow ? sec('Thumb wheel', card(
-      row('Invert direction', '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
-      `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
+    <div style="display:flex;flex-direction:column;gap:18px">${sec(t('Buttons'), card(rows + twRow) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="reset-buttons"><i class="fa-solid fa-rotate-left"></i>${t('Restore defaults')}</button></div><div class="hint">${t('Left and right click cannot be reassigned. Overrides for the focused app are set in <a href="#" data-act="page" data-page="apps">Profiles</a>.')}</div>`)}${twRow ? sec(t('Thumb wheel'), card(
+      row(t('Invert direction'), '', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"')) +
+      `<div class="row"><span class="grow lbl">${t('Speed')}</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>`)) : ''}</div></div>`;
 }
 
 function gestureStage(d, cid, g, sens) {
   const on = k => drawerUp() && S.picker.section === 'gesture' && S.dir === k;
-  const cell = (k, icon) => { const sub = g[SLOTS[k][1]]; return `<button class="gs-cell ${k === 'tap' ? 'tap' : ''} ${on(k) ? 'on' : ''} ${isNative(sub) || !sub || (sub.type === 'nothing') ? 'empty' : ''}" data-act="dir-pick" data-key="${k}"><i class="fa-solid ${icon}"></i><span class="gs-k">${SLOTS[k][0]}</span><span class="gs-d">${esc(sub ? presetLabel(sub.preset || sub) : 'Do nothing')}</span></button>`; };
+  const cell = (k, icon) => { const sub = g[SLOTS[k][1]]; return `<button class="gs-cell ${k === 'tap' ? 'tap' : ''} ${on(k) ? 'on' : ''} ${isNative(sub) || !sub || (sub.type === 'nothing') ? 'empty' : ''}" data-act="dir-pick" data-key="${k}"><i class="fa-solid ${icon}"></i><span class="gs-k">${SLOTS[k][0]}</span><span class="gs-d">${esc(sub ? presetLabel(sub.preset || sub) : t('Do nothing'))}</span></button>`; };
   const pad = `<div class="gs-pad"><div></div>${cell('up', 'fa-arrow-up')}<div></div>${cell('left', 'fa-arrow-left')}${cell('tap', 'fa-hand-pointer')}${cell('right', 'fa-arrow-right')}<div></div>${cell('down', 'fa-arrow-down')}<div></div></div>`;
-  const presets = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(S.presets.all[k].label.replace('Gestures: ', ''))}</button>`).join('');
-  const opts = card(`<div class="row"><span class="grow lbl">Mode</span><span class="seg"><button class="${g.continuous ? '' : 'on'}" data-act="gest-mode" data-key="once">One-shot</button><button class="${g.continuous ? 'on' : ''}" data-act="gest-mode" data-key="continuous">Continuous</button></span></div>` +
-    `<div class="row"><span class="grow lbl">Sensitivity</span>${range('data-act="gest-sens"', sens, 1, 10, 1)}<span class="val" style="width:24px;text-align:right">${sens}</span></div>`);
+  const presets = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(t(S.presets.all[k].label.replace('Gestures: ', '')))}</button>`).join(''); // i18n: data
+  const opts = card(`<div class="row"><span class="grow lbl">${t('Mode')}</span><span class="seg"><button class="${g.continuous ? '' : 'on'}" data-act="gest-mode" data-key="once">${t('One-shot')}</button><button class="${g.continuous ? 'on' : ''}" data-act="gest-mode" data-key="continuous">${t('Continuous')}</button></span></div>` +
+    `<div class="row"><span class="grow lbl">${t('Sensitivity')}</span>${range('data-act="gest-sens"', sens, 1, 10, 1)}<span class="val" style="width:24px;text-align:right">${sens}</span></div>`);
   return `<div class="ring-page gest-page">${pad}<div class="gs-opts">${opts}<div class="chips">${presets}</div></div></div>`;
 }
 function pageGestures(d) {
@@ -99,75 +100,75 @@ function pageGestures(d) {
   if (S.cfgFrom && S.previewProfile) {
     const own = assignment(d, 'buttons', cid, S.editProfile || 'default'), viewRing = isRingAction(own);
     if (!(viewRing ? mode === 'ring' : active)) {
-      const pk = S.previewProfile, pn = pk === 'default' ? 'Global settings' : ((deviceProfiles(d).find(x => x.key === pk) || {}).name || pk);
-      const bn = (gestureCapable(d).find(c => c.cid === cid) || {}).label || 'This button';
-      return `<div class="ring-stage"><div class="pv-note"><i class="fa-solid fa-circle-info"></i><div>In <b>${esc(pn)}</b>, ${esc(bn)} does <b>${esc(presetLabel(a))}</b>.</div><div class="sub">${viewRing ? 'Its action ring applies' : 'Its gestures apply'} where the button is set to ${viewRing ? 'the action ring' : 'gestures'}.</div></div></div>`;
+      const pk = S.previewProfile, pn = pk === 'default' ? t('Global settings') : ((deviceProfiles(d).find(x => x.key === pk) || {}).name || pk);
+      const bn = (gestureCapable(d).find(c => c.cid === cid) || {}).label || t('This button');
+      return `<div class="ring-stage"><div class="pv-note"><i class="fa-solid fa-circle-info"></i><div>${t('In <b>{profile}</b>, {button} does <b>{action}</b>.', { profile: esc(pn), button: esc(bn), action: esc(presetLabel(a)) })}</div><div class="sub">${viewRing ? t('Its action ring applies where the button is set to the action ring.') : t('Its gestures apply where the button is set to gestures.')}</div></div></div>`;
     }
   }
   if (active && S.cfgFrom) return gestureStage(d, cid, g, sens);
   const seg = (k, l) => `<button class="${mode === k ? 'on' : ''}" data-act="hold-mode" data-key="${k}">${l}</button>`;
   // gestures and the action ring share the held button: choosing one turns the other off
-  const holdRows = `<div class="row"><div class="grow"><div class="lbl">When held</div><div class="sub">${mode === 'ring' ? 'Opens the action ring; gestures are off' : mode === 'gestures' ? 'Swipes run gestures; the action ring is off' : 'The button does what the mouse does by itself'}</div></div><span class="seg">${seg('gestures', 'Gestures')}${seg('ring', 'Action ring')}${seg('off', 'Off')}</span></div>` +
-    `<div class="row"><div class="grow"><div class="lbl">Button</div><div class="sub">Each button that can be held has its own choice</div></div><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => { const ca = assignment(d, 'buttons', c.cid); const ct = (typeof ca === 'string' ? (S.presets.all[ca] || {}) : (ca || {})).type; return `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${isRingAction(ca) ? ' · action ring' : ct === 'gesture' ? ' · gestures' : ''}</option>`; }).join('')}</select></div>`;
+  const holdRows = `<div class="row"><div class="grow"><div class="lbl">${t('When held')}</div><div class="sub">${mode === 'ring' ? t('Opens the action ring; gestures are off') : mode === 'gestures' ? t('Swipes run gestures; the action ring is off') : t('The button does what the mouse does by itself')}</div></div><span class="seg">${seg('gestures', t('Gestures'))}${seg('ring', t('Action ring'))}${seg('off', t('Off'))}</span></div>` +
+    `<div class="row"><div class="grow"><div class="lbl">${t('Button')}</div><div class="sub">${t('Each button that can be held has its own choice')}</div></div><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => { const ca = assignment(d, 'buttons', c.cid); const ct = (typeof ca === 'string' ? (S.presets.all[ca] || {}) : (ca || {})).type; return `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${isRingAction(ca) ? ' · ' + t('action ring') : ct === 'gesture' ? ' · ' + t('gestures') : ''}</option>`; }).join('')}</select></div>`;
   if (mode === 'ring') {
     const rs = ringState();
-    const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}">${esc(p.name)}</button>`).join('') + '<button class="pill" data-act="ring-profile-add" title="New profile"><i class="fa-solid fa-plus"></i>New</button>';
-    const free = row('Keep the pointer visible and free', rs.free_pointer ? 'The pointer moves anywhere; the action under it is chosen' : 'The pointer hides and the mouse steers the ring', sw(rs.free_pointer, 'data-act="ring-free"'));
-    const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">Travel before it picks</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
-    return `<div class="ring-page">${ringStage()}<div class="rs-bar"><span></span><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>Try it</button></div></div>`;
+    const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}">${esc(p.name)}</button>`).join('') + `<button class="pill" data-act="ring-profile-add" title="${t('New profile')}"><i class="fa-solid fa-plus"></i>${t('New')}</button>`;
+    const free = row(t('Keep the pointer visible and free'), rs.free_pointer ? t('The pointer moves anywhere; the action under it is chosen') : t('The pointer hides and the mouse steers the ring'), sw(rs.free_pointer, 'data-act="ring-free"'));
+    const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">${t('Travel before it picks')}</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
+    return `<div class="ring-page">${ringStage()}<div class="rs-bar"><span></span><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>${t('Try it')}</button></div></div>`;
   }
-  if (mode === 'off') return sec('Gesture button', card(holdRows)) + `<div class="hint" style="margin-top:12px">Pick Gestures or Action ring to give the button something to do while it is held.</div>`;
+  if (mode === 'off') return sec(t('Gesture button'), card(holdRows)) + `<div class="hint" style="margin-top:12px">${t('Pick Gestures or Action ring to give the button something to do while it is held.')}</div>`;
   const cell = (k, txt, cls = '') => `<button class="${cls} ${S.dir === k ? 'on' : ''}" data-act="dir-pick" data-key="${k}">${txt}</button>`;
-  const grid = `<div class="gest-grid"><div></div>${cell('up', '↑')}<div></div>${cell('left', '←')}${cell('tap', 'Tap', 'tap')}${cell('right', '→')}<div></div>${cell('down', '↓')}<div></div></div>`;
-  const presetsRow = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(S.presets.all[k].label.replace('Gestures: ', ''))}</button>`).join('');
+  const grid = `<div class="gest-grid"><div></div>${cell('up', '↑')}<div></div>${cell('left', '←')}${cell('tap', t('Tap'), 'tap')}${cell('right', '→')}<div></div>${cell('down', '↓')}<div></div></div>`;
+  const presetsRow = ['gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan'].map(k => `<button class="pill ${g.label === S.presets.all[k].label ? 'on' : ''}" data-act="gesture-preset" data-key="${k}">${esc(t(S.presets.all[k].label.replace('Gestures: ', '')))}</button>`).join(''); // i18n: data
   return `<div class="photo-col" style="grid-template-columns:240px 1fr">${grid}
     <div style="display:flex;flex-direction:column;gap:22px">
       ${sec(SLOTS[S.dir][0], card(
-        `<div class="row"><span class="grow lbl">Action</span>${drop(g[slot] && g[slot].preset ? g[slot].preset : (g[slot] || { type: 'nothing' }), `data-act="pick-gesture" data-slot="${slot}"`)}</div>` +
-        `<div class="row"><span class="grow lbl">Mode</span><span class="seg"><button class="${g.continuous ? '' : 'on'}" data-act="gest-mode" data-key="once">One-shot</button><button class="${g.continuous ? 'on' : ''}" data-act="gest-mode" data-key="continuous">Continuous</button></span></div>`))}
-      ${sec('Gesture button', card(holdRows +
-        `<div class="row"><span class="grow lbl">Sensitivity</span>${range('data-act="gest-sens"', sens, 1, 10, 1)}<span class="val" style="width:24px;text-align:right">${sens}</span></div>` +
-        (g.continuous ? `<div class="row"><span class="grow lbl">Repeat distance</span>${range('data-act="gest-step"', g.step ?? 40, 5, 120, 5)}<span class="val" style="width:24px;text-align:right">${g.step ?? 40}</span></div>` : '')))}
-      ${sec('Presets', `<div class="chips">${presetsRow}</div>`)}
+        `<div class="row"><span class="grow lbl">${t('Action')}</span>${drop(g[slot] && g[slot].preset ? g[slot].preset : (g[slot] || { type: 'nothing' }), `data-act="pick-gesture" data-slot="${slot}"`)}</div>` +
+        `<div class="row"><span class="grow lbl">${t('Mode')}</span><span class="seg"><button class="${g.continuous ? '' : 'on'}" data-act="gest-mode" data-key="once">${t('One-shot')}</button><button class="${g.continuous ? 'on' : ''}" data-act="gest-mode" data-key="continuous">${t('Continuous')}</button></span></div>`))}
+      ${sec(t('Gesture button'), card(holdRows +
+        `<div class="row"><span class="grow lbl">${t('Sensitivity')}</span>${range('data-act="gest-sens"', sens, 1, 10, 1)}<span class="val" style="width:24px;text-align:right">${sens}</span></div>` +
+        (g.continuous ? `<div class="row"><span class="grow lbl">${t('Repeat distance')}</span>${range('data-act="gest-step"', g.step ?? 40, 5, 120, 5)}<span class="val" style="width:24px;text-align:right">${g.step ?? 40}</span></div>` : '')))}
+      ${sec(t('Presets'), `<div class="chips">${presetsRow}</div>`)}
     </div></div>`;
 }
 
-const WAVES = { 0: 'Sharp tick', 1: 'Soft thud', 2: 'Sharp knock', 3: 'Soft knock', 4: 'Light tick', 5: 'Happy alert', 6: 'Angry alert', 7: 'Completed', 8: 'Square', 9: 'Wave', 10: 'Firework', 11: 'Mad', 12: 'Knock', 13: 'Jingle', 14: 'Ringing', 27: 'Whisper' };
+const WAVES = { 0: t('Sharp tick'), 1: t('Soft thud'), 2: t('Sharp knock'), 3: t('Soft knock'), 4: t('Light tick'), 5: t('Happy alert'), 6: t('Angry alert'), 7: t('Completed'), 8: t('Square'), 9: t('Wave'), 10: t('Firework'), 11: t('Mad'), 12: t('Knock'), 13: t('Jingle'), 14: t('Ringing'), 27: t('Whisper') };
 function pageHaptics(d) {
   const st = (d.state || {}).haptic || {}, s = (d.config.settings || {}).haptic || {};
   const on = s.enabled ?? st.enabled ?? true, level = s.level ?? st.level ?? 50;
   const force = ((d.state || {}).force || [])[0], pf = (d.config.settings || {}).panel_force ?? (force ? force.current : 0);
   const step = force ? Math.max(1, Math.round((force.max - force.min) / 20)) : 1;
   const pct = force ? Math.round((pf - force.min) * 100 / Math.max(1, force.max - force.min)) : 0;
-  const waves = (st.waveforms || []).map(w => `<button class="pill" data-act="haptic-play" data-key="${w}" ${on ? '' : 'disabled'}>${esc(WAVES[w] || 'Pattern ' + w)}</button>`).join('');
-  return sec('Haptic feedback', card(
-      row('Haptic feedback', 'The panel under the thumb answers with a short vibration', sw(on, 'data-act="setting" data-path="haptic.enabled"')) +
-      `<div class="row"><div class="grow"><div class="lbl">Strength</div><div class="sub">${on ? 'Felt at once when you let go of the slider' : 'Feedback is off'}</div></div>${range('data-act="haptic-level" data-out="hl"', level, 5, 100, 5)}<span class="val" data-out="hl" style="width:32px;text-align:right">${level}</span></div>`)) +
-    sec('Felt when', card(
-      row('The action ring moves or runs', 'A light tick on each action, a soft thud when one runs', sw(s.ring ?? true, 'data-act="setting" data-path="haptic.ring"')) +
-      row('A gesture is recognised', 'A sharp tick when a swipe does its action', sw(s.gestures ?? true, 'data-act="setting" data-path="haptic.gestures"')))) +
-    (force ? sec('Haptic panel press', card(
-      `<div class="row"><div class="grow"><div class="lbl">Press force</div><div class="sub">How hard the panel has to be pressed: lower is lighter</div></div>${range('data-act="setting-range" data-path="panel_force" data-out="pf"' + (force.changeable ? '' : ' disabled'), pf, force.min, force.max, step)}<span class="val" data-out="pf" style="width:40px;text-align:right">${pct}%</span></div>`) +
-      `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="panel-force-reset"><i class="fa-solid fa-rotate-left"></i>Default force</button></div>`) : '') +
-    sec('Try a pattern', `<div class="chips">${waves}</div>`, 'plays on the mouse');
+  const waves = (st.waveforms || []).map(w => `<button class="pill" data-act="haptic-play" data-key="${w}" ${on ? '' : 'disabled'}>${esc(WAVES[w] || t('Pattern {n}', { n: w }))}</button>`).join('');
+  return sec(t('Haptic feedback'), card(
+      row(t('Haptic feedback'), t('The panel under the thumb answers with a short vibration'), sw(on, 'data-act="setting" data-path="haptic.enabled"')) +
+      `<div class="row"><div class="grow"><div class="lbl">${t('Strength')}</div><div class="sub">${on ? t('Felt at once when you let go of the slider') : t('Feedback is off')}</div></div>${range('data-act="haptic-level" data-out="hl"', level, 5, 100, 5)}<span class="val" data-out="hl" style="width:32px;text-align:right">${level}</span></div>`)) +
+    sec(t('Felt when'), card(
+      row(t('The action ring moves or runs'), t('A light tick on each action, a soft thud when one runs'), sw(s.ring ?? true, 'data-act="setting" data-path="haptic.ring"')) +
+      row(t('A gesture is recognised'), t('A sharp tick when a swipe does its action'), sw(s.gestures ?? true, 'data-act="setting" data-path="haptic.gestures"')))) +
+    (force ? sec(t('Haptic panel press'), card(
+      `<div class="row"><div class="grow"><div class="lbl">${t('Press force')}</div><div class="sub">${t('How hard the panel has to be pressed: lower is lighter')}</div></div>${range('data-act="setting-range" data-path="panel_force" data-out="pf"' + (force.changeable ? '' : ' disabled'), pf, force.min, force.max, step)}<span class="val" data-out="pf" style="width:40px;text-align:right">${pct}%</span></div>`) +
+      `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-act="panel-force-reset"><i class="fa-solid fa-rotate-left"></i>${t('Default force')}</button></div>`) : '') +
+    sec(t('Try a pattern'), `<div class="chips">${waves}</div>`, t('plays on the mouse'));
 }
 // Point & scroll, laid out like the keyboard's Backlight: the mouse with a tag saying how it is set,
 // its settings in the panel on the right (the tag opens the panel again once it is closed)
 // Point & scroll on the mouse photo, laid out like Buttons: a ring on the scroll wheel, the thumb
 // wheel and the body (pointer speed), each named beside it; a ring opens its settings on the right
-const PT_NAMES = { wheel: 'Scroll wheel', thumb: 'Thumb wheel', pointer: 'Pointer speed' };
+const PT_NAMES = { wheel: t('Scroll wheel'), thumb: t('Thumb wheel'), pointer: t('Pointer speed') };
 function ptSummary(d, k) {
   const st = d.state || {}, s = d.config.settings || {};
-  if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${dpi} DPI · Speed ${Math.round(((s.pointer_speed ?? 0) + 1) * 50)}`; }
+  if (k === 'pointer') { const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000); return `${t('{dpi} DPI', { dpi })} · ${t('Speed {n}', { n: Math.round(((s.pointer_speed ?? 0) + 1) * 50) })}`; }
   if (k === 'wheel') {
     // all three of the wheel's settings: direction, smooth scrolling, SmartShift (one per line on the photo)
     const ss = s.smartshift || {}, hr = s.hires || {};
     const natural = hr.invert ?? (st.hires || {}).invert ?? false, speed = hr.speed ?? 1;
     const shift = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
-    return `${natural ? 'Natural' : 'Standard'} · Smooth ${hr.smooth ? 'on' : 'off'}${speed !== 1 ? ` · Speed ${fmtOut('wsp', speed)}` : ''} · SmartShift ${shift ? 'on' : 'off'}`;
+    return `${natural ? t('Natural') : t('Standard')} · ${hr.smooth ? t('Smooth on') : t('Smooth off')}${speed !== 1 ? ` · ${t('Speed {n}', { n: fmtOut('wsp', speed) })}` : ''} · ${shift ? t('SmartShift on') : t('SmartShift off')}`;
   }
-  const t = thumbInfo(d);
-  return `Speed ${t.speed} · ${t.invert ? 'Inverted' : 'Standard'}`;
+  const ti = thumbInfo(d);
+  return `${t('Speed {n}', { n: ti.speed })} · ${ti.invert ? t('Inverted') : t('Standard')}`;
 }
 function thumbInfo(d) {
   const tw = assignment(d, 'thumbwheel'), gain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
@@ -185,7 +186,7 @@ function pointPhoto(d) {
     shown.filter(s => s[3] === side).sort((p, q) => p[2] - q[2]).forEach(([k, , y]) => { const ly = Math.max(y, prev + GAP); place[k] = ly; prev = ly; });
   }
   const lines = shown.map(([k, x, y, side]) => `<polyline class="ms-line ${on(k) ? 'on' : ''}" points="${side === 'l' ? x - 40 : x + 40},${y} ${side === 'l' ? -20 : P.w + 20},${place[k]}"/>`).join('');
-  const labels = shown.map(([k, , , side]) => `<div class="ms-lab ${side} ${on(k) ? 'on' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(PT_NAMES[k])}</span>${ptSummary(d, k).split(' · ').map(t => `<span class="d">${esc(t)}</span>`).join('')}</div>`).join('');
+  const labels = shown.map(([k, , , side]) => `<div class="ms-lab ${side} ${on(k) ? 'on' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(PT_NAMES[k])}</span>${ptSummary(d, k).split(' · ').map(p => `<span class="d">${esc(p)}</span>`).join('')}</div>`).join('');
   return `<svg viewBox="0 0 ${P.w} ${P.h}"><image href="${P.src}" width="${P.w}" height="${P.h}"/>${lines}${spots}</svg>${labels}`;
 }
 function pagePointer(d) {
@@ -199,23 +200,23 @@ function pointerSettings(d, only) {
   const speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
   const ss = s.smartshift || {}, hr = s.hires || {};
   const ssOn = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet';
-  const pointer = sec('Pointer', card(
-    `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">DPI</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
-    `<div class="row"><span class="grow lbl">Desktop pointer speed</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
+  const pointer = sec(t('Pointer'), card(
+    `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">${t('DPI')}</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
+    `<div class="row"><span class="grow lbl">${t('Desktop pointer speed')}</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
   // the wheel's settings: direction, speed, smooth scrolling, its fine steps, and SmartShift (its
   // sensitivity, and the ratchet force on the MX Master 4, under it while it is on). A speed other
   // than 1 or smooth scrolling has the agent play the wheel into the desktop itself.
   const wspeed = hr.speed ?? 1;
-  const wheel = sec('Scroll wheel', card(
-      row('Scroll direction', (hr.invert ?? (st.hires || {}).invert) ? 'Natural: the page follows your finger' : 'Standard', sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"')) +
-      `<div class="row"><div class="grow"><div class="lbl">Scroll speed</div><div class="sub">How far each notch scrolls</div></div>${range('data-act="setting-range" data-path="hires.speed" data-out="wsp"', wspeed, 0.25, 3, 0.05)}<span class="val" data-out="wsp" style="width:40px;text-align:right">${fmtOut('wsp', wspeed)}</span></div>` +
-      row('Smooth scrolling', 'Each notch glides in over a moment instead of jumping', sw(!!hr.smooth, 'data-act="setting" data-path="hires.smooth"')) +
+  const wheel = sec(t('Scroll wheel'), card(
+      row(t('Scroll direction'), (hr.invert ?? (st.hires || {}).invert) ? t('Natural: the page follows your finger') : t('Standard'), sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"')) +
+      `<div class="row"><div class="grow"><div class="lbl">${t('Scroll speed')}</div><div class="sub">${t('How far each notch scrolls')}</div></div>${range('data-act="setting-range" data-path="hires.speed" data-out="wsp"', wspeed, 0.25, 3, 0.05)}<span class="val" data-out="wsp" style="width:40px;text-align:right">${fmtOut('wsp', wspeed)}</span></div>` +
+      row(t('Smooth scrolling'), t('Each notch glides in over a moment instead of jumping'), sw(!!hr.smooth, 'data-act="setting" data-path="hires.smooth"')) +
       // over Bluetooth Linux's own Logitech driver scales the wheel: its fine steps have to stay on
-      ((st.hires || {}).kernel ? row('High-resolution wheel', 'Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower', sw(true, 'disabled title="Managed by Linux on this connection"'))
-        : row('High-resolution wheel', 'Fine steps within each notch', sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +
-      row('SmartShift', 'Switch from ratchet to free-spin when the wheel is flicked', sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
-      (ssOn ? `<div class="row"><span class="grow lbl">SmartShift sensitivity</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` : '') +
-      (ssOn && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">Ratchet force</div><div class="sub">How firm each step of the wheel feels</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));
+      ((st.hires || {}).kernel ? row(t('High-resolution wheel'), t('Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower'), sw(true, `disabled title="${esc(t('Managed by Linux on this connection'))}"`))
+        : row(t('High-resolution wheel'), t('Fine steps within each notch'), sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +
+      row(t('SmartShift'), t('Switch from ratchet to free-spin when the wheel is flicked'), sw(ssOn, 'data-act="setting" data-path="smartshift.mode" data-on="ratchet" data-off="freespin"')) +
+      (ssOn ? `<div class="row"><span class="grow lbl">${t('SmartShift sensitivity')}</span>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst"', ss.threshold ?? (st.smartshift || {}).threshold ?? 14, 1, 50, 1)}<span class="val" data-out="sst" style="width:24px;text-align:right">${ss.threshold ?? (st.smartshift || {}).threshold ?? 14}</span></div>` : '') +
+      (ssOn && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">${t('Ratchet force')}</div><div class="sub">${t('How firm each step of the wheel feels')}</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));
   return only === 'pointer' ? pointer : only === 'wheel' ? wheel : pointer + wheel;
 }
 // the thumb wheel's speed and direction
@@ -226,16 +227,16 @@ function thumbSettings(d) {
   const twGain = typeof tw === 'object' && tw && tw.gain ? tw.gain : 8;
   const twSpeed = Math.max(1, Math.min(10, Math.round(twGain / 1.6)));
   // its two settings; what it does is chosen on Buttons, like any other control
-  return sec('Thumb wheel', card(
-    `<div class="row"><span class="grow lbl">Speed</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>` +
-    row('Smooth scrolling', 'Each turn glides in over a moment instead of jumping', sw(!!((d.config.settings || {}).thumbwheel || {}).smooth, 'data-act="setting" data-path="thumbwheel.smooth"')) +
-    row('Scroll direction', twInvert ? 'Inverted' : 'Standard', sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"'))));
+  return sec(t('Thumb wheel'), card(
+    `<div class="row"><span class="grow lbl">${t('Speed')}</span>${range('data-act="thumb-speed" data-out="tws"', twSpeed, 1, 10, 1)}<span class="val" data-out="tws" style="width:24px;text-align:right">${twSpeed}</span></div>` +
+    row(t('Smooth scrolling'), t('Each turn glides in over a moment instead of jumping'), sw(!!((d.config.settings || {}).thumbwheel || {}).smooth, 'data-act="setting" data-path="thumbwheel.smooth"')) +
+    row(t('Scroll direction'), twInvert ? t('Inverted') : t('Standard'), sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"'))));
 }
 
-const WHEEL_ACTIONS = [['hscroll', 'Horizontal scroll'], ['vscroll', 'Vertical scroll'], ['zoom_wheel', 'Zoom'], ['volume_wheel', 'Volume'], ['tabs_wheel', 'Switch tabs'], ['workspaces_wheel', 'Workspaces'], ['brightness_wheel', 'Brightness']];
+const WHEEL_ACTIONS = [['hscroll', t('Horizontal scroll')], ['vscroll', t('Vertical scroll')], ['zoom_wheel', t('Zoom')], ['volume_wheel', t('Volume')], ['tabs_wheel', t('Switch tabs')], ['workspaces_wheel', t('Workspaces')], ['brightness_wheel', t('Brightness')]];
 function renderPointerPanel(d) {
   return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
-    <div class="dlg-head"><span class="dh-key">Modify settings</span><span class="dh-sub">${esc(PT_NAMES[S.ptSel] || 'Point & scroll')}</span></div>
+    <div class="dlg-head"><span class="dh-key">${t('Modify settings')}</span><span class="dh-sub">${esc(PT_NAMES[S.ptSel] || t('Point & scroll'))}</span></div>
     <div class="dlg-body">${S.ptSel === 'thumb' ? thumbSettings(d) : pointerSettings(d, S.ptSel)}</div>
   </div></div>`;
 }

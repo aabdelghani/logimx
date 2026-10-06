@@ -9,7 +9,7 @@ import base64, json, os, sys, time, urllib.request
 import websocket
 
 PORT = 9333
-MOUSE, KEYBOARD = 'b034', 'b378'
+MOUSE, KEYBOARD = os.environ.get('MOUSE', 'b034'), os.environ.get('KEYBOARD', 'b378')
 
 def connect():
     pages = json.load(urllib.request.urlopen(f'http://localhost:{PORT}/json'))
@@ -84,6 +84,8 @@ def walk(out):
     os.makedirs(out, exist_ok=True)
     p = Page()
     theme0 = p.js("document.documentElement.getAttribute('data-theme')")
+    # errors the pages throw while drawn, listed at the end
+    p.js("window.__errs=[];addEventListener('error',e=>__errs.push(String(e.message)));addEventListener('unhandledrejection',e=>__errs.push(String(e.reason)))")
     missing = []
     for theme in THEMES:
         set_theme(p, theme)
@@ -98,6 +100,7 @@ def walk(out):
     set_theme(p, theme0)
     print(f'{len(STEPS) * 2} screenshots in {out}')
     for m in missing: print('not found:', m)
+    for e in sorted(set(p.js('window.__errs') or [])): print('error:', e)
 
 def diff(a, b):
     from PIL import Image, ImageChops

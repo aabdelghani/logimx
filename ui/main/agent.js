@@ -9,6 +9,7 @@ const os = require('os');
 const { execFile } = require('child_process');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let PACKAGED, SOCKET, alerted, checkBattery, moveRing, notify, releaseRing, resPath, run, showEmoji, showOsd, showRing, updateTray;
@@ -29,12 +30,12 @@ function send(obj) {
 
 function rpc(method, params) {
   return new Promise((resolve, reject) => {
-    if (!state.connected) return reject(new Error('agent not connected'));
+    if (!state.connected) return reject(new Error(t('agent not connected')));
     const id = nextId++;
     pending.set(id, { resolve, reject });
     send({ id, method, params: params || {} });
     setTimeout(() => {
-      if (pending.has(id)) { pending.delete(id); reject(new Error('timeout')); }
+      if (pending.has(id)) { pending.delete(id); reject(new Error(t('timeout'))); }
     }, 8000);
   });
 }
@@ -97,7 +98,7 @@ function connect() {
     state.connected = false;
     sock = null;
     buffer = '';
-    for (const [, p] of pending) p.reject(new Error('agent disconnected'));
+    for (const [, p] of pending) p.reject(new Error(t('agent disconnected')));
     pending.clear();
     state.devices = [];
     updateTray();
@@ -114,14 +115,14 @@ function handleEvent(event, data) {
   if (event === 'device' || event === 'device_added') {
     const isNew = event === 'device_added' && !state.devices.some(d => d.id === data.id);
     mergeDevice(data);
-    if (isNew && state.general.notify_connect && Notification.isSupported()) new Notification({ title: `${data.name} connected`, body: state.Battery.known(data.battery) ? `Battery ${data.battery.percent}%` : '', icon: path.join(ROOT, 'assets', 'icon.png') }).show();
+    if (isNew && state.general.notify_connect && Notification.isSupported()) new Notification({ title: t('{name} connected', { name: data.name }), body: state.Battery.known(data.battery) ? t('Battery {pct}%', { pct: data.battery.percent }) : '', icon: path.join(ROOT, 'assets', 'icon.png') }).show();
   }
   else if (event === 'device_removed') {
     const d = state.devices.find(x => x.id === data.id);
     state.devices = state.devices.filter(x => x.id !== data.id); alerted.delete(data.id); updateTray();
-    if (d && state.general.notify_connect && Notification.isSupported()) new Notification({ title: `${d.name} disconnected`, icon: path.join(ROOT, 'assets', 'icon.png') }).show();
+    if (d && state.general.notify_connect && Notification.isSupported()) new Notification({ title: t('{name} disconnected', { name: d.name }), icon: path.join(ROOT, 'assets', 'icon.png') }).show();
   }
-  else if (event === 'action') { if (data.kind === 'emoji') showEmoji(`${data.device || 'Keyboard'} · Emoji key`); else if (data.kind === 'ring') showRing(data.id, !!data.raw); else if (data.kind === 'ring_release') releaseRing(); else showOsd(data); }
+  else if (event === 'action') { if (data.kind === 'emoji') showEmoji(t('{device} · Emoji key', { device: data.device || t('Keyboard') })); else if (data.kind === 'ring') showRing(data.id, !!data.raw); else if (data.kind === 'ring_release') releaseRing(); else showOsd(data); }
   else if (event === 'ring_move') moveRing(data.dx, data.dy);
   else if (event === 'app') state.currentApp = data.app || '';
   else if (event === 'paused') { state.paused = !!data.paused; updateTray(); }
@@ -140,16 +141,16 @@ ipcMain.handle('agent-connected', () => state.connected);
 ipcMain.handle('stop-tool', async (_e, name) => {
   if (!plat.IS_LINUX) return plat.stopTool(name);
   if (name === 'solaar') return run('pkill', ['-x', 'solaar']).then(r => ({ ok: true }));
-  if (name === 'logid') { const r = await run('pkexec', ['systemctl', 'stop', 'logid']); return r.ok ? { ok: true } : { ok: false, error: r.error || 'cancelled' }; }
-  return { ok: false, error: 'unknown tool' };
+  if (name === 'logid') { const r = await run('pkexec', ['systemctl', 'stop', 'logid']); return r.ok ? { ok: true } : { ok: false, error: r.error || t('cancelled') }; }
+  return { ok: false, error: t('unknown tool') };
 });
 ipcMain.handle('install-udev', async () => {
-  if (!plat.IS_LINUX) return { ok: false, error: 'not needed on this system' };
+  if (!plat.IS_LINUX) return { ok: false, error: t('not needed on this system') };
   const rule = resPath('udev', '60-logimx.rules');
-  if (!fs.existsSync(rule)) return { ok: false, error: 'rule file missing' };
+  if (!fs.existsSync(rule)) return { ok: false, error: t('rule file missing') };
   const script = `cp '${rule}' /etc/udev/rules.d/60-logimx.rules && udevadm control --reload && udevadm trigger`;
   const r = await run('pkexec', ['sh', '-c', script]);
-  return r.ok ? { ok: true } : { ok: false, error: r.error || 'cancelled' };
+  return r.ok ? { ok: true } : { ok: false, error: r.error || t('cancelled') };
 });
 // The agent is what actually talks to the devices. Start it ourselves so the app works on a
 // fresh machine without anyone having to run something in a terminal first.
@@ -187,7 +188,7 @@ function startAgent() {
       if (viaUnit) return { ok: true, unit: true };
     }
     const bin = agentCandidates()[0];
-    if (!bin) return { ok: false, error: PACKAGED ? 'agent binary missing from this install' : 'agent is not built yet' };
+    if (!bin) return { ok: false, error: PACKAGED ? t('agent binary missing from this install') : t('agent is not built yet') };
     try {
       // detached on purpose: the agent is a daemon and keeps the devices configured
       // after this window is closed
@@ -196,7 +197,7 @@ function startAgent() {
       return { ok: false, error: e.message };
     }
     for (let i = 0; i < 24 && !state.connected; i++) await new Promise(r => setTimeout(r, 250));
-    return state.connected || (await agentRunning()) ? { ok: true } : { ok: false, error: 'the agent exited on startup' };
+    return state.connected || (await agentRunning()) ? { ok: true } : { ok: false, error: t('the agent exited on startup') };
   })();
   starting.finally(() => { starting = null; });
   return starting;
@@ -227,20 +228,20 @@ let building = null;
 function buildAgent() {
   if (building) return building;
   building = (async () => {
-    if (!canBuildAgent()) return { ok: false, error: 'no source checkout to build from' };
+    if (!canBuildAgent()) return { ok: false, error: t('no source checkout to build from') };
     for (const [cmd, hint] of [['cmake', 'cmake'], ['c++', 'g++']]) {
-      if (!(await haveCmd(cmd))) return { ok: false, error: `${hint} is not installed (sudo apt install cmake ninja-build g++ libx11-dev)` };
+      if (!(await haveCmd(cmd))) return { ok: false, error: t('{cmd} is not installed (sudo apt install cmake ninja-build g++ libx11-dev)', { cmd: hint }) };
     }
     const root = sourceRoot(), src = path.join(root, 'agent'), out = path.join(root, 'agent', 'build');
     const run = (cmd, args) => new Promise(res => execFile(cmd, args, { cwd: root, timeout: 420000, maxBuffer: 8 << 20 },
       (err, so, se) => res({ ok: !err, out: String(so || '') + String(se || '') })));
     const gen = (await haveCmd('ninja')) ? ['-G', 'Ninja'] : [];
-    notify('agent-build', { step: 'Configuring the build…' });
+    notify('agent-build', { step: t('Configuring the build…') });
     let r = await run('cmake', ['-B', out, '-S', src, ...gen, '-DCMAKE_BUILD_TYPE=Release']);
-    if (!r.ok) return { ok: false, error: buildProblem(r.out) || 'cmake could not configure the build' };
-    notify('agent-build', { step: 'Compiling the agent…' });
+    if (!r.ok) return { ok: false, error: buildProblem(r.out) || t('cmake could not configure the build') };
+    notify('agent-build', { step: t('Compiling the agent…') });
     r = await run('cmake', ['--build', out, '-j', String(Math.max(2, os.cpus().length))]);
-    if (!r.ok) return { ok: false, error: buildProblem(r.out) || 'the build failed' };
+    if (!r.ok) return { ok: false, error: buildProblem(r.out) || t('the build failed') };
     return { ok: true };
   })();
   building.finally(() => { building = null; });
@@ -249,7 +250,7 @@ function buildAgent() {
 ipcMain.handle('build-agent', async () => {
   const b = await buildAgent();
   if (!b.ok) return b;
-  notify('agent-build', { step: 'Starting the agent…' });
+  notify('agent-build', { step: t('Starting the agent…') });
   return startAgent();
 });
 

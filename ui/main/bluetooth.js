@@ -6,6 +6,7 @@ const { BrowserWindow, screen, ipcMain, Notification } = require('electron');
 const plat = require('../platform');
 const state = require('./state');
 const ROOT = require('path').join(__dirname, '..');   // the app's own folder
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let cursorPoint, loadUi, notify, saveUi, systemLook;
@@ -70,7 +71,7 @@ function ensureBtPop() {
   if (btPopWin && !btPopWin.isDestroyed()) return btPopWin;
   btPopWin = new BrowserWindow({
     width: BTPOP_W, height: BTPOP_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false, focusable: true,
-    title: 'NotLogi: connect a device',
+    title: t('NotLogi: connect a device'),
     webPreferences: { preload: path.join(ROOT, 'preload-btpop.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   btPopWin.setAlwaysOnTop(true, 'pop-up-menu');
@@ -171,9 +172,9 @@ function btPair(addr, name) {
   const quiet = () => (btPairOpen && state.win && !state.win.isDestroyed() && state.win.isVisible()) || btPopShown();   // the dialog or the pop-up shows progress itself
   const say = (title, body) => { if (!quiet() && Notification.isSupported()) new Notification({ title, body, icon: path.join(ROOT, 'assets', 'icon.png') }).show(); };
   const progress = (s, extra) => btEmit(Object.assign({ type: 'pair', address: addr, name, state: s }, extra || {}));
-  progress('pairing'); say(`Connecting ${name}…`, 'Keep it in pairing mode for a few seconds.');
+  progress('pairing'); say(t('Connecting {name}…', { name }), t('Keep it in pairing mode for a few seconds.'));
   let p;
-  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = null; progress('failed', { why: 'bluetoothctl is not available.' }); return btSetMode(); }
+  try { p = spawn('bluetoothctl'); } catch (e) { btPairing = null; progress('failed', { why: t('bluetoothctl is not available.') }); return btSetMode(); }
   let out = '', done = false, step = 'pair';
   const send = c => { try { p.stdin.write(c + '\n'); } catch (e) {} };
   const finish = (ok, why) => {
@@ -181,11 +182,11 @@ function btPair(addr, name) {
     send('scan off'); send('quit'); setTimeout(() => { try { p.kill(); } catch (e) {} }, 1500);
     if (ok) {
       btNotified.set(addr, Date.now() + 24 * 3600e3); btFound.delete(addr);
-      progress('connected'); say(`${name} is connected`, 'NotLogi picks it up in a moment.');
+      progress('connected'); say(t('{name} is connected', { name }), t('NotLogi picks it up in a moment.'));
       if (btPopShown()) { clearTimeout(btPopTimer); btPopTimer = setTimeout(btPopHide, 2600); }
     } else {
-      why = why || 'Put it back in pairing mode and try again.';
-      progress('failed', { why }); say(`Could not connect ${name}`, why);
+      why = why || t('Put it back in pairing mode and try again.');
+      progress('failed', { why }); say(t('Could not connect {name}', { name }), why);
     }
     setTimeout(btSetMode, 2000);
   };
@@ -193,19 +194,19 @@ function btPair(addr, name) {
   p.stdout.on('data', d => {
     out += stripAnsi(d.toString());
     const pk = /Passkey:? (\d{6})/i.exec(out) || /Confirm passkey (\d{6})/i.exec(out);
-    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; progress('passkey', { passkey: pk[1] }); say(`Type ${pk[1]} on ${name}`, 'Then press Enter on it.'); }
+    if (pk && !out.includes('[shown ' + pk[1] + ']')) { out += '[shown ' + pk[1] + ']'; progress('passkey', { passkey: pk[1] }); say(t('Type {code} on {name}', { code: pk[1], name }), t('Then press Enter on it.')); }
     if (/Confirm passkey|Request confirmation/i.test(out) && !out.includes('[confirmed]')) { out += '[confirmed]'; send('yes'); }
     if (step === 'pair' && /Pairing successful|AlreadyExists/i.test(out)) { step = 'connect'; send(`trust ${addr}`); send(`connect ${addr}`); }
     if (step === 'connect' && /Connection successful/i.test(out)) finish(true);
     if (/Failed to pair|AuthenticationFailed|AuthenticationCanceled|not available/i.test(out)) finish(false);
-    if (step === 'connect' && /Failed to connect/i.test(out)) finish(false, `${name} paired, but did not connect. Turn it off and on again.`);
+    if (step === 'connect' && /Failed to connect/i.test(out)) finish(false, t('{name} paired, but did not connect. Turn it off and on again.', { name }));
   });
   p.on('exit', () => finish(false));
   send('agent KeyboardDisplay'); send('default-agent');
   if (dev.paired) send(`remove ${addr}`);
   send('menu scan'); send('transport le'); send('back'); send('scan on');
   setTimeout(() => send(`pair ${addr}`), dev.paired ? 4000 : 2500);
-  setTimeout(() => finish(false, 'It took too long. Put it back in pairing mode and try again.'), 45000);
+  setTimeout(() => finish(false, t('It took too long. Put it back in pairing mode and try again.')), 45000);
 }
 ipcMain.handle('bt-open', () => { btPairOpen = true; btFound.clear(); btSetMode(); return { linux: plat.IS_LINUX, list: [] }; });
 ipcMain.handle('bt-close', () => { btPairOpen = false; btSetMode(); });

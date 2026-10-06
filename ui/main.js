@@ -10,13 +10,13 @@ app.setPath('userData', require('path').join(app.getPath('appData'), 'LogiMX'));
 if (plat.IS_WIN) app.setAppUserModelId('io.github.aabdelghani.logimx');
 // The main process in parts (main/), loaded once the app's name and settings folder are set;
 // each one gets what it uses from the others.
-const parts = ['env', 'settings', 'window', 'tray', 'agent', 'osd', 'battery', 'emoji', 'ring', 'media', 'bluetooth', 'system', 'autostart'].map(n => require('./main/' + n));
+const parts = ['env', 'settings', 'window', 'tray', 'agent', 'osd', 'battery', 'emoji', 'ring', 'media', 'bluetooth', 'system', 'autostart', 'i18n'].map(n => require('./main/' + n));
 const state = require('./main/state');
 const ctx = Object.assign({}, ...parts.map(p => p.provide));
 parts.forEach(p => p.link(ctx));
-const { btSetMode, btStopScan, connect, createTray, createWindow, ensureAutostart, ensureRing, ensureDesktopEntry, loadUi, registerShortcuts, saveUi, showWindow, startAgent } = ctx;
+const { applyLanguage, btSetMode, btStopScan, connect, createTray, createWindow, ensureAutostart, ensureRing, ensureDesktopEntry, loadUi, registerShortcuts, saveUi, showWindow, startAgent } = ctx;
 // the logic shared with the windows (ES modules in shared/, loaded before the app starts)
-const sharedReady = Promise.all([import('./shared/ring.mjs'), import('./shared/battery.mjs')]).then(([r, b]) => { state.Ring = r; state.Battery = b; });
+const sharedReady = Promise.all([import('./shared/ring.mjs'), import('./shared/battery.mjs'), import('./shared/i18n.mjs')]).then(([r, b, i]) => { state.Ring = r; state.Battery = b; state.I18n = i; });
 app.isQuitting = false;
 
 const single = app.requestSingleInstanceLock();
@@ -31,6 +31,7 @@ if (!single) {
     ensureAutostart();
     setTimeout(() => { startAgent().catch(() => {}); }, 600);
     state.uiSettings = loadUi();
+    applyLanguage();
     if (state.uiSettings.tray !== false) createTray();
     connect();
     createWindow();

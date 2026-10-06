@@ -3,6 +3,7 @@
 import { isMouse } from '../../shared/profiles.mjs';
 import { toolName } from '../../shared/actions.mjs';
 import { batClass, pctText } from '../../shared/battery.mjs';
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
@@ -182,22 +183,22 @@ function renderWindow() {
   const d = dev();
   const devPage = !S.appDetail && d && S.page !== 'home' && (devicePages(d).includes(S.page) || S.page === 'thumb');
   const mode = S.appDetail ? 'general' : S.page === 'home' ? 'home' : devPage ? 'device' : 'general';
-  const title = S.appDetail ? (S.appDetail.name || 'Application') : mode === 'device' ? d.name : (PAGES[S.page] ? PAGES[S.page][0] : 'NotLogi');
+  const title = S.appDetail ? (S.appDetail.name || t('Application')) : mode === 'device' ? d.name : (PAGES[S.page] ? PAGES[S.page][0] : 'NotLogi');
   const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
   const cname = conflict ? S.conflicts[0].name : '';
   const left = mode === 'home'
     ? `<span class="hello">${greeting()}</span>`
-    : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? 'Back' : 'Home'}"><i class="fa-solid fa-arrow-left"></i></button>`;
-  const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? 'Starting the agent…' : '<strong>The agent is not running.</strong> Settings cannot reach the devices.'}</span>${S.agentBusy ? '' : '<button class="bact" data-act="start-agent">Start</button>'}</div>` : '';
+    : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? t('Back') : t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>`;
+  const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? t('Starting the agent…') : t('<strong>The agent is not running.</strong> Settings cannot reach the devices.')}</span>${S.agentBusy ? '' : `<button class="bact" data-act="start-agent">${t('Start')}</button>`}</div>` : '';
   // a keyboard's own view keeps the corner to one action: add an application profile
   const controls = mode === 'device' ? `<div class="right">
           ${S.page === 'gestures' && S.cfgFrom && S.cfgKind === 'ring' ? ringProfileBar() : profileBar()}
-          <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
+          <button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
         </div>` : `<div class="right">
-          ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="Pair a new device with a receiver or Bluetooth"><i class="fa-solid fa-plus"></i>Add device</button>` : ''}
-          <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
-          <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
-          <button class="hbtn close" data-act="win-close" title="Close to tray"><i class="fa-solid fa-xmark"></i></button>
+          ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="${t('Pair a new device with a receiver or Bluetooth')}"><i class="fa-solid fa-plus"></i>${t('Add device')}</button>` : ''}
+          <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="${t('Settings')}"><i class="fa-solid fa-gear"></i></button>
+          <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="${t('Theme')}"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
+          <button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
   let body;
   if (mode === 'device') {
@@ -205,11 +206,11 @@ function renderWindow() {
     // the device's pages listed down the left (the first is open by default) with Settings at the
     // foot; the page itself on the right under the window buttons
     // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable
-    const items = navPages(d).map(p => p === 'easy' && !easyView(d) ? `<button class="dnav-item soon" disabled title="Coming soon"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">Soon</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
+    const items = navPages(d).map(p => p === 'easy' && !easyView(d) ? `<button class="dnav-item soon" disabled title="${t('Coming soon')}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">${t('Soon')}</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
     const drawer = drawerUp(), blp = !drawer && (S.addPanel || backlightPanel(d));
-    body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button>${S.page === 'gestures' && S.cfgKind === 'ring' && ringFolder(ringTop(ringState())) ? `<input class="cfg-name folder-name ${S.ringAnim && S.ringAnim.kind === 'in' ? 'enter' : ''}" data-field="folderName" value="${esc(ringFolder(ringTop(ringState())).label || 'New folder')}" size="${Math.max(8, Math.min(24, (ringFolder(ringTop(ringState())).label || 'New folder').length + 1))}" title="Click to rename the folder" spellcheck="false"><button class="hbtn icon folder-rename" data-act="folder-rename" title="Rename the folder"><i class="fa-solid fa-pen"></i></button><span class="folder-hint">Enter to save · Esc to cancel</span>` : `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>Settings</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+    body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${S.page === 'gestures' && S.cfgKind === 'ring' && ringFolder(ringTop(ringState())) ? `<input class="cfg-name folder-name ${S.ringAnim && S.ringAnim.kind === 'in' ? 'enter' : ''}" data-field="folderName" value="${esc(ringFolder(ringTop(ringState())).label || t('New folder'))}" size="${Math.max(8, Math.min(24, (ringFolder(ringTop(ringState())).label || t('New folder')).length + 1))}" title="${t('Click to rename the folder')}" spellcheck="false"><button class="hbtn icon folder-rename" data-act="folder-rename" title="${t('Rename the folder')}"><i class="fa-solid fa-pen"></i></button><span class="folder-hint">${t('Enter to save · Esc to cancel')}</span>` : `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>${t('Settings')}</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
   } else {
-    body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>Have a wish? Found a problem? I'm here to make it happen, I love to build!</span><span class="wish-promise"><i class="fa-solid fa-stopwatch"></i>Granted within 24 hours</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>Make a wish</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>Report an issue</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? 'Agent connected' : 'Agent not running'} · v${S.status.version || VERSION}</footer>` : ''}`;
+    body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>${t('Have a wish? Found a problem? I\'m here to make it happen, I love to build!')}</span><span class="wish-promise"><i class="fa-solid fa-stopwatch"></i>${t('Granted within 24 hours')}</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>${t('Make a wish')}</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>${t('Report an issue')}</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? t('Agent connected') : t('Agent not running')} · v${S.status.version || VERSION}</footer>` : ''}`;
   }
   return `<div class="window">
     <main class="main">
@@ -219,7 +220,7 @@ function renderWindow() {
         ${controls}
       </header>`}
       ${agentDown}
-      ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span><strong>${esc(toolName(cname))} is running.</strong> Both programs divert the same buttons; only one will win.</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">Stop ${esc(toolName(cname))}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
+      ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span>${t('<strong>{name} is running.</strong> Both programs divert the same buttons; only one will win.', { name: esc(toolName(cname)) })}</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">${t('Stop {name}', { name: esc(toolName(cname)) })}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
       ${body}
     </main></div>`;
 }
@@ -227,23 +228,23 @@ function renderWindow() {
 // battery, state, link and profile, and a way across to the other devices.
 function devicePanel(d) {
   const b = d.battery, st = batteryState(b), src = devicePhotoSrc(d);
-  const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? `host ${hosts.current + 1}` : '';
-  const link = (d.transport === 'bolt' ? 'Bolt receiver' : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || 'Connected') + (host ? ` · ${host}` : '');
-  const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : 'All applications';
+  const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? t('host {n}', { n: hosts.current + 1 }) : '';
+  const link = (d.transport === 'bolt' ? t('Bolt receiver') : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || t('Connected')) + (host ? ` · ${host}` : '');
+  const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : t('All applications');
   const photo = isMouse(d) && MOUSE_PHOTOS[d.id] ? `<div class="photo-card">${mousePhoto(d)}</div>` : src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'} none"></i>`;
   const others = S.devices.filter(x => x.id !== d.id);
   return `<aside class="dev-panel ${isMouse(d) ? 'mouse' : 'kbd'}">
-    <div class="panel-top"><button class="hbtn icon" data-act="go-home" title="Home"><i class="fa-solid fa-arrow-left"></i></button><span class="panel-title">${esc(d.name)}</span></div>
+    <div class="panel-top"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button><span class="panel-title">${esc(d.name)}</span></div>
     <div class="dev-hero">${photo}</div>
     <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="${d.transport === 'bluetooth' ? 'fa-brands fa-bluetooth-b' : 'fa-solid fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
     <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
     <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
-    ${isMouse(d) && MOUSE_PHOTOS[d.id] ? '<div class="hint">Click a number to change what that button does.</div>' : ''}
-    ${others.length ? `<div class="dev-others"><div class="sec-title"><span>Other devices</span></div>${others.map(x => `<button class="other" data-act="home-open" data-key="${esc(x.id)}"><i class="fa-solid ${isMouse(x) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i><span class="grow">${esc(x.name)}</span>${x.battery ? `<span class="${batClass(x.battery)}">${pctText(x.battery)}${x.battery.charging ? ' <i class="fa-solid fa-bolt"></i>' : ''}</span>` : ''}</button>`).join('')}</div>` : ''}
+    ${isMouse(d) && MOUSE_PHOTOS[d.id] ? `<div class="hint">${t('Click a number to change what that button does.')}</div>` : ''}
+    ${others.length ? `<div class="dev-others"><div class="sec-title"><span>${t('Other devices')}</span></div>${others.map(x => `<button class="other" data-act="home-open" data-key="${esc(x.id)}"><i class="fa-solid ${isMouse(x) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i><span class="grow">${esc(x.name)}</span>${x.battery ? `<span class="${batClass(x.battery)}">${pctText(x.battery)}${x.battery.charging ? ' <i class="fa-solid fa-bolt"></i>' : ''}</span>` : ''}</button>`).join('')}</div>` : ''}
   </aside>`;
 }
-const THEMES = [['light', 'Light', 'linear-gradient(135deg,#fff 50%,#3584e4 50%)'], ['dark', 'Dark', 'linear-gradient(135deg,#222 50%,#3584e4 50%)'], ['ubuntu', 'Ubuntu', 'linear-gradient(135deg,#fafafa 50%,#e95420 50%)'], ['ubuntu-dark', 'Ubuntu dark', 'linear-gradient(135deg,#2c2c2c 50%,#e95420 50%)']];
-const themeMenu = () => `<div class="menu" data-menu><div class="mhead">Appearance</div>${THEMES.map(([k, l, s]) => `<button data-act="theme" data-key="${k}"><span class="swatch" style="background:${s}"></span><span>${l}</span>${S.theme === k ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}</div>`;
+const THEMES = [['light', t('Light'), 'linear-gradient(135deg,#fff 50%,#3584e4 50%)'], ['dark', t('Dark'), 'linear-gradient(135deg,#222 50%,#3584e4 50%)'], ['ubuntu', 'Ubuntu', 'linear-gradient(135deg,#fafafa 50%,#e95420 50%)'], ['ubuntu-dark', t('Ubuntu dark'), 'linear-gradient(135deg,#2c2c2c 50%,#e95420 50%)']];
+const themeMenu = () => `<div class="menu" data-menu><div class="mhead">${t('Appearance')}</div>${THEMES.map(([k, l, s]) => `<button data-act="theme" data-key="${k}"><span class="swatch" style="background:${s}"></span><span>${l}</span>${S.theme === k ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}</div>`;
 
 function renderPage(d) {
   if (S.appDetail) return pageAppDetail(S.appDetail);
@@ -300,7 +301,7 @@ function bind() {
   bindBarHover();
   root.querySelectorAll('.hotspot.pt').forEach(h => h.onclick = () => onAction('pt-pick', h));
   root.querySelectorAll('.hotspot.es').forEach(h => h.onclick = () => onAction('es-pick', h));
-  root.querySelectorAll('.hotspot:not(.pt):not(.es)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? 'Thumb wheel' : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
+  root.querySelectorAll('.hotspot:not(.pt):not(.es)').forEach(h => h.onclick = () => openPicker({ drawer: h.classList.contains('key-photo') || h.classList.contains('ms'), dev: dev(), section: h.dataset.section, cid: h.dataset.cid === 'thumb' ? 'thumb' : Number(h.dataset.cid), label: h.dataset.name ? h.dataset.name : h.querySelector('title') ? h.querySelector('title').textContent.split(':')[0] : (h.dataset.section === 'thumbwheel' ? t('Thumb wheel') : (dev().controls.find(c => c.cid === Number(h.dataset.cid)) || {}).label) }));
   root.querySelectorAll('[data-act]').forEach(b => {
     const act = b.dataset.act;
     if (b.tagName === 'INPUT' && b.type === 'range') {
@@ -330,9 +331,9 @@ function bind() {
     typed.onfocus = () => {
       if (!S.picker || !S.picker.recording) return;
       stopRecorder(); setChord(S.picker.chord, false);
-      const t = root.querySelector('.recbox .t'); if (t) t.textContent = 'Click here, then press the keys';
+      const tx = root.querySelector('.recbox .t'); if (tx) tx.textContent = t('Click here, then press the keys');
       const box = root.querySelector('.recbox');
-      if (box && !box.querySelector('[data-act="rec-start"]')) { const b = document.createElement('button'); b.className = 'btn primary'; b.dataset.act = 'rec-start'; b.textContent = 'Start recording'; b.onclick = e => { e.stopPropagation(); onAction('rec-start', b, e); }; box.appendChild(b); }
+      if (box && !box.querySelector('[data-act="rec-start"]')) { const b = document.createElement('button'); b.className = 'btn primary'; b.dataset.act = 'rec-start'; b.textContent = t('Start recording'); b.onclick = e => { e.stopPropagation(); onAction('rec-start', b, e); }; box.appendChild(b); }
     };
     typed.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); onAction('pick-assign', typed); } };
   }

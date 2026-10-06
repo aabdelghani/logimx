@@ -1,5 +1,6 @@
 // What an action is called and shown as, and the keys it presses: no window, no agent. The
 // settings window and the main process name actions the same way.
+import { t } from './i18n.mjs';
 
 export const ICON = { native: 'fa-circle-dot', nothing: 'fa-ban', gesture: 'fa-hand-pointer', scroll: 'fa-arrows-left-right', adapter: 'fa-arrows-up-down', keystroke: 'fa-keyboard', button: 'fa-computer-mouse', change_host: 'fa-right-left', dpi_cycle: 'fa-arrow-pointer', command: 'fa-terminal', smartshift_toggle: 'fa-gear', open: 'fa-folder-open', launch: 'fa-rocket', type_text: 'fa-i-cursor', folder: 'fa-folder', ring_profile: 'fa-layer-group', brightness_dial: 'fa-sun' };
 export const PRESET_ICON = { action_ring: 'fa-circle-notch', volume_dial: 'fa-volume-high', overview: 'fa-table-cells-large', show_desktop: 'fa-desktop', home_show_desktop: 'fa-desktop', screen_capture: 'fa-camera', eject: 'fa-eject', do_not_disturb: 'fa-moon', app_switcher: 'fa-window-restore', workspace_next: 'fa-arrow-right', workspace_prev: 'fa-arrow-left', tab_next: 'fa-arrow-right-long', tab_prev: 'fa-arrow-left-long',
@@ -29,18 +30,24 @@ export function keyName(k, os = 'linux') {
 }
 
 export function presetLabel(a, presets, os) {
-  if (!a || a === 'native') return 'Default';
-  if (typeof a === 'string') return presetOf(presets, a).label || a;
-  if (a.type === 'keystroke') return a.label || (a.keys || []).map(k => keyName(k, os)).join(' + ');
-  if (a.type === 'command') return 'Run: ' + (a.cmd || '');
-  if (a.type === 'gesture') return a.label || 'Custom gestures';
-  if (a.type === 'launch') return 'Launch ' + (a.label || a.app);
-  if (a.type === 'type_text') return 'Type: ' + (a.text || '').slice(0, 24);
-  if (a.type === 'open') return a.label || 'Open ' + (a.target || '');
-  if (a.type === 'scroll') return a.label || (a.axis === 'x' ? 'Horizontal scroll' : 'Vertical scroll');
-  if (a.type === 'button') return a.label || a.button.replace('BTN_', '') + ' click';
-  if (a.type === 'nothing') return 'Disabled';
-  return a.label || a.type;
+  if (!a || a === 'native') return t('Default');
+  // labels from the agent's preset table, and the ones LogiMX stores in English, shown translated
+  if (typeof a === 'string') { const l = presetOf(presets, a).label; return l ? t(l) : a; } // i18n: data
+  if (a.type === 'keystroke') return a.label ? t(a.label) : (a.keys || []).map(k => keyName(k, os)).join(' + '); // i18n: data
+  if (a.type === 'command') return t('Run: {cmd}', { cmd: a.cmd || '' });
+  if (a.type === 'gesture') return a.label ? t(a.label) : t('Custom gestures'); // i18n: data
+  if (a.type === 'launch') return t('Launch {app}', { app: a.label || a.app });
+  if (a.type === 'type_text') return t('Type: {text}', { text: (a.text || '').slice(0, 24) });
+  if (a.type === 'open') {
+    // the picker stores 'Open <target>' in English: shown in the language in use
+    const shown = (a.target || '').replace(/^https?:\/\//, '').slice(0, 24);
+    if (!a.label) return t('Open {target}', { target: a.target || '' });
+    return a.label === 'Open ' + shown ? t('Open {target}', { target: shown }) : t(a.label); // i18n: data
+  }
+  if (a.type === 'scroll') return a.label ? t(a.label) : (a.axis === 'x' ? t('Horizontal scroll') : t('Vertical scroll')); // i18n: data
+  if (a.type === 'button') return a.label ? t(a.label) : t('{button} click', { button: a.button.replace('BTN_', '') }); // i18n: data
+  if (a.type === 'nothing') return t('Disabled');
+  return a.label ? t(a.label) : a.type; // i18n: data
 }
 
 // what the agent calls another tool, as people know it
@@ -67,4 +74,4 @@ export function codeToKey(code) {
   return CODE_MAP[code] || null;
 }
 // a shortcut typed as text ("ctrl + shift + t") as the keys it presses; nothing for blank text
-export const typedKeys = t => t && t.trim() ? t.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) : null;
+export const typedKeys = s => s && s.trim() ? s.split('+').map(k => 'KEY_' + k.trim().toUpperCase().replace(/^CTRL$/, 'LEFTCTRL').replace(/^SHIFT$/, 'LEFTSHIFT').replace(/^ALT$/, 'LEFTALT').replace(/^SUPER$|^META$|^WIN$/, 'LEFTMETA')) : null;

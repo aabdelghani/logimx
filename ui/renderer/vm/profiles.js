@@ -1,5 +1,6 @@
 // View model: application profiles and the ready-made gesture presets.
 import { isMouse } from '../../shared/profiles.mjs';
+import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let S, allProfiles, api, appClass, call, changed, dev, deviceProfiles, fx, gestureControl, keyLayout, merge, prompt, setAssign, toast;
@@ -12,8 +13,8 @@ export const state = {
 
 async function addProfile(name, cls, here) {
   name = (name || '').trim(); cls = (cls || '').trim();
-  if (!name || !cls) return toast('Pick an application', true);
-  if (/logimx|notlogi/i.test(cls)) return toast('NotLogi itself cannot have a profile', true);
+  if (!name || !cls) return toast(t('Pick an application'), true);
+  if (/logimx|notlogi/i.test(cls)) return toast(t('NotLogi itself cannot have a profile'), true);
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   for (const dd of here ? [dev()] : S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (!profs[key]) { profs[key] = { name, match: [cls] }; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } }
   if (here === 'quiet') return;   // the add panel: in the bar, set up when clicked (it says so once for all)
@@ -47,13 +48,13 @@ async function applyPreset(k) {
     await setAssign(d, 'buttons', gestureControl(d), g);
     if (k !== 'gnome') await setAssign(d, 'thumbwheel', '', k === 'mac' ? 'workspaces_wheel' : 'hscroll');
   }
-  toast('Preset applied');
+  toast(t('Preset applied'));
 }
 
 // + in the profile bar: the device's applications to choose from, like a key's actions. Global
 // settings is listed first (what everything starts from), then each installed application with its
 // icon; one picked with its check mark, Add puts it in the profile bar to configure from there.
-const addLabel = () => (S.addSel || []).length > 1 ? `Add ${S.addSel.length}` : 'Add';
+const addLabel = () => (S.addSel || []).length > 1 ? t('Add {n}', { n: S.addSel.length }) : t('Add');
 // hovering an app in the profile bar shows its profile until the pointer leaves the bar
 function previewProfile(k) {
   if (k) { if (S.previewProfile !== k && S.editProfile !== k) { S.previewProfile = k; changed(); } }
@@ -80,29 +81,29 @@ export const commands = {
     S.addSel = [];
     fx.closeDrawer(() => { S.addPanel = false; });
     for (const a of picked) await addProfile(a.name, a.wm_class || a.id || appClass(a.name), 'quiet');
-    toast(picked.length > 1 ? `${picked.length} applications added. Click one to set it up.` : `${picked[0].name} added. Click it to set it up.`);
+    toast(picked.length > 1 ? t('{n} applications added. Click one to set it up.', { n: picked.length }) : t('{name} added. Click it to set it up.', { name: picked[0].name }));
     changed(); return;
   },
-  'pf-add-old': async (it, e, d, key) => { prompt('Add application', [{ key: 'name', label: 'Application', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name), true), 'Add'); return; },
+  'pf-add-old': async (it, e, d, key) => { prompt(t('Add application'), [{ key: 'name', label: t('Application'), placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name), true), t('Add')); return; },
   'pf-remove': async (it, e, d, key) => {
     const dd = dev(), p = deviceProfiles(dd).find(x => x.key === key); if (!p) return;
     S.previewProfile = null;
-    S.confirm = { title: `Remove ${p.name} settings?`, text: `This permanently removes the custom settings for ${p.name} on your ${dd.name}. In ${p.name}, it goes back to the global settings.`, ok: 'Remove', onOk: async () => {
+    S.confirm = { title: t('Remove {app} settings?', { app: p.name }), text: t('This permanently removes the custom settings for {app} on your {device}. In {app}, it goes back to the global settings.', { app: p.name, device: dd.name }), ok: t('Remove'), onOk: async () => {
       const profs = JSON.parse(JSON.stringify(dd.config.profiles)); delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs }));
       if (S.editProfile === key) S.editProfile = null;
-      toast(`${p.name} settings removed`);
+      toast(t('{app} settings removed', { app: p.name }));
     } };
     S.dlg = 'confirm'; changed(); return;
   },
   'confirm-ok': async (it, e, d, key) => { const p = S.confirm; S.dlg = null; S.confirm = null; changed(); if (p && p.onOk) { await p.onOk(); changed(); } return; },
-  'reset-overrides': async (it, e, d, key) => { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { const keep = { name: profs[key].name, match: profs[key].match }; profs[key] = keep; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } toast('Overrides cleared'); changed(); return; },
-  'reset-buttons': async (it, e, d, key) => { const defs = ((await api.quiet('defaults', { id: d.id })).profiles || {}).default || {}; const btns = defs.buttons || {}; for (const cid of Object.keys(btns)) await setAssign(d, 'buttons', cid, btns[cid]); if (defs.thumbwheel) await setAssign(d, 'thumbwheel', null, defs.thumbwheel); toast('Buttons reset to defaults'); changed(); return; },
-  'reset-keys': async (it, e, d, key) => { const defs = ((await api.quiet('defaults', { id: d.id })).profiles || {}).default || {}; const keys = defs.keys || {}; const lay = keyLayout(d); for (const { cid } of lay.frow.concat(lay.special)) await setAssign(d, 'keys', cid, keys[cid] || 'native'); toast('Keys reset to defaults'); changed(); return; },
-  'app-detail': async (it, e, d, key) => { const p = allProfiles().find(x => x.key === key); S.appDetail = key === 'default' ? { key: 'default', name: 'Default' } : Object.assign({ key }, p || { name: key }); S.menu = null; changed(); return; },
-  'add-app': async (it, e, d, key) => { prompt('Add application', [{ key: 'name', label: 'Application', placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name)), 'Add'); return; },
+  'reset-overrides': async (it, e, d, key) => { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { const keep = { name: profs[key].name, match: profs[key].match }; profs[key] = keep; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } toast(t('Overrides cleared')); changed(); return; },
+  'reset-buttons': async (it, e, d, key) => { const defs = ((await api.quiet('defaults', { id: d.id })).profiles || {}).default || {}; const btns = defs.buttons || {}; for (const cid of Object.keys(btns)) await setAssign(d, 'buttons', cid, btns[cid]); if (defs.thumbwheel) await setAssign(d, 'thumbwheel', null, defs.thumbwheel); toast(t('Buttons reset to defaults')); changed(); return; },
+  'reset-keys': async (it, e, d, key) => { const defs = ((await api.quiet('defaults', { id: d.id })).profiles || {}).default || {}; const keys = defs.keys || {}; const lay = keyLayout(d); for (const { cid } of lay.frow.concat(lay.special)) await setAssign(d, 'keys', cid, keys[cid] || 'native'); toast(t('Keys reset to defaults')); changed(); return; },
+  'app-detail': async (it, e, d, key) => { const p = allProfiles().find(x => x.key === key); S.appDetail = key === 'default' ? { key: 'default', name: t('Default') } : Object.assign({ key }, p || { name: key }); S.menu = null; changed(); return; },
+  'add-app': async (it, e, d, key) => { prompt(t('Add application'), [{ key: 'name', label: t('Application'), placeholder: 'Firefox', list: (S.apps || []).map(a => ({ value: a.name })) }], v => addProfile(v.name, appClass(v.name)), t('Add')); return; },
   'add-app-quick': async (it, e, d, key) => { await addProfile(it.data.name, it.data.cls); return; },
-  'rename-profile': async (it, e, d, key) => { prompt('Rename profile', [{ key: 'name', label: 'Name', value: (S.appDetail || {}).name }], async v => { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { profs[key].name = v.name; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } S.appDetail.name = v.name; changed(); }, 'Rename'); return; },
-  'del-profile': async (it, e, d, key) => { if (!confirm('Remove this profile on all devices?')) return; for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } S.appDetail = null; changed(); return; },
+  'rename-profile': async (it, e, d, key) => { prompt(t('Rename profile'), [{ key: 'name', label: t('Name'), value: (S.appDetail || {}).name }], async v => { for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { profs[key].name = v.name; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } S.appDetail.name = v.name; changed(); }, t('Rename')); return; },
+  'del-profile': async (it, e, d, key) => { if (!confirm(t('Remove this profile on all devices?'))) return; for (const dd of S.devices) { const profs = JSON.parse(JSON.stringify(dd.config.profiles)); if (profs[key]) { delete profs[key]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); } } S.appDetail = null; changed(); return; },
   'ov-reset': async (it, e, d, key) => { const dd = S.devices.find(x => x.id === it.data.dev); const profs = JSON.parse(JSON.stringify(dd.config.profiles)); const sect = profs[it.data.profile][it.data.section]; if (sect) delete sect[it.data.cid]; merge(await call('set_profiles', { id: dd.id, profiles: profs })); changed(); return; },
 };
 

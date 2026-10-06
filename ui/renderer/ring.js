@@ -8,6 +8,7 @@
 // the folder again, or Esc closes it). The wheel over an adjustable slot (volume, brightness,
 // zoom, tracks) steps it without closing the ring.
 import * as G from './ring-geometry.js';
+import { t } from '../shared/i18n.mjs';
 (() => {
   const N = G.N;
   const BASE = { RW: 560, RH: 460, RR: 104, B: 28, NEAR: 38, FAR: 250 };
@@ -40,8 +41,12 @@ import * as G from './ring-geometry.js';
   const volIcon = (l, kind) => 'fa-solid ' + (kind === 'brightness' ? (l < 30 ? 'fa-moon' : 'fa-sun') : l === 0 ? 'fa-volume-xmark' : l < 40 ? 'fa-volume-low' : 'fa-volume-high');
   // a screen whose brightness cannot be read or set says so instead of a level
   const dialOff = () => dial && dial.ready && dial.level === null;
-  const DIAL_WHY = { ddcutil: 'Set up monitor brightness in NotLogi first', i2c: 'Set up monitor brightness in NotLogi first', none: 'cannot be changed from here', ddc: 'did not answer', platform: 'not available on this system yet' };
-  const offText = () => { const w = DIAL_WHY[dial.reason] || 'cannot be changed from here'; return /^[A-Z]/.test(w) ? w : `${dial.name || 'This screen'} ${w}`; };
+  const DIAL_WHY = {
+    ddcutil: () => t('Set up monitor brightness in NotLogi first'), i2c: () => t('Set up monitor brightness in NotLogi first'),
+    none: name => t('{name} cannot be changed from here', { name }), ddc: name => t('{name} did not answer', { name }),
+    platform: name => t('{name} not available on this system yet', { name }),
+  };
+  const offText = () => (DIAL_WHY[dial.reason] || DIAL_WHY.none)(dial.name || t('This screen'));
   function dialShow() {
     if (!dial) return;
     if (!dial.wheel) {
@@ -133,7 +138,7 @@ import * as G from './ring-geometry.js';
       // the label sits outside the bubble, growing away from the ring
       const lx = ox + (r + B + 16) * c, ly = oy + (r + B + 16) * sn;
       const tx = c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%', ty = sn > 0.3 ? '0' : sn < -0.3 ? '-100%' : '-50%';
-      return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(s.label)}${folder ? ' <i class="fa-solid fa-chevron-right lab-more"></i>' : ''}</div>`;
+      return bub + `<div class="lab" data-i="${i}" style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px;transform:translate(${tx},${ty})">${esc(t(s.label))}${folder ? ' <i class="fa-solid fa-chevron-right lab-more"></i>' : ''}</div>`;   // i18n: data
     }).join('');
     slotsEl.innerHTML = html;
     setHover(-1);
@@ -257,7 +262,7 @@ import * as G from './ring-geometry.js';
   window.ring.onSlots(({ slots: next, name }) => {
     root = pad(next); stack = []; slots = root; dial = null; vx = vy = 0;
     build();
-    if (name) { note.textContent = name; note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }
+    if (name) { note.textContent = t(name); note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }   // i18n: data
   });
   window.ring.onShow(msg => {
     // dressed like the desktop it opens on: its light or dark, its accent colour, its font

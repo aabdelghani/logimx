@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const state = require('./state');
+const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
 // from the other parts of the main process, filled in by link()
 let ringLog, rpc;
@@ -55,11 +56,11 @@ ipcMain.handle('check-updates', () => new Promise(resolve => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && hops > 0) {
         res.resume();
         try { const u = new URL(res.headers.location, 'https://api.github.com'); if (u.host === 'api.github.com') return get({ path: u.pathname + u.search }, hops - 1); } catch (e) {}
-        return resolve({ ok: false, error: 'unexpected redirect' });
+        return resolve({ ok: false, error: t('unexpected redirect') });
       }
-      let body = ''; res.on('data', c => body += c); res.on('end', () => { try { const j = JSON.parse(body); resolve({ ok: true, latest: (j.tag_name || '').replace(/^v/, ''), url: j.html_url, current: app.getVersion() }); } catch (e) { resolve({ ok: false, error: 'unexpected reply' }); } });
+      let body = ''; res.on('data', c => body += c); res.on('end', () => { try { const j = JSON.parse(body); resolve({ ok: true, latest: (j.tag_name || '').replace(/^v/, ''), url: j.html_url, current: app.getVersion() }); } catch (e) { resolve({ ok: false, error: t('unexpected reply') }); } });
     });
-    req.on('error', e => resolve({ ok: false, error: e.message })); req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'timeout' }); });
+    req.on('error', e => resolve({ ok: false, error: e.message })); req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: t('timeout') }); });
   };
   get({ path: '/repos/aabdelghani/notlogi/releases/latest' }, 3);
 }));

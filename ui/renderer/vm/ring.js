@@ -2,6 +2,7 @@
 // picked, and saving them (the shapes themselves are in shared/ring.mjs).
 import * as Ring from '../../shared/ring.mjs';
 import { RING_DIRS, eight, isFolderSlot, newRingId } from '../../shared/ring.mjs';
+import { en, inEnglish, t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
 let S, actionIcon, api, assignPicked, changed, dev, deviceProfiles, drawerUp, fx, presetLabel, prompt, setGeneral, toast;
@@ -35,20 +36,22 @@ const ringAppName = key => { const k = key || ringViewApp(), prof = k && deviceP
 const ringAppMatch = k => { const prof = deviceProfiles(dev()).find(x => x.key === k); return prof && prof.match.length ? prof.match : [k]; };
 // which ring an app uses, in words
 const ringUseName = Ring.ringUseName;
+// the same as one sentence, for a toast
+const usesToast = k => { const r = ringState(), ar = appRing(r, k), app = ringAppName(k); return !ar ? t('{app} uses the global ring', { app }) : ar.legacy ? t('{app} uses its own ring', { app }) : t('{app} uses {ring}', { app, ring: t(r.profiles[ar.i].name) }); };   // i18n: data
 const ringInserting = ins => drawerUp() && S.picker.section === 'ring' && S.picker.insert === ins;
 // the panel waits to add a new action at one end of the open folder's row
-const ringSelectAdd = (ins = 'end') => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = ins; p.cid = null; p.label = 'New action'; p.current = null; p.sel = null; p.selKey = null; };
+const ringSelectAdd = (ins = 'end') => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = ins; p.cid = null; p.label = t('New action'); p.current = null; p.sel = null; p.selKey = null; };
 // the folder's name, top-left on its page: saved as the slot's label
 async function saveFolderName(name) {
   const i = (S.ringPath || [])[0]; if (i == null) return;
-  name = (name || '').trim() || 'New folder';
+  name = (name || '').trim() || en('New folder');
   const path = S.ringPath; S.ringPath = [];
   const slots = ringSlots(), f = slots[i];
   if (isFolderSlot(f)) { slots[i] = Object.assign({}, f, { label: name, action: Object.assign({}, f.action, { label: name }) }); await saveRingSlots(slots); }
   S.ringPath = path;
 }
 // the panel turns to a place in the open ring or folder
-const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = null; p.cid = i; p.label = (S.ringPath || []).length ? `Action ${i + 1}` : RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
+const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = null; p.cid = i; p.label = (S.ringPath || []).length ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
 // a folder keeps the direction it sits in on the ring: its first action goes the same way, the
 // next ones continue clockwise from there (the real ring draws them at those same directions)
 // a folder's actions are an ordered list fanned out around the folder's direction: the first in
@@ -65,10 +68,10 @@ const ringEditing = i => drawerUp() && S.picker.section === 'ring' && !S.picker.
 async function dropOnRing(i, ins, a) {
   if (ins) { S.picker.insert = ins; return assignPicked(a); }
   const slots = ringSlots();
-  slots[i] = { action: a, label: presetLabel(a), icon: actionIcon(a) };
+  slots[i] = { action: a, label: inEnglish(() => presetLabel(a)), icon: actionIcon(a) };   // saved in English, shown translated
   await saveRingSlots(slots);
   const p = S.picker; p.cid = i; p.label = RING_DIRS[i]; p.current = a; p.sel = null; p.selKey = null;
-  changed(); toast(`Slot ${i + 1}: ${presetLabel(a)}`);
+  changed(); toast(t('Slot {n}: {action}', { n: i + 1, action: presetLabel(a) }));
 }
 // whether this computer can set monitor brightness yet (ddcutil and I2C access), asked once
 function brightnessStatus() {
@@ -93,7 +96,7 @@ export const commands = {
     const i = Number(key); S.menu = null;
     const slots = ringSlots(), had = slots[i];
     // the slot becomes a folder; an action already there moves inside as its first one
-    slots[i] = { action: { type: 'folder', label: 'New folder', slots: had && !isFolderSlot(had) ? [had] : [] }, label: 'New folder', icon: 'fa-folder' };
+    slots[i] = { action: { type: 'folder', label: en('New folder'), slots: had && !isFolderSlot(had) ? [had] : [] }, label: en('New folder'), icon: 'fa-folder' };
     await saveRingSlots(slots);
     S.ringPath = [i]; S.ringAnim = { kind: 'in', from: i }; ringSelectAdd(); changed();
     fx.focus('.folder-name', { delay: 180, select: true });
@@ -110,7 +113,7 @@ export const commands = {
     changed(); return;
   },
   'rp-new': async (it, e, d, key) => {
-    prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => {
+    prompt(t('New ring profile'), [{ key: 'name', label: t('Name'), placeholder: t('Work, Editing, Gaming…') }], async v => {
       const r = ringState(), k = ringApp(), id = newRingId(), name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`;
       r.profiles.push({ id, name, slots: [] });
       if (k) { r.apps[k] = { profile: id, match: ringAppMatch(k) }; await saveRing({ profiles: r.profiles, apps: r.apps }); }
@@ -118,16 +121,16 @@ export const commands = {
       S.ringPath = [];
       // a blank ring with its first slot open: actions can be dragged onto any slot
       if (S.picker && S.picker.section === 'ring') { S.picker.cid = 0; S.picker.label = RING_DIRS[0]; S.picker.current = null; }
-      toast(`"${name}" is a blank ring: drag actions onto it`); changed();
-    }, 'Create');
+      toast(t('"{name}" is a blank ring: drag actions onto it', { name })); changed();
+    }, t('Create'));
     return;
   },
   'rp-rename': async (it, e, d, key) => {
     const r0 = ringState(), pr = r0.profiles.find(p => p.id === key); if (!pr) return;
-    prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: pr.name }], async v => {
+    prompt(t('Rename ring profile'), [{ key: 'name', label: t('Name'), value: pr.name }], async v => {
       const name = (v.name || '').trim(); if (!name) return changed();
-      const r = ringState(), t = r.profiles.find(p => p.id === key); if (t) t.name = name; await saveRing({ profiles: r.profiles }); changed();
-    }, 'Rename');
+      const r = ringState(), pt = r.profiles.find(p => p.id === key); if (pt) pt.name = name; await saveRing({ profiles: r.profiles }); changed();
+    }, t('Rename'));
     return;
   },
   'rp-delete': async (it, e, d, key) => {
@@ -137,47 +140,47 @@ export const commands = {
     for (const [ak, av] of Object.entries(r.apps)) if (av && av.profile === gone.id) delete r.apps[ak];   // its apps go back to the global ring
     await saveRing({ profiles: r.profiles, apps: r.apps, active: Math.min(r.active > i ? r.active - 1 : r.active, r.profiles.length - 1) });
     S.ringPath = []; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null;
-    toast(`Profile "${gone.name}" deleted`); changed(); return;
+    toast(t('Profile "{name}" deleted', { name: t(gone.name) })); changed(); return;   // i18n: data
   },
   'ring-app-use': async (it, e, d, key) => {
     const r = ringState(), k = ringApp(); S.menu = null; if (!k || key === '#own') return changed();
     if (!key) delete r.apps[k]; else r.apps[k] = { profile: key, match: ringAppMatch(k) };
     S.ringPath = []; await saveRing({ apps: r.apps });
     if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null;
-    toast(`${ringAppName(k)} uses ${ringUseName(ringState(), k)}`); changed(); return;
+    toast(usesToast(k)); changed(); return;
   },
   'ring-app-new': async (it, e, d, key) => {
     const k = ringApp(); S.menu = null; if (!k) return changed();
-    prompt('New blank ring profile', [{ key: 'name', label: 'Name', value: ringAppName(k), placeholder: 'Work, Remote desktop…' }], async v => {
+    prompt(t('New blank ring profile'), [{ key: 'name', label: t('Name'), value: ringAppName(k), placeholder: t('Work, Remote desktop…') }], async v => {
       const r = ringState(), name = (v.name || '').trim() || ringAppName(k), id = newRingId();
       r.profiles.push({ id, name, slots: [] }); r.apps[k] = { profile: id, match: ringAppMatch(k) };
       S.ringPath = []; await saveRing({ profiles: r.profiles, apps: r.apps });
       if (S.picker && S.picker.section === 'ring') S.picker.current = null;
-      toast(`${ringAppName(k)} uses the new profile "${name}"`); changed();
-    }, 'Create');
+      toast(t('{app} uses the new profile "{name}"', { app: ringAppName(k), name })); changed();
+    }, t('Create'));
     return;
   },
   'bri-setup': async (it, e, d, key) => {
-    toast('Setting up monitor brightness…');
+    toast(t('Setting up monitor brightness…'));
     const r = await api.host.briSetup();
     S.briStatus = await api.host.briStatus().catch(() => null);
-    toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? 'Monitor brightness is ready' : 'Set up; this monitor does not answer brightness requests') : (r && r.error) || 'Failed', !(r && r.ok));
+    toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? t('Monitor brightness is ready') : t('Set up; this monitor does not answer brightness requests')) : (r && r.error) || t('Failed'), !(r && r.ok));
     changed(); return;
   },
   'ring-up': async (it, e, d, key) => { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } changed(); return; },
-  'ring-app-drop': async (it, e, d, key) => { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast('Uses the global ring'); changed(); return; },
+  'ring-app-drop': async (it, e, d, key) => { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast(t('Uses the global ring')); changed(); return; },
   'ring-travel': async (it, e, d, key) => { await saveRing({ travel: Number(it.value) }); return; },
   'ring-free': async (it, e, d, key) => { await saveRing({ free_pointer: !it.on }); changed(); return; },
   'ring-profile': async (it, e, d, key) => { S.ringPath = []; await saveRing({ active: Number(key) }); S.menu = null; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; changed(); return; },
-  'ring-profile-add': async (it, e, d, key) => { S.menu = null; prompt('New ring profile', [{ key: 'name', label: 'Name', placeholder: 'Work, Editing, Gaming…' }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(`Profile "${name}" added`); changed(); }, 'Create'); return; },
-  'ring-profile-copy': async (it, e, d, key) => { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast('Profile duplicated'); changed(); return; },
-  'ring-profile-rename': async (it, e, d, key) => { const r = ringState(); prompt('Rename ring profile', [{ key: 'name', label: 'Name', value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return changed(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); changed(); }, 'Rename'); return; },
+  'ring-profile-add': async (it, e, d, key) => { S.menu = null; prompt(t('New ring profile'), [{ key: 'name', label: t('Name'), placeholder: t('Work, Editing, Gaming…') }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(t('Profile "{name}" added', { name })); changed(); }, t('Create')); return; },
+  'ring-profile-copy': async (it, e, d, key) => { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(t('Profile duplicated')); changed(); return; },
+  'ring-profile-rename': async (it, e, d, key) => { const r = ringState(); prompt(t('Rename ring profile'), [{ key: 'name', label: t('Name'), value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return changed(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); changed(); }, t('Rename')); return; },
   'ring-profile-delete': async (it, e, d, key) => {
     S.menu = null; const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0];
     for (const [ak, av] of Object.entries(r.apps)) if (av && av.profile === gone.id) delete r.apps[ak];
-    await saveRing({ profiles: r.profiles, apps: r.apps, active: Math.max(0, r.active - 1) }); toast(`Profile "${gone.name}" deleted`); changed(); return;
+    await saveRing({ profiles: r.profiles, apps: r.apps, active: Math.max(0, r.active - 1) }); toast(t('Profile "{name}" deleted', { name: t(gone.name) })); changed(); return;   // i18n: data
   },
-  'ring-clear': async (it, e, d, key) => { await saveRingSlots([]); toast('Slots cleared'); changed(); return; },
+  'ring-clear': async (it, e, d, key) => { await saveRingSlots([]); toast(t('Slots cleared')); changed(); return; },
 };
 
 export const provide = { ringState, ringApp, ringViewApp, appRing, ringTop, ringFolder, ringSlots, saveRing, saveRingSlots, ringAppName, ringAppMatch, ringUseName, ringInserting, ringSelectAdd, saveFolderName, ringSelect, ringTidyFolders, ringEditing, dropOnRing, brightnessStatus };

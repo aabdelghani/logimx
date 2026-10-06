@@ -14,6 +14,7 @@ import { isMouse, isNative } from '../shared/profiles.mjs';
 const { ICON, PRESET_ICON, MODS, codeToKey, toolName } = Act;
 import { createApi } from './model/api.js';
 import { createStore } from './model/store.js';
+import { t } from '../shared/i18n.mjs';
 const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newRingId } = Ring;
 import * as htmlView from './view/html.js';
 import * as fxView from './view/fx.js';
@@ -122,7 +123,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     if (!b || S.dlg !== 'pair') return;
     if (m.type === 'found') b.list = m.list;
     if (m.type === 'pair') {
-      if (m.state === 'connected') { p.step = 3; p.done = `${m.name} is connected`; api.host.btClose(); }
+      if (m.state === 'connected') { p.step = 3; p.done = t('{name} is connected', { name: m.name }); api.host.btClose(); }
       else b.busy = { address: m.address, name: m.name, state: m.state, passkey: m.passkey, why: m.why };
     }
     render();
@@ -139,7 +140,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
       else if (event === 'backlight') { if (S.page === 'backlight') changed(); }
     }
     if (event === 'record') onRecordEvent(data);
-    else if (event === 'pair') { if (S.dlg === 'pair') { if (data.status === 'discovering' || data.status === 'found') S.pair.passkey = null; if (data.found) S.pair.found = data.found; if (data.error) S.pair.error = data.error; if (data.passkey) S.pair.passkey = data.passkey; if (data.done) { S.pair.step = 3; S.pair.done = data.done; } if (data.timeout !== undefined) S.pair.timeout = data.timeout; if (data.status === 'cancelled') S.pair.error = S.pair.error || 'Cancelled'; changed(); } }
+    else if (event === 'pair') { if (S.dlg === 'pair') { if (data.status === 'discovering' || data.status === 'found') S.pair.passkey = null; if (data.found) S.pair.found = data.found; if (data.error) S.pair.error = data.error; if (data.passkey) S.pair.passkey = data.passkey; if (data.done) { S.pair.step = 3; S.pair.done = data.done; } if (data.timeout !== undefined) S.pair.timeout = data.timeout; if (data.status === 'cancelled') S.pair.error = S.pair.error || t('Cancelled'); changed(); } }
   });
   render();
   (async () => {
