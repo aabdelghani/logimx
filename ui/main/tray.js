@@ -13,7 +13,8 @@ exports.link = ctx => { ({ loadUi, offTaskbar, refreshGeneral, rpc, showWindow }
 function trayIcon(warn) {
   const img = nativeImage.createFromPath(path.join(ROOT, 'assets', warn ? 'tray-warn.png' : 'tray.png'));
   img.setTemplateImage(false);
-  return img;
+  // the menu bar's own icons (Siri, Wi-Fi) are 18 points; the 22-point image stood out as bigger
+  return process.platform === 'darwin' ? img.resize({ width: 18, height: 18, quality: 'best' }) : img;
 }
 
 const menuIcon = n => nativeImage.createFromPath(path.join(ROOT, 'assets', 'tray', n + '.png'));
