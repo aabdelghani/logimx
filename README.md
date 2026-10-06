@@ -21,8 +21,7 @@ SmartShift, DPI, the keyboard backlight and more. On Linux it runs on GNOME, KDE
 desktops, on X11 and Wayland.
 
 NotLogi is an independent project. It is not affiliated with, endorsed by, or supported by the
-manufacturer of these devices. The device pictures in the app are the manufacturer's product
-images, used to show which device is which; they are not covered by NotLogi's license.
+manufacturer of these devices.
 
 | Action ring | The ring on the desktop |
 |---|---|
@@ -58,7 +57,6 @@ images, used to show which device is which; they are not covered by NotLogi's li
 - [Reporting a problem](#reporting-a-problem)
 - [Status](#status)
 - [Related projects](#related-projects)
-- [License](#license)
 
 ## Install
 
@@ -434,17 +432,3 @@ tracking on KDE and Sway.
   through a text file
 - [libratbag](https://github.com/libratbag/libratbag) and Piper: DPI and button configuration for
   gaming mice
-
-## License
-
-NotLogi is free software: you can use, study, share and change it under the terms of the
-[GNU General Public License](LICENSE), version 3 or (at your option) any later version, for any
-purpose, personal or commercial. If you distribute NotLogi or a program built on it, you share its
-source under the same license.
-
-To build NotLogi into a product without publishing that product's source, a separate commercial
-license is available: get in touch through [github.com/aabdelghani](https://github.com/aabdelghani).
-
-Earlier releases keep the license they were published under: up to 0.8.2 MIT, 0.9.0 and 0.9.1
-PolyForm Noncommercial 1.0.0. Bundled third-party code keeps its own license (agent/third_party),
-and the device pictures are the manufacturer's (see the note at the top).
