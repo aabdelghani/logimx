@@ -3,8 +3,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { LANGS, t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, flowNew, range, row, sec, sw;
-export function link(ctx) { ({ ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, flowNew, range, row, sec, sw } = ctx); }
+let ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, range, row, sec, sw;
+export function link(ctx) { ({ ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, range, row, sec, sw } = ctx); }
 
 function pageNotif() {
   const g = S.general, ev = g.osd_events || { mic: true, smartshift: true, backlight: true, host: true, dpi: false };
@@ -49,14 +49,7 @@ const morePages = () => [
 ].concat(S.devices.some(isMouse) ? [] : [['ring', 'fa-circle-notch', t('Action ring'), t('Eight actions around the pointer')]],
   [['about', 'fa-circle-info', t('About NotLogi'), t('Version, links, diagnostics')]]);
 
-// Flow: share the mouse, keyboard and clipboard with other computers on the LAN. LogiMX
-// drives Deskflow (the open-source software KVM) under the hood; this computer is the
-// server and the others join as clients. S.flow holds the last flow-info from main.
-const FLOW_POS = [['left', t('Left'), 'fa-arrow-left'], ['right', t('Right'), 'fa-arrow-right'], ['up', t('Above'), 'fa-arrow-up'], ['down', t('Below'), 'fa-arrow-down']];
-// the side choice in a peer's row, each a whole phrase
-const FLOW_POS_OF_ME = { left: t('Left of me'), right: t('Right of me'), up: t('Above me'), down: t('Below me') };
-// While Flow is off, the device's Flow page is a single invitation; Start using Flow opens
-// the setup (installing the sharing engine first if it is missing).
+// Flow: share the mouse, keyboard and clipboard with other computers on the LAN.
 // connecting another computer, as Options+ walks through it, over the whole window: this computer and
 // the other one side by side, the three things the other one needs (Continue or Cancel), then the search
 function flowWizard(step, opening) {
@@ -84,49 +77,10 @@ function flowWizard(step, opening) {
       <div class="fw-btns"><button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button><button class="btn primary" data-act="flow-wiz-go">${t('Continue')}</button></div>`;
   return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true"><div class="fw-body step-${step}" ${opening ? '' : 'data-step-in'}>${body}</div></div>`;
 }
+// the Flow page is the setup sheet, over the whole window (see render)
 function pageFlow() {
-  const f = S.flow;
-  if (!f) { flowRefresh(); return sec(t('Flow'), card(row(t('Loading…'), '', ''))); }
-  if (flowNew(f)) return '';   // the setup sheet covers the window
-  if (!f.installed) {
-    const inst = S.flowStatus === 'installing';
-    return sec(t('Flow'), card(
-      row(t('Flow needs its sharing engine'), t('NotLogi shares the mouse, keyboard and clipboard between computers using Deskflow, an open-source tool. Install it once to turn Flow on.'),
-        inst ? `<span class="val">${t('Installing…')}</span>` : `<button class="btn primary" data-act="flow-install"><i class="fa-solid fa-download"></i>${t('Install Flow support')}</button>`) +
-      (inst && S.flowDetail ? `<div class="row sub" style="color:var(--dim)">${esc(S.flowDetail)}</div>` : ''))) +
-      sec('', `<div class="hint">${t('Deskflow is the open-source Barrier / Synergy fork. NotLogi only sets it up and runs it; nothing is sent anywhere online.')} <a href="#" data-act="open" data-url="https://deskflow.org">deskflow.org</a></div>`);
-  }
-  const peers = f.peers || [];
-  const st = S.flowStatus, on = f.running;
-  const statusText = on
-    ? (f.peer || st === 'peer' ? t('Connected — a computer is sharing this mouse and keyboard') : f.ip ? t('Running — waiting for a computer to connect at {ip}', { ip: f.ip }) : t('Running — waiting for a computer to connect at this computer'))
-    : st === 'error' ? (S.flowDetail || t('Flow stopped unexpectedly')) : t('Off');
-  const statusCls = on ? (f.peer || st === 'peer' ? 'ok' : 'warn') : st === 'error' ? 'err' : '';
-  // this computer in the middle, each peer as a tile on its side
-  const tile = (label, cls) => `<div class="flow-node ${cls}">${esc(label)}</div>`;
-  const bySide = s => peers.filter(p => p.pos === s).map(p => tile(p.name, 'peer')).join('');
-  const gridPreview = `<div class="flow-grid">
-    <div class="fg up">${bySide('up')}</div>
-    <div class="fg left">${bySide('left')}</div>
-    ${tile(t('{name} (this)', { name: f.name }), 'me')}
-    <div class="fg right">${bySide('right')}</div>
-    <div class="fg down">${bySide('down')}</div></div>`;
-  const peerRows = peers.length ? peers.map((p, i) => `<div class="row">
-      <span class="grow lbl">${esc(p.name)}</span>
-      <select class="sel" data-act="flow-peer-pos" data-i="${i}">${FLOW_POS.map(([v, l]) => `<option value="${v}" ${p.pos === v ? 'selected' : ''}>${FLOW_POS_OF_ME[v]}</option>`).join('')}</select>
-      <button class="btn sm flat danger" data-act="flow-peer-del" data-i="${i}" title="${t('Remove')}"><i class="fa-solid fa-trash"></i></button>
-    </div>`).join('') : `<div class="row sub" style="color:var(--dim)">${t('No computers yet. Add the Mac or PC you want to reach.')}</div>`;
-  return sec(t('This computer'), card(
-      row(t('Name'), t('How other computers see this one'), `<input class="text" data-act="flow-name" value="${esc(f.name)}" style="width:180px" ${on ? 'disabled' : ''}>`) +
-      row(t('Address'), t('Where the others connect'), `<span class="val flow-ip">${esc(f.ip || t('no network'))}</span>`))) +
-    sec(t('Computers'), card(peerRows + `<div class="row"><button class="btn sm" data-act="flow-peer-add" ${on ? 'disabled' : ''}><i class="fa-solid fa-plus"></i>${t('Add computer')}</button></div>`), t('drag your pointer off this edge to reach them')) +
-    (peers.length ? sec(t('Arrangement'), card(`<div class="flow-arrange">${gridPreview}</div>`)) : '') +
-    sec(t('Sharing'), card(
-      row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard !== false, 'data-act="flow-clip"')) +
-      `<div class="row sub" style="color:var(--dim)">${t('The keyboard and mouse are always shared with the computer your pointer is on.')}</div>`)) +
-    sec('', card(`<div class="row"><div class="grow"><div class="lbl">${t('Flow')}</div><div class="sub"><span class="dot ${statusCls}"></span>${esc(statusText)}</div></div>` +
-      (on ? `<button class="btn danger" data-act="flow-stop"><i class="fa-solid fa-stop"></i>${t('Stop')}</button>` : `<button class="btn primary" data-act="flow-start"><i class="fa-solid fa-play"></i>${t('Start Flow')}</button>`) + `</div>`)) +
-    sec(t('Connect another computer'), `<div class="hint">${t('On the other computer, install <a href="#" data-act="open" data-url="https://deskflow.org">Deskflow</a>, choose <b>Client</b>, and connect to <b>{ip}</b>. Give that computer the screen name you typed for it above, and accept the security fingerprint the first time.', { ip: esc(f.ip || t('this computer')) })}</div>`);
+  if (!S.flow) flowRefresh();
+  return '';
 }
 
 function pageAbout() {
@@ -137,4 +91,4 @@ function pageAbout() {
     sec(t('Diagnostics'), card(`<div class="logs">${logs.map(l => `<span class="${l.c || 'dim'}">${esc(l.t)}</span>`).join('')}</div>`) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" data-act="report"><i class="fa-solid fa-bug"></i>${t('Report a problem')}</button><button class="btn" data-act="export-diag"><i class="fa-solid fa-file-zipper"></i>${t('Export diagnostics')}</button><button class="btn" data-act="copy-diag"><i class="fa-solid fa-copy"></i>${t('Copy')}</button></div>`, `<button class="btn sm flat" data-act="refresh-logs">${t('Refresh')}</button>`);
 }
 
-export const provide = { flowWizard, pageNotif, pageBackup, pageSettings, FLOW_POS, pageFlow, pageAbout };
+export const provide = { flowWizard, pageNotif, pageBackup, pageSettings, pageFlow, pageAbout };
