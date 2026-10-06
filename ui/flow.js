@@ -1,306 +1,355 @@
-// LogiMX Flow: share the mouse, keyboard and clipboard with other computers on the LAN.
+// Flow, as Logitech does it: the same mouse (and keyboard) is paired with each computer on its own
+// Easy-Switch channel. NotLogi on each computer finds the others on the local network; when the
+// pointer is pushed against the screen edge that faces another computer, this one hands it the
+// clipboard and switches the mouse (and the keyboard, when linked) to that computer's channel.
 //
-// LogiMX does not speak any device maker's protocol here. It drives Deskflow, the
-// open-source software KVM (the Barrier/Synergy fork, GPL-2.0), as a child process:
-// LogiMX writes Deskflow's config and runs its server silently, so the person only ever
-// sees LogiMX. This computer is the server (it owns the mouse and keyboard); other
-// computers join as Deskflow clients and connect to this computer's address.
-//
-// Everything is wrapped so Deskflow's own window never opens. The config LogiMX writes
-// lives under LogiMX's own directory and never touches a manual Deskflow setup.
-
-const { app, ipcMain, shell } = require('electron');
-const { spawn, execFile } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+// On the network, on port 24871:
+//   UDP  hello     every NotLogi with Flow announces itself (name, channels, whether it is searching)
+//   TCP  pair      two computers searching at once pair: the one with the smaller id sends a new
+//                  shared key, which signs everything they send each other afterwards
+//   TCP  switch    "the devices are coming to you", with the clipboard
+const { app, ipcMain, clipboard, screen } = require('electron');
+const { execFileSync } = require('child_process');
+const dgram = require('dgram');
+const net = require('net');
+const crypto = require('crypto');
 const os = require('os');
 const state = require('./main/state');
-const t = (s, v) => (state.I18n ? state.I18n.t(s, v) : s);
 
-const APP_ID = 'org.deskflow.deskflow';
-const IS_WIN = process.platform === 'win32', IS_MAC = process.platform === 'darwin';
-const DOWNLOAD_URL = 'https://github.com/deskflow/deskflow/releases/latest';
-const PORT = 24800;                 // Deskflow / Barrier default
-const POS = { left: 'left', right: 'right', up: 'up', down: 'down' };
+const PORT = 24871;
 const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
+const SEARCH_MS = 60000;            // how long a search lasts, as in Options+
+const ONLINE_MS = 12000;            // a computer not heard from for this long is away
+const MAX_CLIP = 8 * 1024 * 1024;   // clipboard images larger than this are not sent
 
-let win = null;                     // main window, for pushing flow-event
-let getUi = null, setUi = null;     // ui-settings load/save, injected from main.js
-let child = null;                   // the running deskflow-core server (the flatpak wrapper)
-let lastSettings = '';              // the -s path, unique to us, used to find the real core process
-let installing = null;              // the running flatpak install, if any
-let lastStatus = 'stopped';         // stopped | starting | running | peer | error
-let peerConnected = false;
+let win = null;                     // the settings window, told when anything changes
+let getUi = null, setUi = null;     // the window's settings file, where Flow keeps its own part
+let rpc = null;                     // the agent: switching a device's channel
+let udp = null, tcp = null;
+let searching = false, searchTimer = null, helloTimer = null, edgeTimer = null;
+const seen = new Map();             // id → { ip, name, os, searching, channels, at }
+let lastError = '';
 
-// The Deskflow flatpak is sandboxed: it can only read files under its own app data, not
-// arbitrary paths. So LogiMX writes its Flow config into a `logimx` subfolder of
-// Deskflow's own config tree (separate from the user's Deskflow.conf), which the sandbox
-// can read. A native (non-flatpak) Deskflow would read from anywhere, so fall back to
-// LogiMX's userData there.
-function flowDir() {
-  let d;
-  if (installed === 'flatpak') d = path.join(os.homedir(), '.var/app', APP_ID, 'config/Deskflow/logimx');
-  else d = path.join(app.getPath('userData'), 'flow');
-  try { fs.mkdirSync(d, { recursive: true }); } catch (e) {}
-  return d;
+// ----------------------------------------------------------------- settings
+// this computer's name as people know it: the Mac's computer name, else the host name
+function computerName() {
+  if (process.platform === 'darwin') { try { return execFileSync('scutil', ['--get', 'ComputerName'], { timeout: 1500 }).toString().trim(); } catch (e) {} }
+  return (os.hostname() || 'computer').replace(/\.local$/, '');
 }
-
-// a sensible default screen name: the hostname, trimmed to what Deskflow accepts
-function defaultName() {
-  return (os.hostname() || 'this-pc').split('.')[0].replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 30) || 'this-pc';
-}
-
-// the LAN address others connect to: the first non-internal IPv4 that is not a
-// container/VM bridge (docker/virbr/br-)
-function lanIp() {
-  const ifs = os.networkInterfaces();
-  const skip = /^(docker|virbr|br-|veth|vmnet|tun|tap|vEthernet|VirtualBox|VMware|Hyper-V|Loopback|Bluetooth)/i;
-  for (const [name, addrs] of Object.entries(ifs)) {
-    if (skip.test(name)) continue;
-    for (const a of addrs || []) {
-      if (a.family === 'IPv4' && !a.internal) return a.address;
-    }
-  }
-  return '';
-}
-
-function flowCfg() {
+function cfg() {
   const ui = getUi ? getUi() : {};
   const f = ui.flow || {};
-  return {
-    name: f.name || defaultName(),
-    peers: Array.isArray(f.peers) ? f.peers : [],   // [{ name, pos }]
+  let changed = false;
+  const c = {
+    id: f.id || (changed = true, crypto.randomBytes(8).toString('hex')),
+    enabled: f.enabled !== false,
     clipboard: f.clipboard !== false,
+    keyboard: f.keyboard !== false,
+    edge: f.edge !== false,
+    // computers paired before: { id, name, os, key, pos, channels }; older entries without a key
+    // (from the Deskflow version) are left out
+    peers: (Array.isArray(f.peers) ? f.peers : []).filter(p => p && p.id && p.key),
+    channels: f.channels || {},      // serial → { host, kind, name }: where each device is on this computer
   };
+  if (changed) save(c);
+  return c;
 }
+function save(c) { if (setUi) setUi({ flow: c }); }
+function patchCfg(p) { const c = Object.assign(cfg(), p); save(c); return c; }
 
-function saveCfg(patch) {
-  const cur = flowCfg();
-  const next = Object.assign({}, cur, patch || {});
-  if (setUi) setUi({ flow: next });
-  return next;
-}
-
-// Is Deskflow present, and how? `installed` is one of:
-//   null          not checked yet
-//   false         not installed
-//   'flatpak'     the org.deskflow.deskflow flatpak
-//   '<path>'      a native deskflow-core / deskflow-server binary
-let installed = null;
-// Windows and macOS: Deskflow's own installer puts deskflow-core in a known place
-function nativeCandidates() {
-  if (IS_WIN) {
-    const roots = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs')].filter(Boolean);
-    return roots.map(r => path.join(r, 'Deskflow', 'deskflow-core.exe'));
+// ----------------------------------------------------------------- devices
+const devices = () => (state.devices || []).filter(d => d && d.serial);
+// remember the channel each device is on while it is connected here: the other computers switch
+// it to this one through that channel
+function learnChannels() {
+  const c = cfg(); let changed = false;
+  for (const d of devices()) {
+    if (d.online === false) continue;
+    const host = ((d.state || {}).hosts || {}).current;
+    if (typeof host !== 'number') continue;
+    const cur = c.channels[d.serial];
+    if (!cur || cur.host !== host || cur.name !== d.name) { c.channels[d.serial] = { host, kind: d.kind, name: d.name }; changed = true; }
   }
-  return ['/Applications', path.join(os.homedir(), 'Applications')].map(r => path.join(r, 'Deskflow.app', 'Contents', 'MacOS', 'deskflow-core'));
+  if (changed) { save(c); hello(); }
+  return c.channels;
 }
-function checkInstalled(cb) {
-  if (installed !== null) return cb(installed);
-  if (IS_WIN || IS_MAC) {
-    installed = nativeCandidates().find(p => { try { return fs.existsSync(p); } catch (e) { return false; } }) || false;
-    if (installed || !IS_WIN) return cb(installed);
-    // installed somewhere else but on the PATH
-    return execFile('where', ['deskflow-core'], { timeout: 4000, windowsHide: true }, (e, out) => { installed = e ? false : (String(out).trim().split(/\r?\n/)[0] || false); cb(installed); });
-  }
-  execFile('flatpak', ['info', APP_ID], { timeout: 4000 }, err => {
-    if (!err) { installed = 'flatpak'; return cb(installed); }
-    execFile('sh', ['-c', 'command -v deskflow-core || command -v deskflow-server'], { timeout: 4000 }, (e2, out) => {
-      installed = e2 ? false : (out.trim().split('\n')[0] || false);
-      cb(installed);
-    });
-  });
-}
-// the argv to run deskflow-core in the given mode with the given settings file
-function coreArgv(mode, settingsPath) {
-  if (installed === 'flatpak') return ['flatpak', ['run', '--command=deskflow-core', APP_ID, mode, '--new-instance', '-s', settingsPath]];
-  const bin = installed.endsWith('deskflow-server') ? installed.replace(/-server$/, '-core') : installed;
-  return [bin, [mode, '--new-instance', '-s', settingsPath]];
+// the channel a device uses to reach a computer: as that computer reported it, else the computer's
+// name in the device's own list of hosts
+function channelFor(d, peer) {
+  const ch = (peer.channels || {})[d.serial];
+  if (ch && typeof ch.host === 'number') return ch.host;
+  const norm = s => String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9']+/g, ' ').trim();
+  const want = norm(peer.name);
+  const names = (((d.state || {}).hosts || {}).names) || [];
+  const hit = names.find(h => h.name && (norm(h.name) === want || want.startsWith(norm(h.name)) || norm(h.name).startsWith(want)));
+  return hit ? hit.index : null;
 }
 
-function push(status, detail) {
-  lastStatus = status;
-  if (win && !win.isDestroyed()) win.webContents.send('flow-event', { status, detail: detail || '', peer: peerConnected });
-}
-
-// Deskflow's server config (the Barrier text format): one screen per computer, and the
-// edge links between them. Links are symmetric: if a peer sits to our right, we also sit
-// to its left.
-function serverConf(cfg) {
-  const me = cfg.name;
-  const peers = cfg.peers.filter(p => p && p.name);
-  const screens = [me].concat(peers.map(p => p.name));
-  let out = 'section: screens\n';
-  for (const s of screens) out += `\t${s}:\n`;
-  out += 'end\n\nsection: links\n';
-  // this computer's edges to each peer
-  out += `\t${me}:\n`;
-  for (const p of peers) if (POS[p.pos]) out += `\t\t${POS[p.pos]} = ${p.name}\n`;
-  // each peer's edge back to us
-  for (const p of peers) {
-    out += `\t${p.name}:\n`;
-    if (POS[p.pos]) out += `\t\t${OPPOSITE[p.pos]} = ${me}\n`;
+// ----------------------------------------------------------------- network
+function lanAddrs() {
+  const skip = /^(docker|virbr|br-|veth|vmnet|tun|tap|utun|awdl|llw|vEthernet|VirtualBox|VMware|Hyper-V|Loopback|Bluetooth)/i;
+  const out = [];
+  for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+    if (skip.test(name)) continue;
+    for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) out.push(a);
   }
-  out += 'end\n\nsection: options\n';
-  out += `\tclipboardSharing = ${cfg.clipboard ? 'true' : 'false'}\n`;
-  out += '\tswitchCorners = none\n\tswitchCornerSize = 0\n';
-  out += 'end\n';
   return out;
 }
-
-// the QSettings INI Deskflow reads with -s: point it at our server config, keep its own
-// state out of the user's Deskflow
-function settingsConf(cfg, serverPath) {
-  return [
-    '[core]',
-    `computerName=${cfg.name}`,
-    'coreMode=1',
-    '',
-    '[internalConfig]',
-    `clipboardSharing=${cfg.clipboard ? 'true' : 'false'}`,
-    '',
-    '[server]',
-    'externalConfig=true',
-    `externalConfigFile=${serverPath}`,
-    '',
-  ].join('\n');
+function broadcastOf(a) {
+  const ip = a.address.split('.').map(Number), mask = a.netmask.split('.').map(Number);
+  return ip.map((b, i) => (b & mask[i]) | (~mask[i] & 255)).join('.');
+}
+function hello() {
+  if (!udp) return;
+  const c = cfg();
+  if (!c.enabled && !searching) return;
+  const msg = Buffer.from(JSON.stringify({ app: 'notlogi-flow', v: 1, id: c.id, name: computerName(), os: process.platform, searching, channels: c.channels }));
+  const targets = new Set(lanAddrs().map(broadcastOf).concat('255.255.255.255'));
+  for (const t of targets) udp.send(msg, PORT, t, () => {});
+}
+function onHello(buf, rinfo) {
+  let m; try { m = JSON.parse(buf.toString()); } catch (e) { return; }
+  const c = cfg();
+  if (!m || m.app !== 'notlogi-flow' || !m.id || m.id === c.id) return;
+  seen.set(m.id, { ip: rinfo.address, name: String(m.name || '').slice(0, 64), os: m.os, searching: !!m.searching, channels: m.channels || {}, at: Date.now() });
+  // a paired computer: its address and channels as they are now
+  const p = c.peers.find(x => x.id === m.id);
+  if (p) {
+    const ch = JSON.stringify(m.channels || {});
+    if (p.name !== m.name || JSON.stringify(p.channels || {}) !== ch) { p.name = m.name; p.channels = m.channels || {}; save(c); }
+  } else if (searching && m.searching && c.id < m.id) pair(m.id);   // both searching: the smaller id asks
+  notify();
 }
 
-function writeConfigs(cfg) {
-  const dir = flowDir();
-  // Deskflow server mode loads <settings-dir>/deskflow-server.conf by name, so that is
-  // what the server config must be called; externalConfigFile is belt-and-braces.
-  const serverPath = path.join(dir, 'deskflow-server.conf');
-  const settingsPath = path.join(dir, 'flow.conf');
-  fs.writeFileSync(serverPath, serverConf(cfg));
-  fs.writeFileSync(settingsPath, settingsConf(cfg, serverPath));
-  return settingsPath;
+// one JSON message each way over a short TCP connection
+function sendTo(ip, obj, timeout = 1500) {
+  return new Promise((resolve, reject) => {
+    const s = net.connect({ host: ip, port: PORT });
+    let buf = '';
+    const done = (err, v) => { clearTimeout(timer); s.destroy(); err ? reject(err) : resolve(v); };
+    const timer = setTimeout(() => done(new Error('timeout')), timeout);
+    s.on('connect', () => s.write(JSON.stringify(obj) + '\n'));
+    s.on('data', d => { buf += d; const i = buf.indexOf('\n'); if (i >= 0) { try { done(null, JSON.parse(buf.slice(0, i))); } catch (e) { done(e); } } });
+    s.on('error', e => done(e));
+  });
 }
-
-function running() { return !!(child && !child.killed); }
-
-function start() {
-  if (running()) return { ok: true, already: true };
-  const cfg = flowCfg();
-  if (!cfg.peers.some(p => p && p.name)) return { ok: false, error: t('Add a computer first.') };
-  let settingsPath;
-  try { settingsPath = writeConfigs(cfg); } catch (e) { push('error', t('Could not write the Flow config.')); return { ok: false, error: String(e) }; }
-  lastSettings = settingsPath;
-  peerConnected = false;
-  push('starting');
-  let p;
-  try {
-    const [cmd, args] = coreArgv('server', settingsPath);
-    // Own process group: the flatpak child runs deskflow-core under bwrap, so killing the
-    // wrapper alone leaves it running. Starting a group lets stop() take down the whole tree.
-    p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], detached: !IS_WIN, windowsHide: true });
-  } catch (e) { push('error', t('Could not start Flow.')); return { ok: false, error: String(e) }; }
-  child = p;
-  const line = buf => {
-    const s = buf.toString();
-    // Deskflow logs client connect/disconnect; surface those as status
-    if (/client "?[^"]*"? has connected|entering screen|connected to server/i.test(s)) { peerConnected = true; push('peer'); }
-    else if (/client "?[^"]*"? has disconnected|has disconnected/i.test(s)) { peerConnected = false; push('running'); }
-    else if (/started server|server started|accepting clients/i.test(s) && lastStatus === 'starting') push('running');
-  };
-  p.stdout.on('data', line);
-  p.stderr.on('data', line);
-  // if nothing told us otherwise, the server is up a moment after it launches
-  setTimeout(() => { if (running() && lastStatus === 'starting') push('running'); }, 1500);
-  p.on('error', () => { child = null; push('error', t('Flow failed to start.')); });
-  p.on('exit', code => { child = null; peerConnected = false; push(code && code !== 0 && code !== 143 ? 'error' : 'stopped'); });
-  return { ok: true };
+// messages between paired computers carry a signature made with their shared key
+const sign = (key, body) => crypto.createHmac('sha256', Buffer.from(key, 'hex')).update(body).digest('hex');
+function sealed(peer, msg) {
+  const body = JSON.stringify(Object.assign({ from: cfg().id, ts: Date.now() }, msg));
+  return { body, sig: sign(peer.key, body) };
 }
-
-function killChild() {
-  const settings = lastSettings;
-  if (child && IS_WIN) {
-    // the whole tree, by pid: nothing else of the person's is touched
-    execFile('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});
-    child = null;
-    return;
+function opened(env) {
+  if (!env || typeof env.body !== 'string') return null;
+  let m; try { m = JSON.parse(env.body); } catch (e) { return null; }
+  const peer = cfg().peers.find(p => p.id === m.from);
+  if (!peer || Math.abs(Date.now() - m.ts) > 60000) return null;
+  const want = sign(peer.key, env.body);
+  if (!env.sig || env.sig.length !== want.length || !crypto.timingSafeEqual(Buffer.from(env.sig), Buffer.from(want))) return null;
+  return { m, peer };
+}
+async function onMessage(msg, ip) {
+  if (msg && msg.t === 'pair') {
+    // only while this computer is searching too, so nothing pairs without both people asking
+    if (!searching || !msg.id || msg.id === cfg().id || !/^[0-9a-f]{64}$/.test(msg.key || '')) return { ok: false };
+    addPeer({ id: msg.id, name: msg.name, os: msg.os, key: msg.key, channels: msg.channels || {} }, 'left');
+    const c = cfg();
+    return { ok: true, id: c.id, name: computerName(), os: process.platform, channels: c.channels };
   }
-  if (child) {
-    const pid = child.pid;
-    // kill the wrapper's whole group (covers a native deskflow-core cleanly)
-    try { process.kill(-pid, 'SIGTERM'); } catch (e) { try { child.kill('SIGTERM'); } catch (e2) {} }
-    setTimeout(() => { try { process.kill(-pid, 'SIGKILL'); } catch (e) {} }, 1200);
-    child = null;
-  }
-  // The flatpak sandbox runs deskflow-core in its own session, so the group kill can't
-  // reach it. Target exactly our instance by the settings path we passed (unique to us,
-  // so a manual Deskflow the person may be running is left alone).
-  if (settings) { try { execFile('pkill', ['-f', 'deskflow-core .*' + settings.replace(/[.[\]]/g, '\\$&')]); } catch (e) {} }
-}
-
-function stop() {
-  killChild();
-  peerConnected = false; push('stopped');
-  return { ok: true };
-}
-
-// No package manager to lean on: open Deskflow's download page (the Windows build is signed
-// and installs in a minute). Windows with winget installs it in place.
-function openDownload() {
-  shell.openExternal(DOWNLOAD_URL);
-  push('stopped', t('Opened the Deskflow download page. Install it, then come back here.'));
-  return { ok: true, page: true };
-}
-function install() {
-  if (installing) return { ok: true, already: true };
-  if (IS_MAC) return openDownload();
-  if (IS_WIN) {
-    push('installing');
-    let w;
-    try { w = spawn('winget', ['install', '--id', 'Deskflow.Deskflow', '-e', '--silent', '--accept-source-agreements', '--accept-package-agreements'], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); }
-    catch (e) { return openDownload(); }
-    installing = w;
-    const line = buf => { const s = buf.toString().replace(/[\r\u0008]/g, '\n').trim(); if (s) push('installing', s.split('\n').filter(Boolean).pop().slice(0, 80)); };
-    w.stdout.on('data', line); w.stderr.on('data', line);
-    w.on('error', () => { installing = null; openDownload(); });
-    w.on('exit', () => {
-      installing = null; installed = null;
-      checkInstalled(ok => { if (ok) push('stopped', t('Flow support installed.')); else openDownload(); });
-    });
+  const o = opened(msg);
+  if (!o) return { ok: false };
+  const { m, peer } = o;
+  const s = seen.get(peer.id); if (s) s.ip = ip;
+  if (m.t === 'switch') {
+    // the devices are coming here: take the clipboard
+    if (m.clip && cfg().clipboard) writeClip(m.clip);
     return { ok: true };
   }
-  push('installing');
-  let p;
-  try { p = spawn('flatpak', ['install', '-y', '--noninteractive', 'flathub', APP_ID], { stdio: ['ignore', 'pipe', 'pipe'] }); }
-  catch (e) { push('error', t('Could not run flatpak.')); return { ok: false, error: String(e) }; }
-  installing = p;
-  const line = buf => { const s = buf.toString().trim(); if (s) push('installing', s.split('\n').pop().slice(0, 80)); };
-  p.stdout.on('data', line); p.stderr.on('data', line);
-  p.on('exit', code => {
-    installing = null; installed = null;
-    checkInstalled(ok => push(ok ? 'stopped' : 'error', ok ? t('Flow support installed.') : t('Install did not complete.')));
-  });
-  return { ok: true };
+  if (m.t === 'unpair') { removePeer(peer.id, true); return { ok: true }; }
+  return { ok: false };
 }
-
-function info() {
-  return new Promise(resolve => {
-    checkInstalled(ok => {
-      const cfg = flowCfg();
-      resolve({ installed: ok, ip: lanIp(), port: PORT, name: cfg.name, peers: cfg.peers,
-        clipboard: cfg.clipboard, running: running(), status: lastStatus, peer: peerConnected, installing: !!installing });
+function listen() {
+  udp = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+  udp.on('message', onHello);
+  udp.on('error', e => { lastError = String(e.message || e); });
+  udp.bind(PORT, () => { try { udp.setBroadcast(true); } catch (e) {} });
+  tcp = net.createServer(s => {
+    let buf = '';
+    s.setTimeout(5000, () => s.destroy());
+    s.on('data', async d => {
+      buf += d;
+      if (buf.length > MAX_CLIP * 2) return s.destroy();
+      const i = buf.indexOf('\n'); if (i < 0) return;
+      let msg; try { msg = JSON.parse(buf.slice(0, i)); } catch (e) { return s.destroy(); }
+      let reply = { ok: false };
+      try { reply = await onMessage(msg, (s.remoteAddress || '').replace(/^::ffff:/, '')); } catch (e) {}
+      s.end(JSON.stringify(reply) + '\n');
     });
+    s.on('error', () => {});
   });
+  tcp.on('error', e => { lastError = String(e.message || e); });
+  tcp.listen(PORT);
 }
 
-// wiring --------------------------------------------------------------------
+// ----------------------------------------------------------------- pairing
+function addPeer(p, pos) {
+  const c = cfg();
+  if (p.id === c.id) return;   // never this computer itself
+  const old = c.peers.find(x => x.id === p.id);
+  const peer = Object.assign({ pos: old ? old.pos : pos }, old || {}, p);
+  c.peers = c.peers.filter(x => x.id !== p.id).concat(peer);
+  c.enabled = true;
+  save(c);
+  if (searching) stopSearch(true);
+  send('flow-event', { type: 'paired', name: peer.name });
+  notify();
+  watchEdges();
+}
+async function pair(id) {
+  const s = seen.get(id); if (!s) return;
+  const c = cfg();
+  const key = crypto.randomBytes(32).toString('hex');
+  try {
+    const r = await sendTo(s.ip, { t: 'pair', id: c.id, name: computerName(), os: process.platform, key, channels: c.channels });
+    if (r && r.ok && r.id === id) addPeer({ id, name: r.name || s.name, os: r.os, key, channels: r.channels || {} }, 'right');
+  } catch (e) { lastError = String(e.message || e); }
+}
+function removePeer(id, quiet) {
+  const c = cfg();
+  const p = c.peers.find(x => x.id === id);
+  c.peers = c.peers.filter(x => x.id !== id);
+  save(c);
+  if (p && !quiet) { const s = seen.get(id); if (s) sendTo(s.ip, sealed(p, { t: 'unpair' })).catch(() => {}); }
+  notify();
+}
+function startSearch() {
+  searching = true;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { stopSearch(); send('flow-event', { type: 'search-timeout' }); }, SEARCH_MS);
+  learnChannels();
+  hello();
+  // someone already searching: the smaller id asks now
+  const c = cfg();
+  for (const [id, s] of seen) if (s.searching && Date.now() - s.at < 3000 && c.id < id && !c.peers.some(p => p.id === id)) pair(id);
+  schedule();
+  notify();
+}
+function stopSearch() { searching = false; clearTimeout(searchTimer); schedule(); notify(); }
+// announce every second while searching, every few seconds otherwise
+function schedule() {
+  clearInterval(helloTimer);
+  const c = cfg();
+  if (!searching && !(c.enabled && c.peers.length)) return;
+  helloTimer = setInterval(() => { learnChannels(); hello(); notify(true); }, searching ? 1000 : 4000);
+}
+
+// ----------------------------------------------------------------- switching
+function readClip() {
+  try {
+    const text = clipboard.readText();
+    if (text) return { text };
+    const img = clipboard.readImage();
+    if (img && !img.isEmpty()) { const png = img.toPNG(); if (png.length <= MAX_CLIP) return { png: png.toString('base64') }; }
+  } catch (e) {}
+  return null;
+}
+function writeClip(clip) {
+  try {
+    if (typeof clip.text === 'string') clipboard.writeText(clip.text);
+    else if (typeof clip.png === 'string') { const { nativeImage } = require('electron'); clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(clip.png, 'base64'))); }
+  } catch (e) {}
+}
+const online = p => { const s = seen.get(p.id); return !!(s && Date.now() - s.at < ONLINE_MS); };
+// the devices that go along: a shared mouse connected here, and keyboards too when linked
+function travellers(peer) {
+  const c = cfg();
+  return devices().filter(d => d.online !== false && (d.kind === 'mouse' || (c.keyboard && d.kind === 'keyboard')) && channelFor(d, peer) !== null);
+}
+let switching = false, coolUntil = 0;
+async function switchTo(peer) {
+  if (switching || Date.now() < coolUntil) return;
+  const devs = travellers(peer);
+  if (!devs.some(d => d.kind === 'mouse')) { lastError = `the mouse has no channel for ${peer.name}`; notify(); return; }
+  switching = true;
+  try {
+    const s = seen.get(peer.id);
+    // the other computer first (it takes the clipboard); if it does not answer, stay here
+    const r = await sendTo(s.ip, sealed(peer, { t: 'switch', clip: cfg().clipboard ? readClip() : null }), 1200);
+    if (!r || !r.ok) throw new Error('not accepted');
+    // the mouse last, so the keyboard is already there when the pointer arrives
+    for (const d of devs.sort((a, b) => (a.kind === 'mouse') - (b.kind === 'mouse'))) {
+      try { await rpc('change_host', { id: d.id, host: channelFor(d, peer) }); } catch (e) {}
+    }
+    lastError = '';
+  } catch (e) { lastError = `${peer.name} did not answer`; }
+  switching = false; coolUntil = Date.now() + 1000;
+  notify();
+}
+// the pointer pushed against an outer edge of the screens, toward a computer placed there
+let atEdge = null, edgeSince = 0;
+function edgeTick() {
+  const c = cfg();
+  if (!c.enabled || !c.edge || !c.peers.length) return;
+  if (!devices().some(d => d.kind === 'mouse' && d.online !== false)) return;   // the mouse is elsewhere
+  const pt = screen.getCursorScreenPoint();
+  const all = screen.getAllDisplays().map(d => d.bounds);
+  const minX = Math.min(...all.map(b => b.x)), maxX = Math.max(...all.map(b => b.x + b.width)) - 1;
+  const minY = Math.min(...all.map(b => b.y)), maxY = Math.max(...all.map(b => b.y + b.height)) - 1;
+  const side = pt.x <= minX ? 'left' : pt.x >= maxX ? 'right' : pt.y <= minY ? 'up' : pt.y >= maxY ? 'down' : null;
+  if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); return; }
+  if (!side || Date.now() - edgeSince < 40) return;   // held there, not just passing through a corner
+  const peer = c.peers.find(p => p.pos === side && online(p));
+  if (peer) { atEdge = null; switchTo(peer); }
+}
+function watchEdges() {
+  clearInterval(edgeTimer);
+  const c = cfg();
+  if (c.enabled && c.edge && c.peers.length) edgeTimer = setInterval(edgeTick, 16);
+}
+
+// ----------------------------------------------------------------- the window
+function info() {
+  const c = cfg();
+  const addr = lanAddrs()[0];
+  return {
+    id: c.id, name: computerName(), ip: addr ? addr.address : '', enabled: c.enabled, clipboard: c.clipboard, keyboard: c.keyboard, edge: c.edge,
+    searching, error: lastError,
+    peers: c.peers.map(p => ({ id: p.id, name: p.name, os: p.os, pos: p.pos, online: online(p) })),
+  };
+}
+let lastInfo = '';
+function notify(onlyIfChanged) {
+  const i = info(), s = JSON.stringify(i);
+  if (onlyIfChanged && s === lastInfo) return;
+  lastInfo = s;
+  send('flow-event', { type: 'info', info: i });
+}
+function send(ch, msg) { try { if (win && !win.isDestroyed()) win.webContents.send(ch, msg); } catch (e) {} }
+
 function init(opts) {
-  win = opts.win;
-  getUi = opts.getUi;
-  setUi = opts.setUi;
+  win = opts.win; getUi = opts.getUi; setUi = opts.setUi; rpc = opts.rpc;
+  listen();
+  learnChannels();
+  schedule();
+  watchEdges();
+  hello();
   ipcMain.handle('flow-info', () => info());
-  ipcMain.handle('flow-config', (_e, patch) => saveCfg(patch));
-  ipcMain.handle('flow-start', () => start());
-  ipcMain.handle('flow-stop', () => stop());
-  ipcMain.handle('flow-install', () => install());
+  ipcMain.handle('flow-search', (_e, on) => { on ? startSearch() : stopSearch(); return info(); });
+  ipcMain.handle('flow-config', (_e, patch) => {
+    const p = {};
+    for (const k of ['enabled', 'clipboard', 'keyboard', 'edge']) if (patch && typeof patch[k] === 'boolean') p[k] = patch[k];
+    const c = patchCfg(p);
+    if (patch && patch.pos && patch.id) { const peer = c.peers.find(x => x.id === patch.id); if (peer && OPPOSITE[patch.pos]) { peer.pos = patch.pos; save(c); } }
+    schedule(); watchEdges(); notify();
+    return info();
+  });
+  ipcMain.handle('flow-remove', (_e, id) => { removePeer(id); schedule(); watchEdges(); return info(); });
 }
-
 function setWindow(w) { win = w; }
-function shutdown() { stop(); }
+function shutdown() {
+  clearInterval(helloTimer); clearInterval(edgeTimer); clearTimeout(searchTimer);
+  try { udp && udp.close(); } catch (e) {}
+  try { tcp && tcp.close(); } catch (e) {}
+}
 
 module.exports = { init, setWindow, shutdown };

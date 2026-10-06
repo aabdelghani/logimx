@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Följ ovanstående tre steg på övriga datorer för att ansluta dem via Flow.",
  "Other computer": "Annan/andra dator/-er",
  "Searching for computers": "Söker efter datorer",
- "This process may take up to a minute": "Processen kan ta upp till en minut"
+ "This process may take up to a minute": "Processen kan ta upp till en minut",
+ "Flow Settings": "Flow-inställningar",
+ "Flow is now enabled and ready to use on your computers.": "Flow är nu aktiverad och kan användas på datorerna.",
+ "Link keyboard": "Länka tangentbord",
+ "Move cursor to edge": "Flytta markören till kanten",
+ "No computers found. Bummer!": "Inga datorer hittades. Rackarns!",
+ "Not found": "Hittades inte",
+ "Ready": "Redo",
+ "Successfully connected": "Ansluten",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "Vi har letat överallt ... Inga datorer hittades på nätverket. Försök igen – följ stegen ovan på övriga datorer.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "För pekaren förbi skärmkanten för att nå datorn på den sidan",
+ "Move to the other side": "Flytta till andra sidan",
+ "Switch computers by pushing the pointer against the edge of the screen": "Byt dator genom att trycka pekaren mot skärmkanten",
+ "Your keyboard follows the pointer from one computer to the other": "Tangentbordet följer pekaren från en dator till en annan"
 }

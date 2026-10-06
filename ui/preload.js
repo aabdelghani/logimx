@@ -44,8 +44,7 @@ contextBridge.exposeInMainWorld('agent', {
   onBuild: cb => ipcRenderer.on('agent-build', (_e, m) => cb(m)),
   flowInfo: () => ipcRenderer.invoke('flow-info'),
   flowConfig: patch => ipcRenderer.invoke('flow-config', patch || null),
-  flowStart: () => ipcRenderer.invoke('flow-start'),
-  flowStop: () => ipcRenderer.invoke('flow-stop'),
-  flowInstall: () => ipcRenderer.invoke('flow-install'),
+  flowSearch: on => ipcRenderer.invoke('flow-search', !!on),
+  flowRemove: id => ipcRenderer.invoke('flow-remove', id),
   onFlowEvent: cb => ipcRenderer.on('flow-event', (_e, m) => cb(m)),
 });

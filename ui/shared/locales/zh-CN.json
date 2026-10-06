@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "在其他电脑上执行上述 3 个步骤，以通过 Flow 连接。",
  "Other computer": "其他电脑",
  "Searching for computers": "正在搜索电脑",
- "This process may take up to a minute": "此过程可能需要最长一分钟时间"
+ "This process may take up to a minute": "此过程可能需要最长一分钟时间",
+ "Flow Settings": "Flow 设置",
+ "Flow is now enabled and ready to use on your computers.": "Flow 已启用，可以在您的电脑上使用。",
+ "Link keyboard": "链接键盘",
+ "Move cursor to edge": "将光标移到边缘",
+ "No computers found. Bummer!": "未找到电脑。很遗憾。",
+ "Not found": "未找到",
+ "Ready": "已就绪",
+ "Successfully connected": "连接成功",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "已搜遍整个网络...未在网络中找到电脑。再试一次，在其他电脑上按照上述步骤操作。",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "将指针移出屏幕边缘即可到达那一侧的电脑",
+ "Move to the other side": "移到另一侧",
+ "Switch computers by pushing the pointer against the edge of the screen": "将指针推向屏幕边缘即可切换电脑",
+ "Your keyboard follows the pointer from one computer to the other": "键盘会跟随指针从一台电脑切换到另一台"
 }

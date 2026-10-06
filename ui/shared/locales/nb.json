@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Følg de tre trinnene ovenfor på andre datamaskiner for å koble dem til via Flow.",
  "Other computer": "Andre datamaskiner",
  "Searching for computers": "Søker etter datamaskiner",
- "This process may take up to a minute": "Denne prosessen kan ta opptil ett minutt"
+ "This process may take up to a minute": "Denne prosessen kan ta opptil ett minutt",
+ "Flow Settings": "Flow-innstillinger",
+ "Flow is now enabled and ready to use on your computers.": "Flow er nå aktivert og klar til bruk på datamaskinene.",
+ "Link keyboard": "Koble til tastatur",
+ "Move cursor to edge": "Flytt markøren til kanten",
+ "No computers found. Bummer!": "Ingen datamaskin funnet. Fillern!",
+ "Not found": "Finner ikke",
+ "Ready": "Klar",
+ "Successfully connected": "Tilkoblet",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "Vi søkte overalt … det finnes ingen datamaskiner på nettverket. Vi prøver igjen – følg fremgangsmåten ovenfor på andre datamaskiner.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "Før pekeren forbi skjermkanten for å nå datamaskinen på den siden",
+ "Move to the other side": "Flytt til den andre siden",
+ "Switch computers by pushing the pointer against the edge of the screen": "Bytt datamaskin ved å skyve pekeren mot skjermkanten",
+ "Your keyboard follows the pointer from one computer to the other": "Tastaturet følger pekeren fra én datamaskin til den andre"
 }

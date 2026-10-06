@@ -5,7 +5,7 @@ export function createStore(api) {
   const data = {
     devices: [], presets: null, apps: null, general: {}, conflicts: [], status: {}, connected: false, appInfo: {},
     history: {}, logs: [], backups: [], ui: {}, agentBusy: false, agentErr: null, agentInfo: null, buildStep: null,
-    ready: false, loaded: false, running: null, flow: null, flowStatus: 'stopped', flowDetail: '', ax: undefined, briStatus: undefined,
+    ready: false, loaded: false, running: null, flow: null, ax: undefined, briStatus: undefined,
   };
   const device = id => data.devices.find(d => d.id === id) || null;
   function merge(summary) {
@@ -30,13 +30,8 @@ export function createStore(api) {
     }
     return null;
   }
-  // Flow (Deskflow) reports its state as it starts, stops or is installed.
-  function applyFlow(m) {
-    data.flowStatus = m.status; data.flowDetail = m.detail || '';
-    const f = data.flow; if (!f) return;
-    f.status = m.status; f.peer = !!m.peer; f.running = !(m.status === 'stopped' || m.status === 'error' || m.status === 'installing');
-    if (m.status === 'stopped' && m.detail && /installed/i.test(m.detail)) f.installed = true;
-  }
+  // Flow reports its state whenever it changes (computers found, paired, online)
+  function applyFlow(m) { if (m && m.type === 'info' && m.info) data.flow = m.info; }
   return {
     data, device, merge, applyEvent, applyFlow,
     // everything the first paint needs, in one round trip
@@ -53,7 +48,7 @@ export function createStore(api) {
       for (const d of data.devices) { try { data.history[d.id] = await api.quiet('battery_history', { id: d.id }); } catch (e) {} }
     },
     async loadLogs() { try { data.logs = (await api.quiet('logs')).map(t => ({ t, c: /WARN/.test(t) ? 'warn' : /ERR|fatal/.test(t) ? 'err' : 'dim' })); } catch (e) { data.logs = []; } },
-    async loadFlow() { const f = await api.host.flowInfo(); data.flow = f; if (f) data.flowStatus = f.status || (f.running ? 'running' : 'stopped'); return f; },
+    async loadFlow() { const f = await api.host.flowInfo(); data.flow = f; return f; },
     async setGeneral(patch) {
       try { data.general = await api.call('set_general', patch); } catch (e) { Object.assign(data.general, patch); }
       api.host.generalChanged();

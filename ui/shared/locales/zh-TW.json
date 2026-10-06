@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "在其他電腦上遵循上述 3 個步驟，以透過 Flow 進行連線。",
  "Other computer": "其他電腦",
  "Searching for computers": "正在搜尋電腦",
- "This process may take up to a minute": "此程序可能需花一分鐘時間"
+ "This process may take up to a minute": "此程序可能需花一分鐘時間",
+ "Flow Settings": "Flow 設定",
+ "Flow is now enabled and ready to use on your computers.": "Flow 現已啟用，且已就緒可在您的電腦上使用。",
+ "Link keyboard": "連結鍵盤",
+ "Move cursor to edge": "將游標移到邊緣",
+ "No computers found. Bummer!": "找不到電腦。真遺憾！",
+ "Not found": "找不到",
+ "Ready": "就緒",
+ "Successfully connected": "已成功連線",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "我們到處搜尋…但在您的網路上找不到電腦。請再試一次 — 在其他電腦遵循上述步驟進行。",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "將指標移出螢幕邊緣即可到達那一側的電腦",
+ "Move to the other side": "移到另一側",
+ "Switch computers by pushing the pointer against the edge of the screen": "將指標推向螢幕邊緣即可切換電腦",
+ "Your keyboard follows the pointer from one computer to the other": "鍵盤會跟隨指標從一台電腦切換到另一台"
 }

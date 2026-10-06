@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Volg op de andere computers de 3 stappen hierboven om ze via Flow te verbinden.",
  "Other computer": "Andere computer",
  "Searching for computers": "Zoeken naar computers",
- "This process may take up to a minute": "Dit proces kan een minuut duren"
+ "This process may take up to a minute": "Dit proces kan een minuut duren",
+ "Flow Settings": "Flow-instellingen",
+ "Flow is now enabled and ready to use on your computers.": "Flow is nu ingeschakeld en kan op je computers worden gebruikt.",
+ "Link keyboard": "Toetsenbord koppelen",
+ "Move cursor to edge": "Cursor naar de rand bewegen",
+ "No computers found. Bummer!": "Geen computers gevonden. Wat jammer!",
+ "Not found": "Niet gevonden",
+ "Ready": "Klaar",
+ "Successfully connected": "Verbinden gelukt",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "We hebben overal gezocht en hebben geen computers op je netwerk gevonden. Laten we het opnieuw proberen. Volg de bovenstaande stappen op de andere computers.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "Beweeg de aanwijzer voorbij de schermrand om de computer aan die kant te bereiken",
+ "Move to the other side": "Naar de andere kant",
+ "Switch computers by pushing the pointer against the edge of the screen": "Wissel van computer door de aanwijzer tegen de schermrand te duwen",
+ "Your keyboard follows the pointer from one computer to the other": "Je toetsenbord volgt de aanwijzer van de ene computer naar de andere"
 }

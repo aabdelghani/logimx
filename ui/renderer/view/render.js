@@ -52,7 +52,7 @@ function render() {
   else html = renderWindow();
   html += renderDialog();
   // the Flow sheet slides up once, when it opens, not on every redraw (nor between its steps)
-  const wiz = S.flowWizard || (S.mode !== 'onboard' && S.page === 'flow' && dev() ? 'setup' : false);
+  const wiz = S.flowWizard || (S.mode !== 'onboard' && S.page === 'flow' && dev() && S.flow && !(S.flow.peers || []).length ? 'setup' : false);
   if (wiz) html += flowWizard(wiz, !lastWiz);
   lastWiz = !!wiz;
   // a key's panel or a settings panel (Backlight, Point & scroll): either one sends the page list out

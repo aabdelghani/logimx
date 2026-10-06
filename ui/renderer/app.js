@@ -98,7 +98,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
@@ -117,7 +117,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     else { S.devices = []; S.loaded = false; if (st.starting) S.agentBusy = true; changed(); }
   });
   api.host.onBuild(m => { if (m && m.step) { S.buildStep = m.step; S.agentBusy = true; changed(); } });
-  api.host.onFlowEvent(m => { if (!m) return; store.applyFlow(m); if (S.page === 'flow') { flowRefresh(); } });
+  api.host.onFlowEvent(m => { if (!m) return; store.applyFlow(m); flowEvent(m); });
   api.host.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') changed(); });
   api.host.onBt(m => {
     const p = S.pair, b = p && p.bt;

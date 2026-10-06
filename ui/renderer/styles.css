@@ -1173,3 +1173,16 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fw-art.searching .fw-pc.other { animation: fw-pulse 1.6s ease-in-out infinite; }
 @keyframes fw-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 0%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accbg) 22%, transparent); } }
 .flow-wiz .fw-close { position: fixed; top: 14px; right: 16px; z-index: 1; }
+
+.fw-pc.other.on { border-style: solid; border-color: var(--ok); }
+.fw-pc.other.on i { color: var(--ok); }
+/* Flow's settings: the computers in a row, as the screens sit */
+.fl-row { display: flex; justify-content: center; gap: 18px; padding: 18px 8px; flex-wrap: wrap; }
+.fl-pc { position: relative; width: 170px; padding: 18px 12px 14px; border-radius: 14px; border: 1px dashed var(--brd); background: var(--card); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.fl-pc.me { border: 1px solid var(--accbg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accbg) 16%, transparent); }
+.fl-pc.on { border-style: solid; }
+.fl-pc .os { font-size: 30px; color: var(--dim); }
+.fl-pc.me .os { color: var(--accbg); }
+.fl-pc .n { font-weight: 700; overflow-wrap: anywhere; }
+.fl-pc .st { font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+.fl-pc .acts { display: flex; gap: 4px; margin-top: 4px; }

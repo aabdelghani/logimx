@@ -59,7 +59,15 @@ function flowWizard(step, opening) {
         <div class="fw-link"><span class="fw-line"></span><i class="fa-solid fa-arrow-pointer fw-ptr"></i></div>
         <div class="fw-pc other"><i class="fa-solid fa-display"></i><span class="n">${t('Other computer')}</span></div>
       </div>`;
-  const body = step === 'search'
+  const done = step === 'done', lost = step === 'notfound';
+  const body = done || lost
+    // the search's end: paired (Flow is on), or nobody found within a minute
+    ? `${art.replace('fw-pc other"', done ? 'fw-pc other on"' : 'fw-pc other"')}
+      <div class="fw-title">${done ? t('Successfully connected') : t('No computers found. Bummer!')}</div>
+      <div class="fw-sub">${done ? t('Flow is now enabled and ready to use on your computers.') : t('We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.')}</div>
+      <div class="fw-btns">${done ? `<button class="btn primary" data-act="flow-wiz-done">${t('Continue')}</button>`
+        : `<button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button><button class="btn primary" data-act="flow-wiz-go">${t('Try again')}</button>`}</div>`
+    : step === 'search'
     // looking for the other computer on the network
     ? `${art}
       <div class="fw-title">${t('Searching for computers')}</div>
@@ -78,10 +86,29 @@ function flowWizard(step, opening) {
   // the window's close button stays where it is (placed over the real one when drawn, see render)
   return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true"><button class="hbtn close fw-close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button><div class="fw-body step-${step}" ${opening ? '' : 'data-step-in'}>${body}</div></div>`;
 }
-// the Flow page is the setup sheet, over the whole window (see render)
+// the Flow page: the setup sheet until a computer is paired (see render), then Flow's settings: the
+// computers side by side as the screens sit, and what travels with the pointer
+const OS_ICON = { darwin: 'fa-brands fa-apple', win32: 'fa-brands fa-windows', linux: 'fa-brands fa-linux' };
 function pageFlow() {
-  if (!S.flow) flowRefresh();
-  return '';
+  const f = S.flow;
+  if (!f) { flowRefresh(); return ''; }
+  const peers = f.peers || [];
+  if (!peers.length) return '';
+  const tile = p => `<div class="fl-pc ${p.online ? 'on' : ''}">
+      <i class="${OS_ICON[p.os] || 'fa-solid fa-desktop'} os"></i><div class="n">${esc(p.name)}</div>
+      <div class="st"><span class="dot ${p.online ? 'ok' : ''}"></span>${p.online ? t('Ready') : t('Not found')}</div>
+      <div class="acts"><button class="hbtn icon" data-act="flow-side" data-key="${esc(p.id)}" data-val="${p.pos === 'left' ? 'right' : 'left'}" title="${t('Move to the other side')}"><i class="fa-solid fa-right-left"></i></button><button class="hbtn icon" data-act="flow-remove" data-key="${esc(p.id)}" title="${t('Remove')}"><i class="fa-solid fa-trash"></i></button></div></div>`;
+  const me = `<div class="fl-pc me"><i class="${OS_ICON[IS_MAC() ? 'darwin' : IS_WIN() ? 'win32' : 'linux']} os"></i><div class="n">${esc(f.name)}</div><div class="st">${t('This computer')}</div></div>`;
+  const left = peers.filter(p => p.pos === 'left' || p.pos === 'up'), right = peers.filter(p => p.pos !== 'left' && p.pos !== 'up');
+  return sec(t('Flow'), card(row(t('Flow'), f.enabled ? t('Move the pointer off the edge of the screen to reach the computer on that side') : t('Off'), sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')))) +
+    sec(t('Computers'), card(`<div class="fl-row">${left.map(tile).join('')}${me}${right.map(tile).join('')}</div>`) +
+      `<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn sm" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('Add computer')}</button></div>`) +
+    sec(t('Flow Settings'), card(
+      row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
+      row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard, 'data-act="flow-toggle" data-key="clipboard"')) +
+      row(t('Move cursor to edge'), t('Switch computers by pushing the pointer against the edge of the screen'), sw(f.edge, 'data-act="flow-toggle" data-key="edge"')))) +
+    (f.error ? `<div class="hint" style="color:var(--err)">${esc(f.error)}</div>` : '') +
+    `<div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div>`;
 }
 
 function pageAbout() {

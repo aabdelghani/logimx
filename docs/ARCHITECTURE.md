@@ -38,6 +38,9 @@ The app follows **MVVM**: Model, view models, views.
   - `settings.js`: the window's own settings file.
   - `autostart.js`, `system.js`: autostart, app icons, updates and the problem report.
   - `state.js`: what the parts share and change: devices, settings, windows.
+  - `../flow.js`: Flow. NotLogi on each computer finds the others on the local network (UDP 24871),
+    pairs with a shared key, and when the pointer is pushed against the edge facing another computer,
+    hands it the clipboard (TCP 24871, signed) and switches the mouse and keyboard to its channel.
   - `main.js`: sets the app up and links the parts.
 - **`ui/renderer/model/api.js`** is the only way from the settings window to the agent and the
   main process. **`model/store.js`** keeps what they know (devices, presets, settings, status) and

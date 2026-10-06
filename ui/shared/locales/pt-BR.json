@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Siga as 3 etapas acima em outros computadores para conectar-se a eles via Flow.",
  "Other computer": "Outros computadores",
  "Searching for computers": "Procurando computadores",
- "This process may take up to a minute": "O processo pode levar até um minuto"
+ "This process may take up to a minute": "O processo pode levar até um minuto",
+ "Flow Settings": "Configurações do Flow",
+ "Flow is now enabled and ready to use on your computers.": "O Flow agora está habilitado e pronto para uso em seus computadores.",
+ "Link keyboard": "Vincular teclado",
+ "Move cursor to edge": "Mova o cursor para a borda",
+ "No computers found. Bummer!": "Nenhum computador encontrado. Droga!",
+ "Not found": "Não encontrado",
+ "Ready": "Pronto",
+ "Successfully connected": "Conectado com sucesso",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "Procuramos em todos os lugares... Nenhum computador encontrado em sua rede. Vamos tentar novamente. Siga os passos acima em outros computadores.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "Leve o ponteiro além da borda da tela para chegar ao computador daquele lado",
+ "Move to the other side": "Mover para o outro lado",
+ "Switch computers by pushing the pointer against the edge of the screen": "Troque de computador empurrando o ponteiro contra a borda da tela",
+ "Your keyboard follows the pointer from one computer to the other": "Seu teclado acompanha o ponteiro de um computador para o outro"
 }

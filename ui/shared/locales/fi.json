@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Käy läpi yllä mainitut kolme vaihetta toisilla tietokoneilla niiden yhdistämiseksi Flow’n kautta.",
  "Other computer": "Muut tietokoneet",
  "Searching for computers": "Etsitään tietokoneita",
- "This process may take up to a minute": "Tämä prosessi kestää enintään minuutin"
+ "This process may take up to a minute": "Tämä prosessi kestää enintään minuutin",
+ "Flow Settings": "Flow-asetukset",
+ "Flow is now enabled and ready to use on your computers.": "Flow on nyt käytössä ja valmiina tietokoneilla.",
+ "Link keyboard": "Linkitä näppäimistö",
+ "Move cursor to edge": "Siirrä osoitin reunaan",
+ "No computers found. Bummer!": "Tietokoneita ei löydy. Harmi!",
+ "Not found": "Ei löydy",
+ "Ready": "Valmiina",
+ "Successfully connected": "Yhdistäminen onnistui",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "Olemme etsineet joka paikasta… Verkostasi ei löydy tietokoneita. Yritetäänpä uudestaan – toimi yllä mainittujen vaiheiden mukaisesti muilla tietokoneilla.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "Vie osoitin näytön reunan yli päästäksesi sillä puolella olevaan tietokoneeseen",
+ "Move to the other side": "Siirrä toiselle puolelle",
+ "Switch computers by pushing the pointer against the edge of the screen": "Vaihda tietokonetta työntämällä osoitin näytön reunaa vasten",
+ "Your keyboard follows the pointer from one computer to the other": "Näppäimistö seuraa osoitinta tietokoneelta toiselle"
 }

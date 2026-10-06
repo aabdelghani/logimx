@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "다른 컴퓨터에서 위의 3단계를 따라 Flow를 통해 연결하세요.",
  "Other computer": "기타 컴퓨터",
  "Searching for computers": "컴퓨터 검색 중",
- "This process may take up to a minute": "이 프로세스는 최대 1분 정도 걸릴 수 있습니다."
+ "This process may take up to a minute": "이 프로세스는 최대 1분 정도 걸릴 수 있습니다.",
+ "Flow Settings": "Flow 설정",
+ "Flow is now enabled and ready to use on your computers.": "이제 Flow가 활성화되어 컴퓨터에서 사용할 수 있습니다.",
+ "Link keyboard": "키보드 연결",
+ "Move cursor to edge": "가장자리로 커서 이동",
+ "No computers found. Bummer!": "발견된 컴퓨터가 없습니다. 이런!",
+ "Not found": "발견되지 않음",
+ "Ready": "준비",
+ "Successfully connected": "연결 성공",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "모든 곳을 찾아봤지만 네트워크에서 발견된 컴퓨터가 없습니다. 다시 시도해보세요. 다른 컴퓨터에서 위의 단계를 따라보세요.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "포인터를 화면 가장자리 밖으로 움직이면 그쪽 컴퓨터로 이동합니다",
+ "Move to the other side": "반대쪽으로 이동",
+ "Switch computers by pushing the pointer against the edge of the screen": "포인터를 화면 가장자리에 밀어 컴퓨터를 전환합니다",
+ "Your keyboard follows the pointer from one computer to the other": "키보드가 포인터를 따라 컴퓨터 간에 이동합니다"
 }

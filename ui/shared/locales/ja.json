@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Flow を通して他のコンピュータに接続するには、他のコンピュータ上で上記の 3 ステップを実行します。",
  "Other computer": "その他のコンピュータ",
  "Searching for computers": "コンピュータを検索中",
- "This process may take up to a minute": "このプロセスには最長 1 分かかります"
+ "This process may take up to a minute": "このプロセスには最長 1 分かかります",
+ "Flow Settings": "Flow 設定",
+ "Flow is now enabled and ready to use on your computers.": "Flow が有効になり、コンピュータで使用する準備ができました。",
+ "Link keyboard": "リンクキーボード",
+ "Move cursor to edge": "カーソルを端に移動",
+ "No computers found. Bummer!": "コンピュータが見つかりません。残念ながら",
+ "Not found": "見つかりません",
+ "Ready": "準備ができています",
+ "Successfully connected": "正常に接続済み",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "探しましたが、ネットワークにコンピュータが見つかりませんでした。再試行してください。別のコンピュータで上記のステップに従います。",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "ポインターを画面の端の外へ動かすと、その側のコンピュータに移動します",
+ "Move to the other side": "反対側に移動",
+ "Switch computers by pushing the pointer against the edge of the screen": "ポインターを画面の端に押し当ててコンピュータを切り替えます",
+ "Your keyboard follows the pointer from one computer to the other": "キーボードがポインターに合わせてコンピュータ間を移動します"
 }

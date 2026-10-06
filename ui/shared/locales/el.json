@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Ακολουθήστε τα 3 παραπάνω βήματα στους άλλους υπολογιστές για να τους συνδέσετε μέσω του Flow.",
  "Other computer": "Άλλοι υπολογιστές",
  "Searching for computers": "Αναζήτηση υπολογιστών",
- "This process may take up to a minute": "Αυτή η διαδικασία μπορεί να διαρκέσει έως και ένα λεπτό"
+ "This process may take up to a minute": "Αυτή η διαδικασία μπορεί να διαρκέσει έως και ένα λεπτό",
+ "Flow Settings": "Ρυθμίσεις Flow",
+ "Flow is now enabled and ready to use on your computers.": "Το Flow έχει ενεργοποιηθεί και είναι έτοιμο για χρήση στους υπολογιστές σας.",
+ "Link keyboard": "Σύνδεση πληκτρολογίου",
+ "Move cursor to edge": "Μετακίνηση δρομέα στην άκρη",
+ "No computers found. Bummer!": "Δεν βρέθηκαν υπολογιστές. Ατυχία!",
+ "Not found": "Δεν βρέθηκε",
+ "Ready": "Έτοιμο",
+ "Successfully connected": "Επιτυχής σύνδεση",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "Ψάξαμε παντού... Δεν βρέθηκαν υπολογιστές στο δίκτυό σας. Ας δοκιμάσουμε ξανά – ακολουθήστε τα παραπάνω βήματα σε άλλους υπολογιστές.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "Μετακινήστε τον δείκτη έξω από την άκρη της οθόνης για να φτάσετε στον υπολογιστή εκείνης της πλευράς",
+ "Move to the other side": "Μετακίνηση στην άλλη πλευρά",
+ "Switch computers by pushing the pointer against the edge of the screen": "Αλλαγή υπολογιστή σπρώχνοντας τον δείκτη στην άκρη της οθόνης",
+ "Your keyboard follows the pointer from one computer to the other": "Το πληκτρολόγιο ακολουθεί τον δείκτη από τον έναν υπολογιστή στον άλλο"
 }

@@ -997,5 +997,18 @@
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Выполните 3 вышеуказанных действия на других компьютерах, чтобы подключить их с помощью Flow.",
  "Other computer": "Другие компьютеры",
  "Searching for computers": "Выполняется поиск компьютеров",
- "This process may take up to a minute": "Этот процесс может занять около минуты"
+ "This process may take up to a minute": "Этот процесс может занять около минуты",
+ "Flow Settings": "Настройки Flow",
+ "Flow is now enabled and ready to use on your computers.": "Программа Flow настроена и готова к использованию на ваших компьютерах.",
+ "Link keyboard": "Подключение клавиатуры",
+ "Move cursor to edge": "Перемещение курсора к краю",
+ "No computers found. Bummer!": "Компьютеры не найдены. Ошибка!",
+ "Not found": "Не найден",
+ "Ready": "Готово",
+ "Successfully connected": "Подключено",
+ "We searched everywhere… No computers found on your network. Let’s try again—follow the above steps on other computers.": "Мы искали везде… В вашей сети компьютеры не найдены. Попробуйте еще раз — выполните вышеописанные действия на других компьютерах.",
+ "Move the pointer off the edge of the screen to reach the computer on that side": "Уведите указатель за край экрана, чтобы перейти к компьютеру с той стороны",
+ "Move to the other side": "Переместить на другую сторону",
+ "Switch computers by pushing the pointer against the edge of the screen": "Переключайте компьютеры, упирая указатель в край экрана",
+ "Your keyboard follows the pointer from one computer to the other": "Клавиатура следует за указателем с одного компьютера на другой"
 }
