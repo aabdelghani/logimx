@@ -211,8 +211,9 @@ function pointerSettings(d, only) {
       row(t('Scroll direction'), (hr.invert ?? (st.hires || {}).invert) ? t('Natural: the page follows your finger') : t('Standard'), sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"')) +
       `<div class="row"><div class="grow"><div class="lbl">${t('Scroll speed')}</div><div class="sub">${t('How far each notch scrolls')}</div></div>${range('data-act="setting-range" data-path="hires.speed" data-out="wsp"', wspeed, 0.25, 3, 0.05)}<span class="val" data-out="wsp" style="width:40px;text-align:right">${fmtOut('wsp', wspeed)}</span></div>` +
       row(t('Smooth scrolling'), t('Each notch glides in over a moment instead of jumping'), sw(!!hr.smooth, 'data-act="setting" data-path="hires.smooth"')) +
-      // with smooth scrolling, a quick flick coasts on (not in free-spin, where the wheel itself does)
-      (hr.smooth ? row(t('Momentum'), t('A quick flick keeps scrolling and slows to a stop'), sw(hr.momentum !== false, 'data-act="setting" data-path="hires.momentum"')) : '') +
+      // with smooth scrolling, a quick flick coasts on; not on a wheel that can free-spin (SmartShift),
+      // which keeps turning by itself
+      (hr.smooth && !st.smartshift ? row(t('Momentum'), t('A quick flick keeps scrolling and slows to a stop'), sw(hr.momentum !== false, 'data-act="setting" data-path="hires.momentum"')) : '') +
       // over Bluetooth Linux's own Logitech driver scales the wheel: its fine steps have to stay on
       ((st.hires || {}).kernel ? row(t('High-resolution wheel'), t('Kept on for this connection: Linux\'s Logitech driver handles the wheel, and turning it off would make scrolling many times slower'), sw(true, `disabled title="${esc(t('Managed by Linux on this connection'))}"`))
         : row(t('High-resolution wheel'), t('Fine steps within each notch'), sw(hr.enabled ?? (st.hires || {}).hires ?? true, 'data-act="setting" data-path="hires.enabled"'))) +

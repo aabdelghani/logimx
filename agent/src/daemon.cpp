@@ -252,7 +252,10 @@ void ManagedDevice::applySettings(const std::string& only) {
             wheelSmooth_ = h.value("smooth", false);
             wheelInvert_ = h.value("invert", false);
             wheelTaken_ = wheelSmooth_ || std::abs(wheelSpeed_ - 1.0) > 0.01;
-            engine_->setMomentum(wheelSmooth_ && h.value("momentum", true));
+            // a wheel that can free-spin (SmartShift) keeps turning by itself after a flick: a coast
+            // on top of it would scroll on after the wheel stops
+            bool freeSpin = dev_->has(hidpp::SMART_SHIFT) || dev_->has(hidpp::SMART_SHIFT_ENHANCED);
+            engine_->setMomentum(wheelSmooth_ && !freeSpin && h.value("momentum", true));
             if (wheelTaken_) {
                 if (auto hr = dev_->hires()) wheelMult_ = std::max(1, hr->multiplier);
                 dev_->setHires(true, true, false);
