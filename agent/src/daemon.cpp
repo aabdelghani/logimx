@@ -228,7 +228,7 @@ static bool backlightSaving(const json& cfg, const std::optional<hidpp::Battery>
 
 void ManagedDevice::applySettings(const std::string& only) {
     std::lock_guard<std::recursive_mutex> lk(m_);
-    // up to 0.10.0 the SmartShift switch set the wheel's mode itself (off was free-spin): such a
+    // up to 0.10.1 the SmartShift switch set the wheel's mode itself (off was free-spin): such a
     // setting becomes a ratchet wheel, with SmartShift as that switch had it
     {
         json& raw = daemon_.config().device(pid_, kind_)["settings"];
@@ -1146,7 +1146,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
                 if (it != hidpp::kReceivers.end() && seen.insert(t->info().product).second) recv += (recv.empty() ? "" : ", ") + it->second + " receiver";
             }
         }
-        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.10.0"},
+        return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.10.1"},
                 {"conflicts", platform::conflictingTools()}, {"os", platform::name()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
     }
     if (method == "logs") {
