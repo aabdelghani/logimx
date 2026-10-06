@@ -28,7 +28,7 @@ const ringRunDevice = () => ringDevice || ((state.devices.find(d => d.online !==
 // adjustable actions: the wheel over them steps one way or the other
 const RING_ADJUST = { brightness_up: ['brightness_up', 'brightness_down'], brightness_down: ['brightness_up', 'brightness_down'],
   zoom_in: ['zoom_in', 'zoom_out'], zoom_out: ['zoom_in', 'zoom_out'], next_track: ['next_track', 'prev_track'], prev_track: ['next_track', 'prev_track'] };
-let ringWin = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
+let ringWin = null, ringLoaded = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
 const ringLog = [];          // how the last openings found the pointer, for the problem report
 const RING_W = 560, RING_H = 460;   // the ring itself; the window grows to the screen when shown
@@ -43,6 +43,8 @@ function ensureRing() {
     webPreferences: { preload: path.join(ROOT, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   ringWin.setAlwaysOnTop(true, 'pop-up-menu');
+  // ready once its page has loaded: a ring shown before that stays empty (the first press on macOS)
+  ringLoaded = new Promise(resolve => ringWin.webContents.once('did-finish-load', resolve));
   ringWin.loadFile(path.join(ROOT, 'renderer', 'ring.html'));
   ringWin.on('hide', ringKeysOff);
   return ringWin;
@@ -128,7 +130,7 @@ async function showRing(deviceId, raw) {
     // whether the compositor kept the size asked for (a Wayland compositor may shrink or move it)
     setTimeout(() => { if (w.isDestroyed()) return; const b = w.getBounds(), c = w.getContentBounds(); ringLog.push({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode, how: 'window', ms: 250, x: b.x, y: b.y, size: `${b.width}x${b.height} (asked ${R - X}x${Bm - Y}, content ${c.width}x${c.height})` }); if (ringLog.length > 10) ringLog.shift(); }, 250);
   };
-  if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send); else send();
+  ringLoaded.then(send);
 }
 ipcMain.on('ring-close', () => { if (ringWin && !ringWin.isDestroyed()) ringWin.hide(); });
 ipcMain.on('ring-diag', (_e, info) => { ringLog.push(Object.assign({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode }, info)); if (ringLog.length > 10) ringLog.shift(); });

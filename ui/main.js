@@ -14,7 +14,7 @@ const parts = ['env', 'settings', 'window', 'tray', 'agent', 'osd', 'battery', '
 const state = require('./main/state');
 const ctx = Object.assign({}, ...parts.map(p => p.provide));
 parts.forEach(p => p.link(ctx));
-const { btSetMode, btStopScan, connect, createTray, createWindow, ensureAutostart, ensureDesktopEntry, loadUi, registerShortcuts, saveUi, showWindow, startAgent } = ctx;
+const { btSetMode, btStopScan, connect, createTray, createWindow, ensureAutostart, ensureRing, ensureDesktopEntry, loadUi, registerShortcuts, saveUi, showWindow, startAgent } = ctx;
 // the logic shared with the windows (ES modules in shared/, loaded before the app starts)
 const sharedReady = Promise.all([import('./shared/ring.mjs'), import('./shared/battery.mjs')]).then(([r, b]) => { state.Ring = r; state.Battery = b; });
 app.isQuitting = false;
@@ -34,6 +34,8 @@ if (!single) {
     if (state.uiSettings.tray !== false) createTray();
     connect();
     createWindow();
+    // the action ring's window, made and loaded ahead so the first press opens it like any other
+    setTimeout(() => { try { ensureRing(); } catch (e) {} }, 1500);
     flow.init({ win: state.win, getUi: () => (state.uiSettings = state.uiSettings || loadUi()), setUi: p => { state.uiSettings = state.uiSettings || loadUi(); Object.assign(state.uiSettings, p); saveUi(state.uiSettings); } });
     try { registerShortcuts(); } catch (e) {}
     btSetMode();
