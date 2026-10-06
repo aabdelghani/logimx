@@ -19,6 +19,7 @@ import { t } from '../shared/i18n.mjs';
   const GAIN = 1;
   let DEAD = 30, LIMIT = 60;       // travel before a button is chosen, and where the point saturates (set per show)
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub'), note = document.getElementById('note');
+  hub.style.display = 'none';   // nothing on screen until the first opening places the ring
   let slots = [], root = [], stack = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
   let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false;
   const pad = list => Array.from({ length: N }, (_, i) => (list || [])[i] || null);
@@ -264,6 +265,12 @@ import { t } from '../shared/i18n.mjs';
     build();
     if (name) { note.textContent = t(name); note.classList.remove('show'); void note.offsetWidth; note.classList.add('show'); }   // i18n: data
   });
+  // about to be hidden: nothing left to show again when the window next opens
+  window.ring.onClear(() => {
+    dwellOff(); dial = null; stack = []; hover = -1; vx = vy = 0;
+    slotsEl.innerHTML = ''; hub.style.display = 'none';
+    note.classList.remove('show'); document.body.classList.remove('vol-focus');
+  });
   window.ring.onShow(msg => {
     // dressed like the desktop it opens on: its light or dark, its accent colour, its font
     const look = msg.look || {}, rootEl = document.documentElement;
@@ -293,6 +300,7 @@ import { t } from '../shared/i18n.mjs';
     if (!raw) setRaw(true);
     if (dial && !dial.wheel) { dialMove(dx); return; }
     if (dial && dial.wheel) dialEnd();
+    if (Date.now() - shownAt < G.JOLT_MS) return;   // the press's own jolt: it steers nothing
     vx += dx * GAIN; vy += dy * GAIN;
     const d = Math.hypot(vx, vy);
     if (d > LIMIT) { vx *= LIMIT / d; vy *= LIMIT / d; }   // never leaves the ring
@@ -309,13 +317,17 @@ import { t } from '../shared/i18n.mjs';
     if (isDial(hover)) { if (raw) setRaw(false); return; }   // Volume is pressed, not picked by letting go: keep the ring open for it
     // a folder chosen by letting go opens, and stays open for the pointer to pick inside it
     if (isFolder(hover)) { enter(hover); setRaw(false); return; }
-    if (hover >= 0 && slots[hover]) { choose(hover); return; }
-    const tap = Date.now() - shownAt < 350;
+    const heldMs = Date.now() - shownAt;
     if (raw) {
-      // nothing chosen: a quick tap hands the ring to the pointer for a click, a longer hold cancels
-      if (tap && Math.hypot(vx, vy) < DEAD) { setRaw(false); setHover(-1); hub.classList.remove('on'); } else window.ring.close();
+      // a tap or a short press hands the ring to the pointer for a click, an aim runs, a long hold cancels
+      const next = G.rawRelease({ heldMs, travel: Math.hypot(vx, vy), dead: DEAD, hasPick: hover >= 0 && !!slots[hover] });
+      if (next === 'pick') choose(hover);
+      else if (next === 'stay') { setRaw(false); setHover(-1); hub.classList.remove('on'); }
+      else window.ring.close();
       return;
     }
+    if (hover >= 0 && slots[hover]) { choose(hover); return; }
+    const tap = heldMs < G.TAP_MS;
     if (tap || !last) return;
     if (Math.hypot(last[0] - CX, last[1] - CY) > FAR) window.ring.close();
   });

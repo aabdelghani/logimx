@@ -115,7 +115,7 @@ Devices work through a Bolt or Unifying receiver and over Bluetooth.
 ### Action ring
 
 Eight actions around the pointer. Hold the button, move toward an action and release to run it,
-or tap the button and click. With "Keep the pointer visible and free" on, point at an action
+or tap the button and click: letting go without aiming keeps the ring open, and only a hold of about a second with nothing chosen closes it. With "Keep the pointer visible and free" on, point at an action
 instead of steering. The ring takes the desktop's light or dark style, accent colour and font.
 Empty slots are left out.
 

@@ -28,7 +28,7 @@ const ringRunDevice = () => ringDevice || ((state.devices.find(d => d.online !==
 // adjustable actions: the wheel over them steps one way or the other
 const RING_ADJUST = { brightness_up: ['brightness_up', 'brightness_down'], brightness_down: ['brightness_up', 'brightness_down'],
   zoom_in: ['zoom_in', 'zoom_out'], zoom_out: ['zoom_in', 'zoom_out'], next_track: ['next_track', 'prev_track'], prev_track: ['next_track', 'prev_track'] };
-let ringWin = null, ringLoaded = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false;
+let ringWin = null, ringLoaded = null, ringSlots = [], ringTravel = 30, ringDevice = null, ringOpening = false, ringReleasedEarly = false, ringWarming = false;
 let ringPending = [0, 0];   // movement that arrived while the ring was still being placed
 const ringLog = [];          // how the last openings found the pointer, for the problem report
 const RING_W = 560, RING_H = 460;   // the ring itself; the window grows to the screen when shown
@@ -40,7 +40,7 @@ function ensureRing() {
   ringWin = new BrowserWindow({
     width: RING_W, height: RING_H, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, hasShadow: false, show: false,
     focusable: false, type: plat.OVERLAY_TYPE,
-    webPreferences: { preload: path.join(ROOT, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { preload: path.join(ROOT, 'preload-ring.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   });
   ringWin.setAlwaysOnTop(true, 'pop-up-menu');
   // ready once its page has loaded: a ring shown before that stays empty (the first press on macOS)
@@ -51,6 +51,18 @@ function ensureRing() {
   ringWin.loadFile(path.join(ROOT, 'renderer', 'ring.html'));
   ringWin.on('hide', ringKeysOff);
   return ringWin;
+}
+// Hidden, the window keeps its last frame, and macOS shows that frame again on the next opening
+// until the page has drawn the new ring: the old ring flashed, then the new one sprang out, as if
+// it had opened twice. The page empties itself first, then the window goes.
+let ringHideTimer = null;   // dropped by an opening that comes before it fires
+function hideRing() {
+  if (!ringWin || ringWin.isDestroyed() || !ringWin.isVisible()) return;
+  ringKeysOff();
+  ringWin.webContents.send('ring-clear');
+  const w = ringWin;
+  clearTimeout(ringHideTimer);
+  ringHideTimer = setTimeout(() => { if (!w.isDestroyed() && !ringOpening) w.hide(); }, 40);
 }
 // The button that opened the ring was let go: the page runs the hovered slot, or stays open when
 // the press was only a tap so the slot can be clicked.
@@ -80,6 +92,38 @@ async function systemLook() {
   lookAt = Date.now();
   return lookCache;
 }
+// every display together: the ring's window covers them all
+function ringArea() {
+  const all = screen.getAllDisplays();
+  const x = Math.min(...all.map(d => d.bounds.x)), y = Math.min(...all.map(d => d.bounds.y));
+  return { x, y, width: Math.max(...all.map(d => d.bounds.x + d.bounds.width)) - x, height: Math.max(...all.map(d => d.bounds.y + d.bounds.height)) - y };
+}
+// A window's first showing is where desktops differ: one they have not seen yet is placed or sized
+// by them (GNOME on Wayland, macOS with several displays), and only later showings land where
+// asked. People saw it as a ring that misses the pointer the first time and is right the second.
+// So the first showing happens here, at startup: empty, see-through, letting clicks through, and
+// gone again at once.
+function warmRing() {
+  const w = ensureRing();
+  const go = () => {
+    if (w.isDestroyed() || w.isVisible() || ringOpening) return;
+    ringWarming = true;
+    try { w.setOpacity(0); } catch (e) {}
+    w.setIgnoreMouseEvents(true);
+    w.setBounds(ringArea());
+    w.show(); offTaskbar(w);
+    setTimeout(() => { if (!w.isDestroyed() && ringWarming) w.setBounds(ringArea()); }, 60);
+    setTimeout(() => {
+      if (w.isDestroyed()) return;
+      const mine = ringWarming;   // a real opening in the meantime took the window over
+      ringWarming = false;
+      if (mine) w.hide();
+      w.setIgnoreMouseEvents(false);
+      try { w.setOpacity(1); } catch (e) {}
+    }, 200);
+  };
+  ringLoaded.then(go);
+}
 function releaseRing() {
   if (ringWin && !ringWin.isDestroyed() && ringWin.isVisible()) ringWin.webContents.send('ring-release');
   else if (ringOpening) ringReleasedEarly = true;   // let go before the ring was even placed: a tap
@@ -99,7 +143,8 @@ function moveRing(dx, dy) {
 }
 async function showRing(deviceId, raw) {
   const w = ensureRing();
-  if (w.isVisible()) { w.hide(); return; }
+  if (ringWarming) { ringWarming = false; w.setIgnoreMouseEvents(false); try { w.setOpacity(1); } catch (e) {} }   // the startup showing is still up: this opening takes over
+  else if (w.isVisible()) { hideRing(); return; }
   if (ringOpening) return;
   state.uiSettings = state.uiSettings || loadUi();
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
@@ -124,6 +169,7 @@ async function showRing(deviceId, raw) {
   const guess = { x: pt.x - X, y: pt.y - Y };
   const place = () => { if (w.isDestroyed()) return; const b = w.getBounds(); if (b.x !== X || b.y !== Y || b.width !== R - X || b.height !== Bm - Y) w.setBounds({ x: X, y: Y, width: R - X, height: Bm - Y }); };
   const send = () => {
+    clearTimeout(ringHideTimer);
     place(); w.show(); offTaskbar(w); ringKeysOn();
     setTimeout(place, 60);   // once, in case the window manager moved it
     w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y }, scale: RING_SCALE[rs.size] || 1 });
@@ -135,7 +181,7 @@ async function showRing(deviceId, raw) {
   };
   ringLoaded.then(send);
 }
-ipcMain.on('ring-close', () => { if (ringWin && !ringWin.isDestroyed()) ringWin.hide(); });
+ipcMain.on('ring-close', hideRing);
 ipcMain.on('ring-diag', (_e, info) => { ringLog.push(Object.assign({ when: new Date().toISOString().slice(11, 19), raw: ringRawMode }, info)); if (ringLog.length > 10) ringLog.shift(); });
 // haptic feedback on the mouse that opened the ring; mice without it, and rings opened from the
 // page, simply get none
@@ -158,7 +204,7 @@ ipcMain.on('ring-pick', async (_e, { index, path }) => {
     return;
   }
   if (slot.action.type === 'folder' || slot.action.type === 'brightness_dial') return;   // the overlay opens folders and runs the brightness dial itself
-  if (ringWin && !ringWin.isDestroyed()) ringWin.hide();
+  hideRing();
   ringCue('ring_run');
   const params = { action: slot.action };
   const runOn = ringRunDevice();
@@ -179,4 +225,4 @@ ipcMain.on('ring-adjust', (_e, { path, dir }) => {
   rpc('run_action', params).catch(() => {});
 });
 
-exports.provide = { ringFor, RING_SCALE, ringSlotAt, ringRunDevice, RING_ADJUST, ringLog, RING_W, RING_H, ensureRing, GNOME_ACCENTS, YARU_ACCENTS, gsetting, systemLook, releaseRing, RING_KEYS, ringKeysOn, ringKeysOff, moveRing, showRing, ringCue };
+exports.provide = { ringFor, RING_SCALE, ringSlotAt, ringRunDevice, RING_ADJUST, ringLog, RING_W, RING_H, ensureRing, warmRing, GNOME_ACCENTS, YARU_ACCENTS, gsetting, systemLook, releaseRing, RING_KEYS, ringKeysOn, ringKeysOff, moveRing, showRing, ringCue };
