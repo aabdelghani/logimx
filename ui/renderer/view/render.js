@@ -63,6 +63,9 @@ function render() {
   // the folder's name being typed survives a redraw (a battery or focus update): same text, same caret
   const typing = typingIn();
   root.innerHTML = html;
+  // the Flow sheet's close button sits exactly over the window's own, which the sheet covers
+  const fwClose = root.querySelector('.fw-close'), winClose = fwClose && root.querySelector('.hbtn.close:not(.fw-close)');
+  if (winClose) { const r = winClose.getBoundingClientRect(); fwClose.style.top = r.top + 'px'; fwClose.style.right = (window.innerWidth - r.right) + 'px'; }
   if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
   if (dlgOpened) { const sc = root.querySelector(S.dlg === 'picker' ? '.scrim, .drawer-wrap' : '.scrim'); if (sc) sc.classList.add('enter'); }
   // the page list slides in when a device is opened, not when moving between its pages

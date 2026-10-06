@@ -532,8 +532,8 @@ header.hb { height: 64px; }
 .content.landing .dev-state { font-size: 16px; }
 .content.landing .dev-state > i.fa-solid:not(.dev-bolt) { font-size: 18px; }
 /* window buttons without a backing: just the icon, a soft background only under the pointer */
-header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent) { background: transparent; }
-header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover { background: var(--btn); }
+header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent), .flow-wiz .fw-close { background: transparent; }
+header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover, .flow-wiz .fw-close:hover { background: var(--btn); }
 header.hb .right .hbtn.on, .cfg-top .right .hbtn.on { background: transparent; color: var(--accbg); }
 header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .hbtn.accent { text-transform: uppercase; letter-spacing: .04em; }
@@ -1172,3 +1172,4 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fw-bar span { position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--accbg); border-radius: 2px; animation: indet 1.4s ease-in-out infinite; }
 .fw-art.searching .fw-pc.other { animation: fw-pulse 1.6s ease-in-out infinite; }
 @keyframes fw-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 0%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accbg) 22%, transparent); } }
+.flow-wiz .fw-close { position: fixed; top: 14px; right: 16px; z-index: 1; }
