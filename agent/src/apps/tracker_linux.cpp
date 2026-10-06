@@ -13,6 +13,16 @@ namespace apps {
 
 static int quietHandler(Display*, XErrorEvent*) { return 0; }
 
+bool pointerPosition(int& x, int& y) {
+    // one connection, kept: Flow asks many times a second
+    static Display* dpy = XOpenDisplay(nullptr);
+    if (!dpy) return false;
+    Window root, child;
+    int wx, wy;
+    unsigned int mask;
+    return XQueryPointer(dpy, DefaultRootWindow(dpy), &root, &child, &x, &y, &wx, &wy, &mask);
+}
+
 // X11: every window listed in _NET_CLIENT_LIST, by WM_CLASS.
 static std::vector<std::string> x11WindowClasses() {
     std::vector<std::string> out;

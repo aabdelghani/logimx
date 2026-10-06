@@ -18,6 +18,10 @@ std::vector<std::string> runningWindowClasses();
 // for windows it creates hidden, so the window manager is asked directly once the window is up.
 bool skipTaskbar(unsigned long xid);
 
+// Where the pointer is on the desktop, in pixels (X11). Electron's own reading on Linux goes stale
+// while the pointer is over other programs' windows; false where this cannot tell.
+bool pointerPosition(int& x, int& y);
+
 class Tracker {
   public:
     using Callback = std::function<void(const std::string&)>;

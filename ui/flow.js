@@ -314,21 +314,49 @@ function edgeOf(pt) {
   if (pt.y >= b.y + b.height - 1 && !beyond(pt.x, b.y + b.height)) return 'down';
   return null;
 }
-function edgeTick() {
+// the pointer's place: on Linux from the agent (X11), as Electron's own reading there goes stale
+// while the pointer is over other programs' windows; elsewhere Electron's
+async function pointer() {
+  if (process.platform === 'linux' && rpc) {
+    try {
+      const p = await rpc('pointer', {});
+      if (p && typeof p.x === 'number') { const k = screen.getPrimaryDisplay().scaleFactor || 1; return { x: Math.round(p.x / k), y: Math.round(p.y / k) }; }
+    } catch (e) {}
+  }
+  return screen.getCursorScreenPoint();
+}
+let nearLogged = 0, ticking = false, leftEdge = true;
+async function edgeTick() {
+  if (ticking) return;
+  ticking = true;
+  try { await edgeCheck(); } finally { ticking = false; }
+}
+async function edgeCheck() {
   const c = cfg();
   if (!c.enabled || !c.edge || !c.peers.length) return;
-  if (!devices().some(d => d.kind === 'mouse' && d.online !== false)) return;   // the mouse is elsewhere
-  const side = edgeOf(screen.getCursorScreenPoint());
-  if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); return; }
+  if (!devices().some(d => d.kind === 'mouse' && d.online !== false)) {   // the mouse is elsewhere
+    if (Date.now() - nearLogged > 5000) { nearLogged = Date.now(); log('no mouse connected here', (state.devices || []).map(d => `${d.name} ${d.kind} online=${d.online} serial=${d.serial || '-'}`)); }
+    return;
+  }
+  const pt = await pointer(), side = edgeOf(pt);
+  // after a switch, the pointer leaves the edge before it can switch again
+  if (!leftEdge) { if (!side) leftEdge = true; return; }
+  if (!side && Date.now() - nearLogged > 30000) {
+    const b = screen.getDisplayNearestPoint(pt).bounds;
+    if (pt.x - b.x < 3 || b.x + b.width - pt.x < 4 || pt.y - b.y < 3 || b.y + b.height - pt.y < 4) { nearLogged = Date.now(); log('near an edge, not counted', pt, b); }
+  }
+  if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); if (side) log('at', side, 'edge', pt); return; }
   if (!side || Date.now() - edgeSince < 40) return;   // held there, not just passing through a corner
   const peer = c.peers.find(p => p.pos === side && online(p));
-  if (peer) { atEdge = null; switchTo(peer); }
+  if (peer) { atEdge = null; leftEdge = false; switchTo(peer); }
   else if (edgeSince !== loggedEdge) { loggedEdge = edgeSince; log('edge', side, 'reached: no computer online on that side', c.peers.map(p => `${p.name} ${p.pos} ${online(p) ? 'online' : 'away'}`)); }
 }
 function watchEdges() {
   clearInterval(edgeTimer);
   const c = cfg();
-  if (c.enabled && c.edge && c.peers.length) edgeTimer = setInterval(edgeTick, 16);
+  const on = c.enabled && c.edge && c.peers.length > 0;
+  if (on) edgeTimer = setInterval(() => { edgeTick().catch(e => { if (Date.now() - nearLogged > 5000) { nearLogged = Date.now(); log('edge check failed', String(e.stack || e)); } }); }, 16);
+  log('edge watch', on ? 'on' : 'off', { enabled: c.enabled, edge: c.edge, peers: c.peers.length });
 }
 
 // ----------------------------------------------------------------- the window
@@ -356,6 +384,7 @@ function send(ch, msg) { try { if (win && !win.isDestroyed()) win.webContents.se
 function init(opts) {
   win = opts.win; getUi = opts.getUi; setUi = opts.setUi; rpc = opts.rpc;
   log('start', computerName(), process.platform, 'peers', cfg().peers.map(p => `${p.name} ${p.pos}`));
+  try { log('screens', screen.getAllDisplays().map(d => d.bounds)); } catch (e) {}
   listen();
   learnChannels();
   schedule();

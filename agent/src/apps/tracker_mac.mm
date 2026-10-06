@@ -13,6 +13,9 @@
 
 namespace apps {
 
+// Electron reads the pointer itself here
+bool pointerPosition(int&, int&) { return false; }
+
 namespace {
 
 std::string bundleId(pid_t pid) {

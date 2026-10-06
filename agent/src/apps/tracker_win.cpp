@@ -9,6 +9,9 @@
 
 namespace apps {
 
+// Electron reads the pointer itself here
+bool pointerPosition(int&, int&) { return false; }
+
 std::vector<std::string> runningWindowClasses() {
     struct Ctx { std::vector<std::string> out; std::set<std::string> seen; } ctx;
     EnumWindows([](HWND w, LPARAM p) -> BOOL {

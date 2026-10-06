@@ -1218,6 +1218,12 @@ json Daemon::rpc(const std::string& method, const json& p) {
         if (p.contains("ring")) for (auto& md : snapshot()) { try { md->applyAssignments(); } catch (...) {} }
         return config_.data()["general"];
     }
+    // where the pointer is, for Flow's screen edges (X11; null where the agent cannot tell)
+    if (method == "pointer") {
+        int x = 0, y = 0;
+        if (apps::pointerPosition(x, y)) return json{{"x", x}, {"y", y}};
+        return nullptr;
+    }
     // the display's refresh rate, from the app: smooth scrolling plays one step a frame
     if (method == "set_display") {
         if (p.contains("hz") && p["hz"].is_number()) actions::Smoother::setFrameRate(p["hz"].get<double>());
