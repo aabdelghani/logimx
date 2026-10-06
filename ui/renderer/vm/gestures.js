@@ -11,7 +11,8 @@ export const state = {
 };
 
 const SLOTS = { tap: [t('Tap'), 'click'], up: [t('Swipe up'), 'up'], down: [t('Swipe down'), 'down'], left: [t('Swipe left'), 'left'], right: [t('Swipe right'), 'right'] };
-const gestureCapable = d => d.controls.filter(c => c.divertable && c.raw_xy && c.cid !== 0xD7);
+// the buttons that can be held and swiped; not the MX Master 4's haptic panel, which is pressed, not held
+const gestureCapable = d => d.controls.filter(c => c.divertable && c.raw_xy && c.cid !== 0xD7 && c.cid !== 416);
 const isRingAction = a => a === 'action_ring' || (!!a && typeof a === 'object' && a.type === 'ui' && a.event === 'ring');
 // the button that is held: the one carrying gestures or the action ring (they share it, one at a time)
 function gestureControl(d) {
