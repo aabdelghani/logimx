@@ -172,7 +172,9 @@ async function showRing(deviceId, raw) {
     clearTimeout(ringHideTimer);
     place(); w.show(); offTaskbar(w); ringKeysOn();
     setTimeout(place, 60);   // once, in case the window manager moved it
-    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y }, scale: RING_SCALE[rs.size] || 1 });
+    // macOS and Windows know the pointer exactly: the ring is centred on it even at a screen edge, part of
+    // it off screen if need be. Linux keeps the ring fully on screen, since on Wayland its place is a guess.
+    w.webContents.send('ring-show', { look, slots: ringSlots, travel: ringTravel, raw: !!raw, at, guess, size: { w: R - X, h: Bm - Y }, scale: RING_SCALE[rs.size] || 1, keepOn: plat.IS_LINUX });
     ringOpening = false;
     if (ringPending[0] || ringPending[1]) w.webContents.send('ring-move', { dx: ringPending[0], dy: ringPending[1] });
     if (ringReleasedEarly) { ringReleasedEarly = false; w.webContents.send('ring-release'); }

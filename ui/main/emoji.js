@@ -30,6 +30,8 @@ function ensureEmoji() {
 function cursorPoint() {
   return new Promise(resolve => {
     const fallback = () => resolve(screen.getCursorScreenPoint());
+    // macOS: the window server's live position from the agent; Electron's own reading can be stale
+    if (plat.IS_MAC && rpc) return rpc('pointer', {}).then(p => p && typeof p.x === 'number' ? resolve({ x: Math.round(p.x), y: Math.round(p.y) }) : fallback()).catch(fallback);
     if (!plat.IS_LINUX) return fallback();
     if ((process.env.XDG_SESSION_TYPE || '').toLowerCase() !== 'x11' && !process.env.DISPLAY) return fallback();
     execFile('xdotool', ['getmouselocation', '--shell'], { timeout: 500 }, (err, out) => {

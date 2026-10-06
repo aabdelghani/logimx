@@ -21,7 +21,7 @@ import { t } from '../shared/i18n.mjs';
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub'), note = document.getElementById('note');
   hub.style.display = 'none';   // nothing on screen until the first opening places the ring
   let slots = [], root = [], stack = [], hover = -1, shownAt = 0, last = null, raw = false, vx = 0, vy = 0;
-  let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false;
+  let size = { w: RW, h: RH }, waiting = false, guess = null, openedAt = 0, told = false, keepOn = true;   // keepOn: the ring stays fully on screen
   const pad = list => Array.from({ length: N }, (_, i) => (list || [])[i] || null);
   const keyOf = a => typeof a === 'string' ? a : a && a.preset;
   const isFolder = i => i >= 0 && slots[i] && slots[i].action && slots[i].action.type === 'folder';
@@ -92,7 +92,7 @@ import { t } from '../shared/i18n.mjs';
   const tell = (how, x, y) => { if (told) return; told = true; window.ring.diag({ how, ms: Math.round(performance.now() - openedAt), x: Math.round(x), y: Math.round(y), guess }); };
   // centre the ring on a point, kept fully on screen
   function centreAt(x, y, again) {
-    CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y));
+    if (keepOn) { CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y)); } else { CX = x; CY = y; }   // centred on the pointer itself unless kept on screen
     waiting = false;
     hub.style.left = CX + 'px'; hub.style.top = CY + 'px'; hub.style.display = '';
     note.style.left = CX + 'px'; note.style.top = (CY - NEAR - 14) + 'px';
@@ -286,7 +286,7 @@ import { t } from '../shared/i18n.mjs';
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
     hub.classList.remove('on'); note.classList.remove('show'); document.body.classList.remove('vol-focus');
     setRaw(!!msg.raw);
-    size = msg.size || { w: RW, h: RH }; guess = msg.guess || null; openedAt = performance.now(); told = false;
+    size = msg.size || { w: RW, h: RH }; guess = msg.guess || null; openedAt = performance.now(); told = false; keepOn = msg.keepOn !== false;
     settleUntil = 0;
     if (msg.at) { tell('known up front', msg.at.x, msg.at.y); centreAt(msg.at.x, msg.at.y); }
     else {
