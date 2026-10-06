@@ -15,7 +15,12 @@ namespace apps {
 
 // Electron reads the pointer itself here
 bool pointerPosition(int&, int&) { return false; }
-bool warpPointer(int x, int y) { return CGWarpMouseCursorPosition(CGPointMake(x, y)) == kCGErrorSuccess; }
+// after a warp macOS holds the pointer still for a moment unless it is told to follow the mouse again
+bool warpPointer(int x, int y) {
+    bool ok = CGWarpMouseCursorPosition(CGPointMake(x, y)) == kCGErrorSuccess;
+    CGAssociateMouseAndMouseCursorPosition(true);
+    return ok;
+}
 
 namespace {
 
