@@ -995,5 +995,7 @@
  "Connect to the same network": "連線到相同網路",
  "Connect other computers": "連線到其他電腦",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "在其他電腦上遵循上述 3 個步驟，以透過 Flow 進行連線。",
- "Other computer": "其他電腦"
+ "Other computer": "其他電腦",
+ "Searching for computers": "正在搜尋電腦",
+ "This process may take up to a minute": "此程序可能需花一分鐘時間"
 }

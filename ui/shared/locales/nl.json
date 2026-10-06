@@ -995,5 +995,7 @@
  "Connect to the same network": "Verbinden met hetzelfde netwerk",
  "Connect other computers": "Andere computer(s) verbinden",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Volg op de andere computers de 3 stappen hierboven om ze via Flow te verbinden.",
- "Other computer": "Andere computer"
+ "Other computer": "Andere computer",
+ "Searching for computers": "Zoeken naar computers",
+ "This process may take up to a minute": "Dit proces kan een minuut duren"
 }

@@ -995,5 +995,7 @@
  "Connect to the same network": "Opret forbindelse til samme netværk",
  "Connect other computers": "Forbind en anden/andre computer(e)",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Følg de tre ovenstående trin på de andre computere for at forbinde dem til Flow.",
- "Other computer": "Anden/andre computer"
+ "Other computer": "Anden/andre computer",
+ "Searching for computers": "Søger efter computere",
+ "This process may take up to a minute": "Denne proces kan tage op til et minut"
 }

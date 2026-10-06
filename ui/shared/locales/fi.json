@@ -995,5 +995,7 @@
  "Connect to the same network": "Yhdistä samaan verkkoon",
  "Connect other computers": "Yhdistä muihin tietokoneisiin",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Käy läpi yllä mainitut kolme vaihetta toisilla tietokoneilla niiden yhdistämiseksi Flow’n kautta.",
- "Other computer": "Muut tietokoneet"
+ "Other computer": "Muut tietokoneet",
+ "Searching for computers": "Etsitään tietokoneita",
+ "This process may take up to a minute": "Tämä prosessi kestää enintään minuutin"
 }

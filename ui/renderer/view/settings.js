@@ -3,8 +3,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { LANGS, t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, range, row, sec, sw;
-export function link(ctx) { ({ ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, range, row, sec, sw } = ctx); }
+let ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, flowNew, range, row, sec, sw;
+export function link(ctx) { ({ ALT, IS_LINUX, IS_MAC, IS_WIN, META, S, THEMES, VERSION, allProfiles, card, esc, flowRefresh, flowNew, range, row, sec, sw } = ctx); }
 
 function pageNotif() {
   const g = S.general, ev = g.osd_events || { mic: true, smartshift: true, backlight: true, host: true, dpi: false };
@@ -57,28 +57,23 @@ const FLOW_POS = [['left', t('Left'), 'fa-arrow-left'], ['right', t('Right'), 'f
 const FLOW_POS_OF_ME = { left: t('Left of me'), right: t('Right of me'), up: t('Above me'), down: t('Below me') };
 // While Flow is off, the device's Flow page is a single invitation; Start using Flow opens
 // the setup (installing the sharing engine first if it is missing).
-function flowIntro(f) {
-  const inst = S.flowStatus === 'installing';
-  return `<div class="flow-intro">
-    <div class="flow-art"><i class="fa-solid fa-laptop"></i><span class="flow-arrow"><i class="fa-solid fa-arrow-pointer"></i></span><i class="fa-solid fa-display"></i></div>
-    <div class="t">${t('Flow')}</div>
-    <div class="s">${t('Use this mouse and keyboard on more than one computer. Move the pointer off the edge of the screen to reach the next computer, and copy on one to paste on another.')}</div>
-    ${inst ? `<div class="s"><i class="fa-solid fa-spinner fa-spin"></i> ${t('Installing Flow support…')}${S.flowDetail ? `<br><span class="hint">${esc(S.flowDetail)}</span>` : ''}</div>`
-      : `<button class="btn primary lg" data-act="flow-begin"><i class="fa-solid fa-play"></i>${t('Start using Flow')}</button>`}
-    <div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div>
-  </div>`;
-}
-// connecting another computer, as Options+ walks through it: this computer and the other one side by
-// side, the three things the other one needs, then Continue or Cancel; it covers the whole window
-function flowWizard(opening) {
+// connecting another computer, as Options+ walks through it, over the whole window: this computer and
+// the other one side by side, the three things the other one needs (Continue or Cancel), then the search
+function flowWizard(step, opening) {
   const f = S.flow || {};
-  return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true">
-    <div class="fw-body">
-      <div class="fw-art">
+  const art = `<div class="fw-art ${step === 'search' ? 'searching' : ''}">
         <div class="fw-pc me"><i class="fa-solid fa-laptop"></i><span class="n">${t('This computer')}</span>${f.name ? `<span class="h">${esc(f.name)}</span>` : ''}</div>
         <div class="fw-link"><span class="fw-line"></span><i class="fa-solid fa-arrow-pointer fw-ptr"></i></div>
         <div class="fw-pc other"><i class="fa-solid fa-display"></i><span class="n">${t('Other computer')}</span></div>
-      </div>
+      </div>`;
+  const body = step === 'search'
+    // looking for the other computer on the network
+    ? `${art}
+      <div class="fw-title">${t('Searching for computers')}</div>
+      <div class="fw-sub">${t('This process may take up to a minute')}</div>
+      <div class="fw-bar"><span></span></div>
+      <div class="fw-btns"><button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button></div>`
+    : `${art}
       <ol class="fw-steps">
         <li><b>1</b><span>${t('Install NotLogi')}</span></li>
         <li><b>2</b><span>${t('Pair your mouse on a different channel')}</span></li>
@@ -86,14 +81,13 @@ function flowWizard(opening) {
       </ol>
       <div class="fw-title">${t('Connect other computers')}</div>
       <div class="fw-sub">${t('Follow the above 3 steps on other computers to connect to them via Flow.')}</div>
-      <div class="fw-btns"><button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button><button class="btn primary" data-act="flow-wiz-go">${t('Continue')}</button></div>
-    </div>
-  </div>`;
+      <div class="fw-btns"><button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button><button class="btn primary" data-act="flow-wiz-go">${t('Continue')}</button></div>`;
+  return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true"><div class="fw-body step-${step}" ${opening ? '' : 'data-step-in'}>${body}</div></div>`;
 }
 function pageFlow() {
   const f = S.flow;
   if (!f) { flowRefresh(); return sec(t('Flow'), card(row(t('Loading…'), '', ''))); }
-  if (!S.flowSetup && !f.running) return flowIntro(f);
+  if (flowNew(f)) return '';   // the setup sheet covers the window
   if (!f.installed) {
     const inst = S.flowStatus === 'installing';
     return sec(t('Flow'), card(
@@ -143,4 +137,4 @@ function pageAbout() {
     sec(t('Diagnostics'), card(`<div class="logs">${logs.map(l => `<span class="${l.c || 'dim'}">${esc(l.t)}</span>`).join('')}</div>`) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" data-act="report"><i class="fa-solid fa-bug"></i>${t('Report a problem')}</button><button class="btn" data-act="export-diag"><i class="fa-solid fa-file-zipper"></i>${t('Export diagnostics')}</button><button class="btn" data-act="copy-diag"><i class="fa-solid fa-copy"></i>${t('Copy')}</button></div>`, `<button class="btn sm flat" data-act="refresh-logs">${t('Refresh')}</button>`);
 }
 
-export const provide = { flowWizard, pageNotif, pageBackup, pageSettings, FLOW_POS, flowIntro, pageFlow, pageAbout };
+export const provide = { flowWizard, pageNotif, pageBackup, pageSettings, FLOW_POS, pageFlow, pageAbout };

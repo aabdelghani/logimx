@@ -995,5 +995,7 @@
  "Connect to the same network": "Koble til samme nettverk",
  "Connect other computers": "Koble til datamaskiner",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Følg de tre trinnene ovenfor på andre datamaskiner for å koble dem til via Flow.",
- "Other computer": "Andre datamaskiner"
+ "Other computer": "Andre datamaskiner",
+ "Searching for computers": "Søker etter datamaskiner",
+ "This process may take up to a minute": "Denne prosessen kan ta opptil ett minutt"
 }

@@ -995,5 +995,7 @@
  "Connect to the same network": "同じネットワークに接続します",
  "Connect other computers": "別のコンピュータへの接続",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Flow を通して他のコンピュータに接続するには、他のコンピュータ上で上記の 3 ステップを実行します。",
- "Other computer": "その他のコンピュータ"
+ "Other computer": "その他のコンピュータ",
+ "Searching for computers": "コンピュータを検索中",
+ "This process may take up to a minute": "このプロセスには最長 1 分かかります"
 }

@@ -995,5 +995,7 @@
  "Connect to the same network": "Подключитесь к той же сети",
  "Connect other computers": "Подключение других компьютеров",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Выполните 3 вышеуказанных действия на других компьютерах, чтобы подключить их с помощью Flow.",
- "Other computer": "Другие компьютеры"
+ "Other computer": "Другие компьютеры",
+ "Searching for computers": "Выполняется поиск компьютеров",
+ "This process may take up to a minute": "Этот процесс может занять около минуты"
 }

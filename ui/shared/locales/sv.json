@@ -995,5 +995,7 @@
  "Connect to the same network": "Anslut till samma nätverk",
  "Connect other computers": "Anslut en eller flera andra datorer",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Följ ovanstående tre steg på övriga datorer för att ansluta dem via Flow.",
- "Other computer": "Annan/andra dator/-er"
+ "Other computer": "Annan/andra dator/-er",
+ "Searching for computers": "Söker efter datorer",
+ "This process may take up to a minute": "Processen kan ta upp till en minut"
 }

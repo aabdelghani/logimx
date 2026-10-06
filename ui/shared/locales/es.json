@@ -995,5 +995,7 @@
  "Connect to the same network": "Conectar a la misma red",
  "Connect other computers": "Conectar otros ordenadores",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Sigue los 3 pasos anteriores en otros ordenadores para conectarlos mediante Flow.",
- "Other computer": "Otros ordenadores"
+ "Other computer": "Otros ordenadores",
+ "Searching for computers": "Buscando ordenadores",
+ "This process may take up to a minute": "Este proceso puede tardar hasta un minuto"
 }

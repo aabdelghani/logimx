@@ -995,5 +995,7 @@
  "Connect to the same network": "Σύνδεση στο ίδιο δίκτυο",
  "Connect other computers": "Συνδέστε έναν άλλο υπολογιστή(ές)",
  "Follow the above 3 steps on other computers to connect to them via Flow.": "Ακολουθήστε τα 3 παραπάνω βήματα στους άλλους υπολογιστές για να τους συνδέσετε μέσω του Flow.",
- "Other computer": "Άλλοι υπολογιστές"
+ "Other computer": "Άλλοι υπολογιστές",
+ "Searching for computers": "Αναζήτηση υπολογιστών",
+ "This process may take up to a minute": "Αυτή η διαδικασία μπορεί να διαρκέσει έως και ένα λεπτό"
 }

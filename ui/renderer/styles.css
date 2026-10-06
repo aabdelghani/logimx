@@ -1166,3 +1166,9 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fw-sub { color: var(--dim); max-width: 520px; }
 .fw-btns { display: flex; gap: 10px; margin-top: 8px; }
 .fw-btns .btn { min-width: 120px; justify-content: center; }
+
+.fw-body[data-step-in] { animation: kb-fade .3s ease both; }
+.fw-bar { width: 260px; height: 4px; border-radius: 2px; background: var(--btn); overflow: hidden; position: relative; }
+.fw-bar span { position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--accbg); border-radius: 2px; animation: indet 1.4s ease-in-out infinite; }
+.fw-art.searching .fw-pc.other { animation: fw-pulse 1.6s ease-in-out infinite; }
+@keyframes fw-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 0%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accbg) 22%, transparent); } }
