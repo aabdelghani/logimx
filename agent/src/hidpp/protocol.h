@@ -127,7 +127,10 @@ class Device {
   private:
     int fnHost_ = -1;
     void readIdentity();
+    void readFirmware();
     void readControls();
+    bool loadCache();   // the tables of a device seen before (same serial and firmware)
+    void saveCache();
 
     Transport& t_;
     uint8_t index_;

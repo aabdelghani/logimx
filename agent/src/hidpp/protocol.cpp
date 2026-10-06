@@ -1,6 +1,11 @@
 #include <tuple>
 #include "protocol.h"
 
+#include <filesystem>
+#include <fstream>
+
+#include "../platform/platform.h"
+
 #include <cstdio>
 #include <cstring>
 
@@ -35,6 +40,9 @@ bool Device::enumerate() {
     if (r.size() < 3 || r[0] == 0) return false;
     uint8_t fs = r[0];
     features_[FEATURE_SET] = {FEATURE_SET, fs, r[2], 0};
+    // a device seen before is not read again (as Options+ does): its firmware and serial in a few
+    // requests, then its feature table, controls and names from the cache
+    if (loadCache()) return true;
     int count = t_.request(index_, fs, 0, {}, std::nullopt)[0];
     for (int i = 1; i <= count; ++i) {
         Bytes fr = t_.request(index_, fs, 1, {static_cast<uint8_t>(i)}, std::nullopt);
@@ -44,7 +52,59 @@ bool Device::enumerate() {
     }
     readIdentity();
     if (has(SPECIAL_KEYS)) readControls();
+    saveCache();
     return true;
+}
+
+// ------------------------------------------------------------ the device cache
+// One file per device (by serial) in the state folder: its feature table, controls and names, kept
+// while its firmware is the same. Reading a device costs a hundred requests, slow over Bluetooth;
+// a reconnect then takes a few.
+static std::string cachePath(const std::string& serial) {
+    std::string safe;
+    for (char c : serial) if (isalnum(static_cast<unsigned char>(c))) safe += c;
+    return platform::stateDir() + "/devices/" + safe + ".json";
+}
+bool Device::loadCache() {
+    try {
+        Bytes r = t_.request(index_, 0, 0, {static_cast<uint8_t>(DEVICE_FW >> 8), static_cast<uint8_t>(DEVICE_FW & 0xFF)}, std::nullopt);
+        if (r.size() < 3 || r[0] == 0) return false;
+        features_[DEVICE_FW] = {DEVICE_FW, r[0], r[2], r[1]};
+        readFirmware();
+        if (serial_.empty() || firmware_.empty()) return false;
+        std::ifstream f(cachePath(serial_));
+        if (!f) return false;
+        json c = json::parse(f);
+        if (c.value("firmware", "") != firmware_ || c.value("v", 0) != 1) return false;
+        for (auto& x : c["features"]) {
+            uint16_t id = x["id"].get<uint16_t>();
+            features_[id] = {id, x["index"].get<uint8_t>(), x["version"].get<uint8_t>(), x["type"].get<uint8_t>()};
+        }
+        controls_.clear();
+        for (auto& x : c["controls"]) {
+            ControlInfo k;
+            k.cid = x["cid"]; k.taskId = x["task"]; k.flags = x["flags"]; k.position = x["position"];
+            k.group = x["group"]; k.groupMask = x["mask"]; k.extraFlags = x["extra"];
+            controls_[k.cid] = k;
+        }
+        name_ = c.value("name", ""); friendlyName_ = c.value("friendly", ""); kind_ = c.value("kind", "unknown");
+        return !name_.empty();
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+void Device::saveCache() {
+    if (serial_.empty() || firmware_.empty() || name_.empty()) return;
+    try {
+        json c = {{"v", 1}, {"firmware", firmware_}, {"name", name_}, {"friendly", friendlyName_}, {"kind", kind_}, {"features", json::array()}, {"controls", json::array()}};
+        for (auto& [id, fi] : features_) c["features"].push_back({{"id", id}, {"index", fi.index}, {"version", fi.version}, {"type", fi.type}});
+        for (auto& [cid, k] : controls_)
+            c["controls"].push_back({{"cid", k.cid}, {"task", k.taskId}, {"flags", k.flags}, {"position", k.position}, {"group", k.group}, {"mask", k.groupMask}, {"extra", k.extraFlags}});
+        std::string p = cachePath(serial_);
+        std::filesystem::create_directories(std::filesystem::path(p).parent_path());
+        std::ofstream(p) << c.dump();
+    } catch (const std::exception&) {
+    }
 }
 
 void Device::readIdentity() {
@@ -77,6 +137,10 @@ void Device::readIdentity() {
         }
     } catch (const std::exception&) {
     }
+    readFirmware();
+}
+
+void Device::readFirmware() {
     try {
         if (has(DEVICE_FW)) {
             int cnt = req(DEVICE_FW, 0)[0];

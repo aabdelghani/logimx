@@ -677,6 +677,7 @@ void Daemon::scan() {
     auto nowT = std::chrono::steady_clock::now();
     bool retry = nowT - lastRetry_ > 5s;
     if (retry) lastRetry_ = nowT;
+    std::vector<std::pair<hidpp::Transport*, hidpp::Node>> direct;   // new devices on their own link
     for (auto& n : nodes) {
         hidpp::Transport* t = nullptr;
         {
@@ -714,19 +715,33 @@ void Daemon::scan() {
             for (uint8_t i = 1; i <= 6; ++i)
                 if (attach(*tp, i, n)) ++found;
             INFO("receiver %s on %s: %d device(s)", n.receiverKind().c_str(), n.path.c_str(), found);
-        } else if (!attach(*tp, 0xFF, n)) {
+        } else {
+            direct.push_back({tp, n});
+        }
+    }
+    // devices on their own link (Bluetooth) are set up side by side: one does not wait for another
+    std::vector<std::thread> setups;
+    for (auto& [tp, n] : direct)
+        setups.emplace_back([this, tp = tp, n = n] {
+            if (attach(*tp, 0xFF, n)) return;
             std::unique_ptr<hidpp::Transport> drop;
             {
                 std::lock_guard<std::mutex> lk(mapMutex_);
                 drop = std::move(transports_[n.path]);
                 transports_.erase(n.path);
             }
-        }
-    }
+        });
+    for (auto& th : setups) th.join();
 }
 
 bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
-    std::lock_guard<std::mutex> lk(attachMutex_);
+    // one setup at a time per link (a receiver's slots share it); different links go side by side
+    std::mutex* linkLock;
+    {
+        std::lock_guard<std::mutex> lk(attachMutex_);
+        linkLock = &attachLocks_[&t];
+    }
+    std::lock_guard<std::mutex> lk(*linkLock);
     for (auto& md : snapshot())
         if (&md->transport() == &t && md->dev().index() == idx) return false;
     auto dev = std::make_unique<hidpp::Device>(t, idx);
@@ -1231,6 +1246,8 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return nullptr;
     }
     // the display's refresh rate, from the app: smooth scrolling plays one step a frame
+    // Flow: put the pointer where it enters from the other computer
+    if (method == "warp_pointer") return json{{"ok", apps::warpPointer(p.value("x", 0), p.value("y", 0))}};
     // Flow: devices are being switched to this computer; look for them every 150 ms for a while
     if (method == "expect_device") {
         long long ms = std::max(500LL, std::min(15000LL, static_cast<long long>(p.value("ms", 5000.0))));

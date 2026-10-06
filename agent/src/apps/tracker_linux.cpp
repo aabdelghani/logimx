@@ -23,6 +23,14 @@ bool pointerPosition(int& x, int& y) {
     return XQueryPointer(dpy, DefaultRootWindow(dpy), &root, &child, &x, &y, &wx, &wy, &mask);
 }
 
+bool warpPointer(int x, int y) {
+    static Display* dpy = XOpenDisplay(nullptr);
+    if (!dpy) return false;
+    XWarpPointer(dpy, None, DefaultRootWindow(dpy), 0, 0, 0, 0, x, y);
+    XFlush(dpy);
+    return true;
+}
+
 // X11: every window listed in _NET_CLIENT_LIST, by WM_CLASS.
 static std::vector<std::string> x11WindowClasses() {
     std::vector<std::string> out;

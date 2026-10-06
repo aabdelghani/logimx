@@ -21,6 +21,8 @@ bool skipTaskbar(unsigned long xid);
 // Where the pointer is on the desktop, in pixels (X11). Electron's own reading on Linux goes stale
 // while the pointer is over other programs' windows; false where this cannot tell.
 bool pointerPosition(int& x, int& y);
+// Put the pointer at a desktop position (Flow: where it enters from the other computer).
+bool warpPointer(int x, int y);
 
 class Tracker {
   public:

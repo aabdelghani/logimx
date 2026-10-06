@@ -182,12 +182,18 @@ async function onMessage(msg, ip) {
   if (!o) return { ok: false };
   const { m, peer } = o;
   const s = seen.get(peer.id); if (s) s.ip = ip;
+  if (m.t === 'clip') {
+    if (m.clip && cfg().clipboard) writeClip(m.clip);
+    log('clipboard from', peer.name, m.clip ? (m.clip.text ? 'text' : 'image') : 'nothing');
+    return { ok: true };
+  }
   if (m.t === 'switch') {
-    log('switch from', peer.name, ip, m.clip ? (m.clip.text ? 'text' : 'image') : 'no clipboard');
+    log('switch from', peer.name, ip, m.edge || '', typeof m.pos === 'number' ? m.pos.toFixed(2) : '');
     arrived();
+    if (OPPOSITE[m.edge] && typeof m.pos === 'number') enterAt(OPPOSITE[m.edge], Math.max(0, Math.min(1, m.pos)));
     // the devices are on their way: the agent looks for them every 150 ms meanwhile
     if (rpc) rpc('expect_device', { ms: 6000 }).catch(() => {});
-    // the devices are coming here: take the clipboard
+    // older versions still send the clipboard with the switch
     if (m.clip && cfg().clipboard) writeClip(m.clip);
     return { ok: true };
   }
@@ -270,6 +276,21 @@ function schedule() {
 }
 
 // ----------------------------------------------------------------- switching
+// the pointer brought in on this computer's edge facing the other one, at the same place along it
+// (a few pixels inside, so it does not count as reaching that edge), before the mouse even arrives
+function enterAt(edge, pos) {
+  try {
+    const all = screen.getAllDisplays();
+    const pick = { left: (a, b) => a.bounds.x <= b.bounds.x, right: (a, b) => a.bounds.x + a.bounds.width >= b.bounds.x + b.bounds.width,
+      up: (a, b) => a.bounds.y <= b.bounds.y, down: (a, b) => a.bounds.y + a.bounds.height >= b.bounds.y + b.bounds.height }[edge];
+    const d = all.reduce((a, b) => (pick(a, b) ? a : b));
+    const b = d.bounds, k = process.platform === 'linux' ? (d.scaleFactor || 1) : 1;
+    const x = edge === 'left' ? b.x + 3 : edge === 'right' ? b.x + b.width - 4 : b.x + pos * b.width;
+    const y = edge === 'up' ? b.y + 3 : edge === 'down' ? b.y + b.height - 4 : b.y + pos * b.height;
+    if (rpc) rpc('warp_pointer', { x: Math.round(x * k), y: Math.round(y * k) }).then(() => log('pointer in at', edge, Math.round(x), Math.round(y))).catch(() => {});
+  } catch (e) {}
+}
+
 function readClip() {
   try {
     const text = clipboard.readText();
@@ -292,7 +313,7 @@ function travellers(peer) {
   return devices().filter(d => d.online !== false && (d.kind === 'mouse' || (c.keyboard && d.kind === 'keyboard')) && channelFor(d, peer) !== null);
 }
 let switching = false, coolUntil = 0;
-async function switchTo(peer) {
+async function switchTo(peer, edge, pos) {
   if (switching || Date.now() < coolUntil) return;
   const devs = travellers(peer);
   log('edge: switching to', peer.name, devs.map(d => `${d.name} -> channel ${channelFor(d, peer) + 1}`));
@@ -301,7 +322,7 @@ async function switchTo(peer) {
   try {
     const s = seen.get(peer.id);
     // the other computer first (it takes the clipboard); if it does not answer, stay here
-    const r = await sendTo(s.ip, sealed(peer, { t: 'switch', clip: cfg().clipboard ? readClip() : null }), 1200);
+    const r = await sendTo(s.ip, sealed(peer, { t: 'switch', edge, pos }), 1200);
     if (!r || !r.ok) throw new Error('not accepted');
     log(peer.name, 'accepted');
     // the mouse last, so the keyboard is already there when the pointer arrives
@@ -309,6 +330,8 @@ async function switchTo(peer) {
       try { await rpc('change_host', { id: d.id, host: channelFor(d, peer) }); log('switched', d.name, 'to channel', channelFor(d, peer) + 1); } catch (e) { log('change_host failed', d.name, String(e.message || e)); }
     }
     lastError = '';
+    // the clipboard follows, so a large image never holds the switch up
+    if (cfg().clipboard) { const clip = readClip(); if (clip) sendTo(s.ip, sealed(peer, { t: 'clip', clip }), 8000).catch(e => log('clipboard not sent', String(e.message || e))); }
   } catch (e) { lastError = `${peer.name} did not answer`; log(lastError, String(e.message || e), (seen.get(peer.id) || {}).ip); }
   switching = false; coolUntil = Date.now() + 1000;
   notify();
@@ -365,10 +388,16 @@ async function edgeCheck() {
     const b = screen.getDisplayNearestPoint(pt).bounds;
     if (pt.x - b.x < 3 || b.x + b.width - pt.x < 4 || pt.y - b.y < 3 || b.y + b.height - pt.y < 4) { nearLogged = Date.now(); log('near an edge, not counted', pt, b); }
   }
-  if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); if (side) log('at', side, 'edge', pt); return; }
-  if (!side || Date.now() - edgeSince < 40) return;   // held there, not just passing through a corner
+  // the switch fires the moment the pointer hits the edge, as in Options+
+  if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); if (side) log('at', side, 'edge', pt); }
+  if (!side) return;
   const peer = c.peers.find(p => p.pos === side && online(p));
-  if (peer) { atEdge = null; leftEdge = false; switchTo(peer); }
+  if (peer) {
+    // where along the edge the pointer left, for the other computer to bring it in at the same place
+    const b = screen.getDisplayNearestPoint(pt).bounds;
+    const pos = side === 'left' || side === 'right' ? (pt.y - b.y) / b.height : (pt.x - b.x) / b.width;
+    atEdge = null; leftEdge = false; switchTo(peer, side, Math.max(0, Math.min(1, pos)));
+  }
   else if (edgeSince !== loggedEdge) { loggedEdge = edgeSince; log('edge', side, 'reached: no computer online on that side', c.peers.map(p => `${p.name} ${p.pos} ${online(p) ? 'online' : 'away'}`)); }
 }
 function watchEdges() {

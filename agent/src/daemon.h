@@ -129,7 +129,8 @@ class Daemon {
     std::mutex mapMutex_;
     std::map<std::string, std::unique_ptr<hidpp::Transport>> transports_;
     std::map<std::string, DevPtr> devices_;  // by id (pid hex)
-    std::mutex attachMutex_;                 // serialises attach() calls
+    std::mutex attachMutex_;                 // guards attachLocks_
+    std::map<const hidpp::Transport*, std::mutex> attachLocks_;   // attach() one at a time per link
     std::mutex scanMutex_;
     apps::Recorder recorder_;
     std::atomic<bool> pairing_{false};

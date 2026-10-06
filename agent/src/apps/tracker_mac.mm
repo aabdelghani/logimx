@@ -15,6 +15,7 @@ namespace apps {
 
 // Electron reads the pointer itself here
 bool pointerPosition(int&, int&) { return false; }
+bool warpPointer(int x, int y) { return CGWarpMouseCursorPosition(CGPointMake(x, y)) == kCGErrorSuccess; }
 
 namespace {
 
