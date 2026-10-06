@@ -16,6 +16,7 @@ import { t } from '../shared/i18n.mjs';
   let CX = RW / 2, CY = RH / 2;       // where the ring is centred, set per show
   let RR = BASE.RR, B = BASE.B;       // ring radius to the bubble centres, bubble radius (scaled by the ring size)
   let NEAR = BASE.NEAR, FAR = BASE.FAR;   // pointer mode: inside NEAR is the middle button, beyond FAR is outside
+  let LIFT = 20;                      // how far above the pointer the ring's middle sits (scaled with the ring)
   const GAIN = 1;
   let DEAD = 30, LIMIT = 60;       // travel before a button is chosen, and where the point saturates (set per show)
   const slotsEl = document.getElementById('slots'), hub = document.getElementById('hub'), note = document.getElementById('note');
@@ -92,7 +93,9 @@ import { t } from '../shared/i18n.mjs';
   const tell = (how, x, y) => { if (told) return; told = true; window.ring.diag({ how, ms: Math.round(performance.now() - openedAt), x: Math.round(x), y: Math.round(y), guess }); };
   // centre the ring on a point, kept fully on screen
   function centreAt(x, y, again) {
-    if (keepOn) { CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y)); } else { CX = x; CY = y; }   // centred on the pointer itself unless kept on screen
+    // centred on the pointer itself unless kept on screen; a little above it, so the pointer sits in
+    // the lower part of the middle button rather than covering it
+    if (keepOn) { CX = Math.max(RW / 2, Math.min(size.w - RW / 2, x)); CY = Math.max(RH / 2, Math.min(size.h - RH / 2, y)); } else { CX = x; CY = y - LIFT; }
     waiting = false;
     hub.style.left = CX + 'px'; hub.style.top = CY + 'px'; hub.style.display = '';
     note.style.left = CX + 'px'; note.style.top = (CY - NEAR - 14) + 'px';
@@ -280,7 +283,7 @@ import { t } from '../shared/i18n.mjs';
     // the ring's size: everything in it scales together
     const s = Math.max(0.6, Math.min(1.6, Number(msg.scale) || 1));
     rootEl.style.setProperty('--s', s);
-    RW = BASE.RW * s; RH = BASE.RH * s; RR = BASE.RR * s; B = BASE.B * s; NEAR = BASE.NEAR * s; FAR = BASE.FAR * s;
+    RW = BASE.RW * s; RH = BASE.RH * s; RR = BASE.RR * s; B = BASE.B * s; NEAR = BASE.NEAR * s; FAR = BASE.FAR * s; LIFT = 20 * s;
     root = pad(msg.slots); stack = []; slots = root; dwellOff();
     shownAt = Date.now(); last = null; vx = vy = 0; dial = null;
     DEAD = Math.max(5, Math.min(120, Number(msg.travel) || 30)); LIMIT = DEAD * 2;
