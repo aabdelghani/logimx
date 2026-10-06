@@ -18,8 +18,8 @@ std::vector<std::string> runningWindowClasses();
 // for windows it creates hidden, so the window manager is asked directly once the window is up.
 bool skipTaskbar(unsigned long xid);
 
-// Where the pointer is on the desktop, in pixels (X11). Electron's own reading on Linux goes stale
-// while the pointer is over other programs' windows; false where this cannot tell.
+// Where the pointer is on the desktop (X11 pixels; macOS points). Electron's own reading goes stale
+// (Linux: outside its windows; macOS: while the mouse is away); false where this cannot tell.
 bool pointerPosition(int& x, int& y);
 // Put the pointer at a desktop position (Flow: where it enters from the other computer).
 bool warpPointer(int x, int y);

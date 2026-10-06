@@ -285,8 +285,11 @@ function enterAt(edge, pos) {
       up: (a, b) => a.bounds.y <= b.bounds.y, down: (a, b) => a.bounds.y + a.bounds.height >= b.bounds.y + b.bounds.height }[edge];
     const d = all.reduce((a, b) => (pick(a, b) ? a : b));
     const b = d.bounds, k = process.platform === 'linux' ? (d.scaleFactor || 1) : 1;
-    const x = edge === 'left' ? b.x + 3 : edge === 'right' ? b.x + b.width - 4 : b.x + pos * b.width;
-    const y = edge === 'up' ? b.y + 3 : edge === 'down' ? b.y + b.height - 4 : b.y + pos * b.height;
+    // along the edge, kept out of the corners (a pointer in a corner is on two edges at once)
+    const along = (start, len) => start + Math.max(REARM_PX + 4, Math.min(len - REARM_PX - 4, pos * len));
+    const x = edge === 'left' ? b.x + 3 : edge === 'right' ? b.x + b.width - 4 : along(b.x, b.width);
+    const y = edge === 'up' ? b.y + 3 : edge === 'down' ? b.y + b.height - 4 : along(b.y, b.height);
+    warpTarget = { x: Math.round(x), y: Math.round(y), until: Date.now() + 1500 };
     if (rpc) rpc('warp_pointer', { x: Math.round(x * k), y: Math.round(y * k) }).then(() => log('pointer in at', edge, Math.round(x), Math.round(y))).catch(() => {});
   } catch (e) {}
 }
@@ -359,19 +362,22 @@ function edgeOf(pt) {
   if (pt.y >= b.y + b.height - 1 && !beyond(pt.x, b.y + b.height)) return 'down';
   return null;
 }
-// the pointer's place: on Linux from the agent (X11), as Electron's own reading there goes stale
-// while the pointer is over other programs' windows; elsewhere Electron's
+// the pointer's place: on Linux and macOS from the agent, as Electron's own reading goes stale (Linux:
+// over other programs' windows; macOS: while the mouse is on another computer); elsewhere Electron's
 async function pointer() {
-  if (process.platform === 'linux' && rpc) {
+  if ((process.platform === 'linux' || process.platform === 'darwin') && rpc) {
     try {
       const p = await rpc('pointer', {});
-      if (p && typeof p.x === 'number') { const k = screen.getPrimaryDisplay().scaleFactor || 1; return { x: Math.round(p.x / k), y: Math.round(p.y / k) }; }
+      // X11 reports pixels; macOS reports points, the same units as Electron's
+      if (p && typeof p.x === 'number') { const k = process.platform === 'linux' ? (screen.getPrimaryDisplay().scaleFactor || 1) : 1; return { x: Math.round(p.x / k), y: Math.round(p.y / k) }; }
     } catch (e) {}
   }
   return screen.getCursorScreenPoint();
 }
 let nearLogged = 0, ticking = false, leftEdge = true, quietUntil = 0, mouseHere = false;
 const REARM_PX = 24;
+// where the pointer was just brought in: until a reading lands there, readings are old ones
+let warpTarget = null;
 // devices arriving here: the pointer is still read where it last was (often the edge it left by,
 // facing the computer it came from), so no edge counts until the pointer has moved off it, and
 // none for a quarter second in any case; otherwise the devices bounce straight back
@@ -391,7 +397,13 @@ async function edgeCheck() {
     if (Date.now() - nearLogged > 5000) { nearLogged = Date.now(); log('no mouse connected here', (state.devices || []).map(d => `${d.name} ${d.kind} online=${d.online} serial=${d.serial || '-'}`)); }
     return;
   }
-  const pt = await pointer(), side = edgeOf(pt);
+  const pt = await pointer();
+  if (warpTarget) {
+    if (Math.abs(pt.x - warpTarget.x) <= 8 && Math.abs(pt.y - warpTarget.y) <= 8) warpTarget = null;   // live now
+    else if (Date.now() < warpTarget.until) return;
+    else warpTarget = null;
+  }
+  const side = edgeOf(pt);
   // after a switch or an arrival, the pointer moves well inside (deeper than where it is brought
   // in) before an edge counts again: a pointer still at the edge, or wobbling a pixel off it, must not
   // send the devices straight back
