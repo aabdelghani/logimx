@@ -5,8 +5,8 @@ const fs = require('fs');
 const state = require('./state');
 
 // from the other parts of the main process, filled in by link()
-let btSetMode, changeLanguage, createTray, setAutostart;
-exports.link = ctx => { ({ btSetMode, changeLanguage, createTray, setAutostart } = ctx); };
+let applyWindowScale, btSetMode, changeLanguage, createTray, setAutostart;
+exports.link = ctx => { ({ applyWindowScale, btSetMode, changeLanguage, createTray, setAutostart } = ctx); };
 
 const UI_SETTINGS_PATH = path.join(app.getPath('userData'), 'ui-settings.json');
 function loadUi() {
@@ -28,6 +28,7 @@ ipcMain.handle('ui-settings', (_e, patch) => {
     if ('autostart' in patch) setAutostart(!!patch.autostart);
     if ('bt_watch' in patch) btSetMode();
     if ('language' in patch) setTimeout(changeLanguage, 50);   // after this answer reaches the window
+    if ('scale' in patch) applyWindowScale();
   }
   return state.uiSettings;
 });

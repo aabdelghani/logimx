@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ang, wedge, fanOrder, fanAngle, closestByAngle, nearest, FAN_STEP } from '../renderer/ring-geometry.js';
+import { ang, wedge, fanOrder, fanAngle, closestByAngle, nearest, rawRelease, FAN_STEP } from '../renderer/ring-geometry.js';
 
 const deg = r => Math.round(r * 180 / Math.PI);
 
@@ -49,4 +49,14 @@ test('the pointer picks the nearest button within reach', () => {
   assert.equal(nearest(pts, 8, 1, 5), 2);
   assert.equal(nearest(pts, 1, 1, 5), 0);
   assert.equal(nearest(pts, 50, 50, 5), -1);
+});
+
+test('letting go of the ring button: a jolt or a short press keeps it open, an aim runs, a long hold cancels', () => {
+  const r = (heldMs, travel, hasPick) => rawRelease({ heldMs, travel, dead: 30, hasPick });
+  assert.equal(r(100, 35, true), 'stay');    // a quick tap that wobbled past the dead zone
+  assert.equal(r(150, 70, true), 'pick');    // a quick, deliberate flick
+  assert.equal(r(600, 40, true), 'pick');    // held and aimed
+  assert.equal(r(400, 0, false), 'stay');    // a slightly slow press without moving
+  assert.equal(r(1200, 5, false), 'close');  // a long hold with nothing chosen
+  assert.equal(r(300, 70, false), 'close');  // flicked toward an empty slot
 });

@@ -40,6 +40,10 @@ void launchApp(const std::string& id);
 json listApplications();
 // Other tools that also drive Logitech devices and get in each other's way: [{name, pid}]
 json conflictingTools();
+// macOS only lets a program open a keyboard (the MX Keys' HID++ channel) with Input Monitoring:
+// "granted", "denied" or "unknown" (never asked). Elsewhere there is nothing to allow: "granted".
+// Asking is the app's job (mac_input_monitoring.c): asked from the agent, macOS refuses silently.
+std::string inputMonitoring();
 
 // The OS pointer speed, -1 (slowest) .. 1 (fastest), 0 the system default.
 void setPointerSpeed(double v, const std::string& deviceName, const std::string& nodeName);

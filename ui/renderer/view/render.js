@@ -189,6 +189,9 @@ function renderWindow() {
   const left = mode === 'home'
     ? `<span class="hello">${greeting()}</span>`
     : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? t('Back') : t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>`;
+  // macOS: without Input Monitoring the agent cannot open the devices, which then never show up
+  const imMissing = S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted';
+  const imBanner = imMissing && mode === 'home' ? `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.', { what: (S.ax || { trusted: true }).trusted ? t('Input Monitoring') : t('Accessibility') })}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>` : '';
   const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? t('Starting the agent…') : t('<strong>The agent is not running.</strong> Settings cannot reach the devices.')}</span>${S.agentBusy ? '' : `<button class="bact" data-act="start-agent">${t('Start')}</button>`}</div>` : '';
   // a keyboard's own view keeps the corner to one action: add an application profile
   const controls = mode === 'device' ? `<div class="right">
@@ -220,6 +223,7 @@ function renderWindow() {
         ${controls}
       </header>`}
       ${agentDown}
+      ${imBanner}
       ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span>${t('<strong>{name} is running.</strong> Both programs divert the same buttons; only one will win.', { name: esc(toolName(cname)) })}</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">${t('Stop {name}', { name: esc(toolName(cname)) })}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
       ${body}
     </main></div>`;

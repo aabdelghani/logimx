@@ -89,7 +89,8 @@ then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `
 disk image, agree to the license and drag NotLogi to Applications. The app is not notarized yet, so
 the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
 Security > Open Anyway**). NotLogi then asks for the **Accessibility** permission, which it needs to
-press keys and buttons for you.
+press keys and buttons for you, and for **Input Monitoring**, without which macOS does not let it
+reach a keyboard (an MX Keys then never shows up).
 
 Quit Logi Options+ while NotLogi runs on Windows or macOS: both drive the same devices.
 
@@ -115,7 +116,7 @@ Devices work through a Bolt or Unifying receiver and over Bluetooth.
 ### Action ring
 
 Eight actions around the pointer. Hold the button, move toward an action and release to run it,
-or tap the button and click. With "Keep the pointer visible and free" on, point at an action
+or tap the button and click: letting go without aiming keeps the ring open, and only a hold of about a second with nothing chosen closes it. With "Keep the pointer visible and free" on, point at an action
 instead of steering. The ring takes the desktop's light or dark style, accent colour and font.
 Empty slots are left out.
 

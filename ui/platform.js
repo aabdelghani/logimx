@@ -88,6 +88,23 @@ function accessibilityTrusted(prompt) {
   if (!IS_MAC) return true;
   try { return systemPreferences.isTrustedAccessibilityClient(!!prompt); } catch (e) { return true; }
 }
+// Input Monitoring: macOS only lets a program open a keyboard with it, and only shows its prompt
+// (and lists the app in the setting) when the app itself asks, not its background agent. A small
+// native module next to the agent asks for this process. "granted", "denied" or "unknown".
+// While NotLogi is listed under Accessibility but switched off, macOS answers from that entry
+// instead: refused, no prompt, nothing added to the list. So this is asked before anything
+// touches Accessibility (main.js), and the settings button sends people to Accessibility first.
+let imModule = null;
+function inputMonitoring(request) {
+  if (!IS_MAC) return 'granted';
+  try {
+    imModule = imModule || require(app.isPackaged ? path.join(process.resourcesPath, 'agent', 'input_monitoring.node') : path.join(__dirname, '..', 'agent', 'build', 'input_monitoring.node'));
+    return request ? imModule.request() : imModule.check();
+  } catch (e) { return 'unknown'; }
+}
+function openInputMonitoringSettings() {
+  if (IS_MAC) shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent');
+}
 function openAccessibilitySettings() {
   if (IS_MAC) shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility');
 }
@@ -95,5 +112,5 @@ function openAccessibilitySettings() {
 module.exports = {
   IS_WIN, IS_MAC, IS_LINUX, AGENT_EXE, PASTE_KEYS, OVERLAY_TYPE,
   agentEndpoint, agentRunning, spawnAgent, setLoginItem, startedAtLogin, systemLook, openBluetooth, stopTool, systemName,
-  accessibilityTrusted, openAccessibilitySettings,
+  accessibilityTrusted, openAccessibilitySettings, inputMonitoring, openInputMonitoringSettings,
 };

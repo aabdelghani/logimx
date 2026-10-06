@@ -97,6 +97,13 @@ endif()
 target_compile_options(oo_core PRIVATE ${WARN})
 
 add_executable(logimx-agent src/daemon.cpp src/main.cpp)
+
+# macOS: the app's Input Monitoring request (a Node-API module Electron loads, see the source)
+if(APPLE)
+  add_library(input_monitoring MODULE src/platform/mac_input_monitoring.c)
+  set_target_properties(input_monitoring PROPERTIES PREFIX "" SUFFIX ".node")
+  target_link_libraries(input_monitoring PRIVATE "-framework IOKit" "-undefined dynamic_lookup")
+endif()
 target_link_libraries(logimx-agent PRIVATE oo_core)
 target_compile_options(logimx-agent PRIVATE ${WARN})
 

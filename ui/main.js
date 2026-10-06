@@ -14,7 +14,7 @@ const parts = ['env', 'settings', 'window', 'tray', 'agent', 'osd', 'battery', '
 const state = require('./main/state');
 const ctx = Object.assign({}, ...parts.map(p => p.provide));
 parts.forEach(p => p.link(ctx));
-const { applyLanguage, btSetMode, btStopScan, connect, createTray, createWindow, ensureAutostart, ensureRing, ensureDesktopEntry, loadUi, registerShortcuts, saveUi, showWindow, startAgent } = ctx;
+const { applyLanguage, btSetMode, btStopScan, connect, createTray, createWindow, ensureAutostart, ensureDesktopEntry, loadUi, registerShortcuts, saveUi, showWindow, startAgent, warmRing } = ctx;
 // the logic shared with the windows (ES modules in shared/, loaded before the app starts)
 const sharedReady = Promise.all([import('./shared/ring.mjs'), import('./shared/battery.mjs'), import('./shared/i18n.mjs')]).then(([r, b, i]) => { state.Ring = r; state.Battery = b; state.I18n = i; });
 app.isQuitting = false;
@@ -26,6 +26,7 @@ if (!single) {
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);   // macOS: the Dock icon was clicked
   app.whenReady().then(async () => {
+    plat.inputMonitoring(true);   // macOS, before anything asks about Accessibility: lists NotLogi under Input Monitoring and asks once, for the MX Keys
     await sharedReady;
     ensureDesktopEntry();
     ensureAutostart();
@@ -35,11 +36,12 @@ if (!single) {
     if (state.uiSettings.tray !== false) createTray();
     connect();
     createWindow();
-    // the action ring's window, made and loaded ahead so the first press opens it like any other
-    setTimeout(() => { try { ensureRing(); } catch (e) {} }, 1500);
     flow.init({ win: state.win, getUi: () => (state.uiSettings = state.uiSettings || loadUi()), setUi: p => { state.uiSettings = state.uiSettings || loadUi(); Object.assign(state.uiSettings, p); saveUi(state.uiSettings); } });
     try { registerShortcuts(); } catch (e) {}
     btSetMode();
+    // the action ring's window, made, loaded and shown once ahead (see warmRing) so the first press
+    // opens it like any other, where the pointer is
+    setTimeout(() => { try { warmRing(); } catch (e) {} }, 1500);
   });
   app.on('will-quit', () => { globalShortcut.unregisterAll(); flow.shutdown(); });
   app.on('window-all-closed', () => { /* stay in the tray */ });

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('agent', {
   briSetup: () => ipcRenderer.invoke('bri-setup'),
   accessibility: prompt => ipcRenderer.invoke('accessibility', !!prompt),
   openAccessibility: () => ipcRenderer.invoke('open-accessibility'),
+  inputMonitoringOpen: () => ipcRenderer.invoke('input-monitoring-open'),
   appIcon: spec => ipcRenderer.invoke('app-icon', spec),
   stopTool: name => ipcRenderer.invoke('stop-tool', name),
   windowAction: a => ipcRenderer.invoke('window-action', a),

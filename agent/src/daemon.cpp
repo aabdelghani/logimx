@@ -1147,7 +1147,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
             }
         }
         return {{"devices", snapshot().size()}, {"app", appClass_}, {"tracker", tracker_->backend()}, {"version", "0.10.1"},
-                {"conflicts", platform::conflictingTools()}, {"os", platform::name()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
+                {"conflicts", platform::conflictingTools()}, {"input_monitoring", platform::inputMonitoring()}, {"os", platform::name()}, {"general", config_.data()["general"]}, {"config_path", config_.path()}, {"receivers", recv}, {"paused", paused_.load()}};
     }
     if (method == "logs") {
         std::lock_guard<std::mutex> lk(gLogMutex);

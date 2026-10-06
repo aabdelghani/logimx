@@ -35,3 +35,14 @@ export function nearest(points, x, y, reach) {
   points.forEach((p, i) => { if (!p) return; const d = Math.hypot(x - p.x, y - p.y); if (d < bd) { bd = d; best = i; } });
   return best;
 }
+
+// Letting go of the button that opened the ring. A release sooner than TAP_MS is a tap; raw
+// movement in the first JOLT_MS is the press's own jolt and steers nothing; a quick press only runs
+// a slot when it was flicked clearly past the dead zone, and only a long hold with nothing chosen
+// cancels. Anything else leaves the ring open for a click.
+export const TAP_MS = 500, JOLT_MS = 120, HOLD_CANCEL_MS = 900;
+export function rawRelease({ heldMs, travel, dead, hasPick }) {
+  if (hasPick && (heldMs >= TAP_MS || travel >= dead * 2)) return 'pick';
+  if (heldMs < HOLD_CANCEL_MS && travel < dead * 2) return 'stay';
+  return 'close';
+}

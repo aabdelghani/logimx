@@ -39,13 +39,35 @@ function registerShortcuts() {
 }
 
 // ------------------------------------------------------------------- window
+// The window and everything in it scaled together. Auto fits the 1420 × 800 layout into about
+// 80% of the screen it opens on: a 1080p monitor keeps it at 100%, a 13" laptop (1440 × 900)
+// shows it at about 80%. A size chosen in the settings is used as it is.
+const BASE = { w: 1420, h: 800, minW: 980, minH: 640 };
+function windowScale() {
+  const s = (state.uiSettings || {}).scale;
+  if (typeof s === 'number' && s >= 0.5 && s <= 1.5) return s;
+  const wa = screen.getPrimaryDisplay().workAreaSize;
+  return Math.round(Math.max(0.7, Math.min(1, wa.width * 0.8 / BASE.w, wa.height * 0.8 / BASE.h)) * 100) / 100;
+}
+const scaled = (v, f) => Math.round(v * f);
+// a new size from the settings: the window keeps its place and grows or shrinks with its contents
+function applyWindowScale() {
+  const w = state.win;
+  if (!w || w.isDestroyed()) return;
+  const f = windowScale(), old = w.webContents.getZoomFactor() || 1;
+  w.webContents.setZoomFactor(f);
+  w.setMinimumSize(scaled(BASE.minW, f), scaled(BASE.minH, f));
+  if (!w.isMaximized() && !w.isFullScreen()) { const [cw, ch] = w.getSize(); w.setSize(scaled(cw * f / old, 1), scaled(ch * f / old, 1)); }
+}
+
 function createWindow() {
   nativeTheme.themeSource = 'dark';
+  const f = windowScale();
   state.win = new BrowserWindow({
-    width: 1420,
-    height: 800,
-    minWidth: 980,
-    minHeight: 640,
+    width: scaled(BASE.w, f),
+    height: scaled(BASE.h, f),
+    minWidth: scaled(BASE.minW, f),
+    minHeight: scaled(BASE.minH, f),
     backgroundColor: '#0e1116',
     title: 'NotLogi',
     icon: path.join(ROOT, 'assets', 'icon.png'),
@@ -60,6 +82,7 @@ function createWindow() {
     },
   });
   state.win.loadFile(path.join(ROOT, 'renderer', 'index.html'));
+  state.win.webContents.on('did-finish-load', () => { if (state.win && !state.win.isDestroyed()) state.win.webContents.setZoomFactor(windowScale()); });
   state.win.on('close', e => {
     const keep = !state.uiSettings || state.uiSettings.minimize !== false;
     if (!app.isQuitting && state.tray && keep) { e.preventDefault(); state.win.hide(); }
@@ -95,4 +118,4 @@ ipcMain.handle('open-json', async () => {
   return JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8'));
 });
 
-exports.provide = { notify, offTaskbar, registerShortcuts, createWindow, showWindow };
+exports.provide = { notify, offTaskbar, registerShortcuts, createWindow, showWindow, applyWindowScale };

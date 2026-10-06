@@ -157,6 +157,10 @@
         {
           "from": "../agent/build/logimxctl",
           "to": "agent/logimxctl"
+        },
+        {
+          "from": "../agent/build/input_monitoring.node",
+          "to": "agent/input_monitoring.node"
         }
       ]
     },
