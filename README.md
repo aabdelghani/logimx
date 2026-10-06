@@ -1,6 +1,6 @@
-# NotLogi
+<p align="center"><img src="docs/logo.png" alt="NotLogi" width="260"></p>
 
-**Unofficial mouse & keyboard tools for Linux** (formerly LogiMX)
+<p align="center"><b>Unofficial mouse &amp; keyboard tools for Linux</b> (formerly LogiMX)</p>
 
 [![Release build](https://github.com/aabdelghani/notlogi/actions/workflows/release.yml/badge.svg)](https://github.com/aabdelghani/notlogi/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/aabdelghani/notlogi?color=2dd4bf&label=release)](https://github.com/aabdelghani/notlogi/releases/latest)
