@@ -13,14 +13,16 @@ namespace apps {
 
 static int quietHandler(Display*, XErrorEvent*) { return 0; }
 
-bool pointerPosition(int& x, int& y) {
+bool pointerPosition(int& x, int& y, bool& ctrl) {
     // one connection, kept: Flow asks many times a second
     static Display* dpy = XOpenDisplay(nullptr);
     if (!dpy) return false;
     Window root, child;
     int wx, wy;
     unsigned int mask;
-    return XQueryPointer(dpy, DefaultRootWindow(dpy), &root, &child, &x, &y, &wx, &wy, &mask);
+    bool ok = XQueryPointer(dpy, DefaultRootWindow(dpy), &root, &child, &x, &y, &wx, &wy, &mask);
+    ctrl = mask & ControlMask;
+    return ok;
 }
 
 bool warpPointer(int x, int y) {

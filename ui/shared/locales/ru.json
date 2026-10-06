@@ -1021,5 +1021,15 @@
  "Channels": "Каналы",
  "On {computer}": "На {computer}",
  "Use your mouse and keyboard on more than one computer": "Используйте мышь и клавиатуру на нескольких компьютерах",
- "no channel known yet": "канал пока неизвестен"
+ "no channel known yet": "канал пока неизвестен",
+ "ADD COMPUTER": "ДОБАВИТЬ КОМПЬЮТЕР",
+ "Hold CTRL and move cursor to edge": "Перемещение к краю с удерживанием клавиши CTRL",
+ "Switch computers": "Переключение между компьютерами",
+ "Remove computer": "Удалить компьютер",
+ "Place above": "Разместить сверху",
+ "Place below": "Разместить снизу",
+ "Place left": "Разместить слева",
+ "Place right": "Разместить справа",
+ "Switch as soon as the pointer reaches the edge of the screen": "Переключаться, как только указатель достигнет края экрана",
+ "The edge only switches while a Ctrl key is held": "Край переключает компьютер, только пока удерживается клавиша Ctrl"
 }

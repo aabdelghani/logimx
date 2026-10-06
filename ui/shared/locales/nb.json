@@ -1021,5 +1021,15 @@
  "Channels": "Kanaler",
  "On {computer}": "På {computer}",
  "Use your mouse and keyboard on more than one computer": "Bruk mus og tastatur på mer enn én datamaskin",
- "no channel known yet": "ingen kjent kanal ennå"
+ "no channel known yet": "ingen kjent kanal ennå",
+ "ADD COMPUTER": "LEGG TIL DATAMASKIN",
+ "Hold CTRL and move cursor to edge": "Hold CTRL nede og flytt markøren til kanten",
+ "Switch computers": "Bytt datamaskin",
+ "Remove computer": "Fjerne datamaskin",
+ "Place above": "Plasser over",
+ "Place below": "Plasser under",
+ "Place left": "Plasser til venstre",
+ "Place right": "Plasser til høyre",
+ "Switch as soon as the pointer reaches the edge of the screen": "Bytt så snart pekeren når skjermkanten",
+ "The edge only switches while a Ctrl key is held": "Kanten bytter bare mens en Ctrl-tast holdes nede"
 }

@@ -1021,5 +1021,15 @@
  "Channels": "チャネル",
  "On {computer}": "{computer} 上",
  "Use your mouse and keyboard on more than one computer": "マウスとキーボードを複数のコンピュータで使う",
- "no channel known yet": "チャネルはまだ不明です"
+ "no channel known yet": "チャネルはまだ不明です",
+ "ADD COMPUTER": "コンピュータを追加",
+ "Hold CTRL and move cursor to edge": "CTRL を押しながらカーソルを端に移動させます",
+ "Switch computers": "コンピュータの切り替え",
+ "Remove computer": "コンピュータを削除しますか",
+ "Place above": "上に配置",
+ "Place below": "下に配置",
+ "Place left": "左に配置",
+ "Place right": "右に配置",
+ "Switch as soon as the pointer reaches the edge of the screen": "ポインターが画面の端に届いた時点で切り替えます",
+ "The edge only switches while a Ctrl key is held": "Ctrl キーを押している間だけ端で切り替えます"
 }

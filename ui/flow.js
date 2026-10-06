@@ -58,6 +58,8 @@ function cfg() {
     clipboard: f.clipboard !== false,
     keyboard: f.keyboard !== false,
     edge: f.edge !== false,
+    // how the pointer goes over: at the edge, or only while Ctrl is held (as Options+ offers)
+    switch: f.switch === 'ctrl' ? 'ctrl' : 'edge',
     // computers paired before: { id, name, os, key, pos, channels }; older entries without a key
     // (from the Deskflow version) are left out
     peers: (Array.isArray(f.peers) ? f.peers : []).filter(p => p && p.id && p.key),
@@ -369,7 +371,7 @@ async function pointer() {
     try {
       const p = await rpc('pointer', {});
       // X11 reports pixels; macOS reports points, the same units as Electron's
-      if (p && typeof p.x === 'number') { const k = process.platform === 'linux' ? (screen.getPrimaryDisplay().scaleFactor || 1) : 1; return { x: Math.round(p.x / k), y: Math.round(p.y / k) }; }
+      if (p && typeof p.x === 'number') { const k = process.platform === 'linux' ? (screen.getPrimaryDisplay().scaleFactor || 1) : 1; return { x: Math.round(p.x / k), y: Math.round(p.y / k), ctrl: !!p.ctrl }; }
     } catch (e) {}
   }
   return screen.getCursorScreenPoint();
@@ -415,6 +417,8 @@ async function edgeCheck() {
   // the switch fires the moment the pointer hits the edge, as in Options+
   if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); if (side) log('at', side, 'edge', pt); }
   if (!side) return;
+  // Hold Ctrl mode: the edge counts only while Ctrl is held
+  if (c.switch === 'ctrl' && !pt.ctrl) { atEdge = null; return; }
   const peer = c.peers.find(p => p.pos === side && online(p));
   if (peer) {
     // where along the edge the pointer left, for the other computer to bring it in at the same place
@@ -437,7 +441,7 @@ function info() {
   const c = cfg();
   const addr = lanAddrs()[0];
   return {
-    id: c.id, name: computerName(), ip: addr ? addr.address : '', enabled: c.enabled, clipboard: c.clipboard, keyboard: c.keyboard, edge: c.edge,
+    id: c.id, name: computerName(), ip: addr ? addr.address : '', enabled: c.enabled, clipboard: c.clipboard, keyboard: c.keyboard, edge: c.edge, switch: c.switch,
     searching, error: lastError,
     peers: c.peers.map(p => ({ id: p.id, name: p.name, os: p.os, pos: p.pos, online: online(p),
       devices: devices().filter(d => d.kind === 'mouse' || d.kind === 'keyboard').map(d => { const ci = channelInfo(d, p); return { serial: d.serial, name: d.name, kind: d.kind, host: ci.host, from: ci.from, count: (((d.state || {}).hosts || {}).count) || 3 }; }) })),
@@ -469,6 +473,7 @@ function init(opts) {
   ipcMain.handle('flow-config', (_e, patch) => {
     const p = {};
     for (const k of ['enabled', 'clipboard', 'keyboard', 'edge']) if (patch && typeof patch[k] === 'boolean') p[k] = patch[k];
+    if (patch && (patch.switch === 'edge' || patch.switch === 'ctrl')) p.switch = patch.switch;
     const c = patchCfg(p);
     if (patch && patch.id && patch.channel && patch.channel.serial) {
       const peer = c.peers.find(x => x.id === patch.id);

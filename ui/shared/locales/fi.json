@@ -1021,5 +1021,15 @@
  "Channels": "Kanavat",
  "On {computer}": "Tietokoneella {computer}",
  "Use your mouse and keyboard on more than one computer": "Käytä hiirtä ja näppäimistöä useammalla kuin yhdellä tietokoneella",
- "no channel known yet": "kanavaa ei vielä tiedetä"
+ "no channel known yet": "kanavaa ei vielä tiedetä",
+ "ADD COMPUTER": "LISÄÄ TIETOKONE",
+ "Hold CTRL and move cursor to edge": "Pidä CTRL painettuna ja siirrä osoitin reunaan",
+ "Switch computers": "Vaihda tietokoneita",
+ "Remove computer": "Poistetaanko tietokone",
+ "Place above": "Sijoita yläpuolelle",
+ "Place below": "Sijoita alapuolelle",
+ "Place left": "Sijoita vasemmalle",
+ "Place right": "Sijoita oikealle",
+ "Switch as soon as the pointer reaches the edge of the screen": "Vaihda heti, kun osoitin saavuttaa näytön reunan",
+ "The edge only switches while a Ctrl key is held": "Reuna vaihtaa vain, kun Ctrl-näppäintä pidetään painettuna"
 }

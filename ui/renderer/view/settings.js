@@ -87,45 +87,63 @@ function flowWizard(step, opening) {
   // the window's close button stays where it is (placed over the real one when drawn, see render)
   return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true"><button class="hbtn close fw-close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button><div class="fw-body step-${step}" ${opening ? '' : 'data-step-in'}>${body}</div></div>`;
 }
-// the Flow page: the setup sheet until a computer is paired (see render), then Flow's settings: the
-// computers side by side as the screens sit, and what travels with the pointer
+// the Flow page, as Options+ lays it out: the setup sheet until a computer is paired (see render), then
+// the computers drawn as screens where they sit, each with a ⋯ menu; the Flow switch and a settings cog
+// at the top right (the cog opens the rest of Flow's settings); Add computer at the bottom
 const OS_ICON = { darwin: 'fa-brands fa-apple', win32: 'fa-brands fa-windows', linux: 'fa-brands fa-linux' };
+const FLOW_SIDES = () => [['left', t('Place left'), 'fa-arrow-left'], ['right', t('Place right'), 'fa-arrow-right'], ['up', t('Place above'), 'fa-arrow-up'], ['down', t('Place below'), 'fa-arrow-down']];
+function flowScreen(f, p) {
+  const me = !p, key = me ? 'me' : p.id, open = S.menu === 'flow:' + key;
+  const icon = me ? OS_ICON[IS_MAC() ? 'darwin' : IS_WIN() ? 'win32' : 'linux'] : (OS_ICON[p.os] || 'fa-solid fa-desktop');
+  const status = me ? t('This computer') : p.online ? t('Ready') : t('Not found');
+  // its own menu: where it sits, its channels, removing it; for this computer, its name and address
+  const menu = !open ? '' : `<div class="menu fl-menu" data-menu>${me
+    ? `<div class="mhead">${esc(f.name)}</div><div class="mline">${esc(f.ip || t('no network'))}</div>`
+    : `<div class="mhead">${esc(p.name)}</div>${FLOW_SIDES().map(([pos, l, ic]) => `<button data-act="flow-side" data-key="${esc(p.id)}" data-val="${pos}"><i class="fa-solid ${ic}"></i><span>${l}</span>${p.pos === pos ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}
+      <button data-act="flow-channels"><i class="fa-solid fa-sliders"></i><span>${t('Channels')}</span></button>
+      <button class="danger" data-act="flow-remove" data-key="${esc(p.id)}"><i class="fa-solid fa-trash"></i><span>${t('Remove computer')}</span></button>`}</div>`;
+  return `<div class="fl-screen ${me ? 'me' : ''} ${!me && p.online ? 'on' : ''}">
+      <div class="fl-display"><i class="${icon} os"></i><div class="n">${esc(me ? f.name : p.name)}</div><div class="st">${!me ? `<span class="dot ${p.online ? 'ok' : ''}"></span>` : ''}${status}</div>
+        <div class="fl-more"><button class="hbtn icon" data-act="flow-menu" data-key="${esc(key)}" title="${t('More')}"><i class="fa-solid fa-ellipsis"></i></button>${menu}</div></div>
+      <div class="fl-stand"></div></div>`;
+}
 function pageFlow() {
   const f = S.flow;
   if (!f) { flowRefresh(); return ''; }
   const peers = f.peers || [];
   if (!peers.length) return '';
-  // the arrangement: this computer in the middle, each paired one on the side its screen sits;
-  // arrows place it, the side it is on is lit
-  const ARROWS = [['up', 'fa-arrow-up', t('Above')], ['left', 'fa-arrow-left', t('Left')], ['right', 'fa-arrow-right', t('Right')], ['down', 'fa-arrow-down', t('Below')]];
-  const tile = p => `<div class="fl-pc ${p.online ? 'on' : ''}">
-      <i class="${OS_ICON[p.os] || 'fa-solid fa-desktop'} os"></i><div class="n">${esc(p.name)}</div>
-      <div class="st"><span class="dot ${p.online ? 'ok' : ''}"></span>${p.online ? t('Ready') : t('Not found')}</div>
-      <div class="acts">${ARROWS.map(([pos, ic, l]) => `<button class="hbtn icon ${p.pos === pos ? 'on' : ''}" data-act="flow-side" data-key="${esc(p.id)}" data-val="${pos}" title="${l}" ${p.pos === pos ? 'disabled' : ''}><i class="fa-solid ${ic}"></i></button>`).join('')}<button class="hbtn icon" data-act="flow-remove" data-key="${esc(p.id)}" title="${t('Remove')}"><i class="fa-solid fa-trash"></i></button></div></div>`;
-  const me = `<div class="fl-pc me"><i class="${OS_ICON[IS_MAC() ? 'darwin' : IS_WIN() ? 'win32' : 'linux']} os"></i><div class="n">${esc(f.name)}</div><div class="st">${t('This computer')}</div></div>`;
-  const at = pos => peers.filter(p => p.pos === pos).map(tile).join('');
-  const grid = `<div class="fl-grid"><div class="fg-up">${at('up')}</div><div class="fg-left">${at('left')}</div><div class="fg-me">${me}</div><div class="fg-right">${at('right')}</div><div class="fg-down">${at('down')}</div></div>`;
-  // NotLogi on other computers of this network: searching ones connect here
-  const near = f.nearby || [];
+  const at = pos => peers.filter(p => p.pos === pos).map(p => flowScreen(f, p)).join('');
+  return `<div class="fl-page">
+    <div class="fl-top"><span class="lbl">${t('Flow')}</span>${sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')}<button class="hbtn icon ${S.flowPanel ? 'on' : ''}" data-act="flow-settings" title="${t('Flow Settings')}"><i class="fa-solid fa-gear"></i></button></div>
+    <div class="fl-grid"><div class="fg-up">${at('up')}</div><div class="fg-left">${at('left')}</div><div class="fg-me">${flowScreen(f, null)}</div><div class="fg-right">${at('right')}</div><div class="fg-down">${at('down')}</div></div>
+    <div class="fl-bottom"><button class="btn" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('ADD COMPUTER')}</button></div>
+    ${f.error ? `<div class="hint" style="color:var(--err);text-align:center">${esc(f.error)}</div>` : ''}
+    <div class="hint" style="text-align:center">${t('Works on your local network. Nothing is sent anywhere online.')}</div>
+  </div>${S.flowPanel ? flowPanel(f) : ''}`;
+}
+// the rest of Flow's settings, in a panel on the right: how to switch computers, what goes along,
+// each device's channel, and NotLogi on other computers of this network
+function flowPanel(f) {
+  const peers = f.peers || [], near = f.nearby || [];
+  const mode = f.switch === 'ctrl' ? 'ctrl' : 'edge';
+  const choice = (val, l, sub) => `<button class="row fl-choice ${mode === val ? 'on' : ''}" data-act="flow-switch-mode" data-key="${val}"><span class="radio"></span><div class="grow"><div class="lbl">${l}</div><div class="sub">${sub}</div></div></button>`;
+  const channels = peers.map(p => (p.devices || []).map(dv => {
+    const auto = dv.from && dv.from !== 'manual' ? (dv.from === 'reported' ? t('Auto: channel {n}, learned', { n: dv.host + 1 }) : t('Auto: channel {n}, from its name', { n: dv.host + 1 })) : t('Auto');
+    const opts = [`<option value="auto" ${dv.from !== 'manual' ? 'selected' : ''}>${auto}</option>`].concat(Array.from({ length: dv.count }, (_, i) => `<option value="${i}" ${dv.from === 'manual' && dv.host === i ? 'selected' : ''}>${t('Channel {n}', { n: i + 1 })}</option>`));
+    return `<div class="row"><i class="fa-solid ${dv.kind === 'mouse' ? 'fa-computer-mouse' : 'fa-keyboard'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(dv.name)}</div><div class="sub">${t('On {computer}', { computer: esc(p.name) })}${dv.host === null ? ' · ' + t('no channel known yet') : ''}</div></div><select class="sel" data-act="flow-channel" data-key="${esc(dv.serial)}" data-peer="${esc(p.id)}">${opts.join('')}</select></div>`;
+  }).join('')).join('');
   const nearRows = near.length ? near.map(n => `<div class="row"><i class="${OS_ICON[n.os] || 'fa-solid fa-desktop'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(n.name)}</div><div class="sub">${n.searching ? t('Searching for computers') : t('Open Flow on it and choose Add computer to connect')}</div></div>${n.searching ? `<button class="btn sm primary" data-act="flow-connect" data-key="${esc(n.id)}">${t('Connect')}</button>` : ''}</div>`).join('')
     : `<div class="row sub" style="color:var(--dim)">${t('No other computer with NotLogi on this network right now')}</div>`;
-  return sec(t('Flow'), card(row(t('Flow'), f.enabled ? t('Move the pointer off the edge of the screen to reach the computer on that side') : t('Off'), sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')))) +
-    sec(t('Arrangement'), card(grid) +
-      `<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn sm" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('Add computer')}</button></div>`) +
-    sec(t('Computers on this network'), card(nearRows)) +
-    // the channel each device uses for each computer: Auto (learned, or guessed from the device's own
-    // list of computers) or set by hand when Auto picks the wrong one
-    (peers.some(p => (p.devices || []).length) ? sec(t('Channels'), card(peers.map(p => (p.devices || []).map(dv => {
-      const auto = dv.from && dv.from !== 'manual' ? (dv.from === 'reported' ? t('Auto: channel {n}, learned', { n: dv.host + 1 }) : t('Auto: channel {n}, from its name', { n: dv.host + 1 })) : t('Auto');
-      const opts = [`<option value="auto" ${dv.from !== 'manual' ? 'selected' : ''}>${auto}</option>`].concat(Array.from({ length: dv.count }, (_, i) => `<option value="${i}" ${dv.from === 'manual' && dv.host === i ? 'selected' : ''}>${t('Channel {n}', { n: i + 1 })}</option>`));
-      return `<div class="row"><i class="fa-solid ${dv.kind === 'mouse' ? 'fa-computer-mouse' : 'fa-keyboard'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(dv.name)}</div><div class="sub">${t('On {computer}', { computer: esc(p.name) })}${dv.host === null ? ' · ' + t('no channel known yet') : ''}</div></div><select class="sel" data-act="flow-channel" data-key="${esc(dv.serial)}" data-peer="${esc(p.id)}">${opts.join('')}</select></div>`;
-    }).join('')).join('')) + `<div class="hint">${t('A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.')}</div>`) : '') +
-    sec(t('Flow Settings'), card(
-      row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
-      row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard, 'data-act="flow-toggle" data-key="clipboard"')) +
-      row(t('Move cursor to edge'), t('Switch computers by pushing the pointer against the edge of the screen'), sw(f.edge, 'data-act="flow-toggle" data-key="edge"')))) +
-    (f.error ? `<div class="hint" style="color:var(--err)">${esc(f.error)}</div>` : '') +
-    `<div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div>`;
+  return `<div class="fl-scrim" data-act="flow-panel-close"></div><div class="fl-panel" data-stop>
+    <div class="dlg-head"><span class="dh-key">${t('Flow Settings')}</span><button class="hbtn icon" data-act="flow-panel-close" title="${t('Close')}"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="fl-panel-body">
+      ${sec(t('Switch computers'), card(choice('edge', t('Move cursor to edge'), t('Switch as soon as the pointer reaches the edge of the screen')) + choice('ctrl', t('Hold CTRL and move cursor to edge'), t('The edge only switches while a Ctrl key is held'))))}
+      ${sec(t('Sharing'), card(
+        row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
+        row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard, 'data-act="flow-toggle" data-key="clipboard"'))))}
+      ${channels ? `<div id="fl-channels">${sec(t('Channels'), card(channels) + `<div class="hint">${t('A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.')}</div>`)}</div>` : ''}
+      ${sec(t('Computers on this network'), card(nearRows))}
+    </div></div>`;
 }
 
 function pageAbout() {

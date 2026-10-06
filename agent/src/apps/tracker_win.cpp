@@ -10,7 +10,7 @@
 namespace apps {
 
 // Electron reads the pointer itself here
-bool pointerPosition(int&, int&) { return false; }
+bool pointerPosition(int&, int&, bool&) { return false; }
 bool warpPointer(int x, int y) { return SetCursorPos(x, y) != 0; }
 
 std::vector<std::string> runningWindowClasses() {

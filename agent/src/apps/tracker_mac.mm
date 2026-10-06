@@ -16,12 +16,13 @@ namespace apps {
 // Electron reads the pointer itself here
 // the pointer's place on the desktop (points, top-left origin, as Electron uses): read live from the
 // window server; Electron's own reading goes stale while the mouse is on another computer
-bool pointerPosition(int& x, int& y) {
+bool pointerPosition(int& x, int& y, bool& ctrl) {
     CGEventRef e = CGEventCreate(nullptr);
     if (!e) return false;
     CGPoint p = CGEventGetLocation(e);
     CFRelease(e);
     x = static_cast<int>(p.x); y = static_cast<int>(p.y);
+    ctrl = (CGEventSourceFlagsState(kCGEventSourceStateCombinedSessionState) & kCGEventFlagMaskControl) != 0;
     return true;
 }
 // after a warp macOS holds the pointer still for a moment unless it is told to follow the mouse again

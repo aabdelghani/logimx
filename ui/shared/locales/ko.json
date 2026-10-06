@@ -1021,5 +1021,15 @@
  "Channels": "채널",
  "On {computer}": "{computer}에서",
  "Use your mouse and keyboard on more than one computer": "여러 컴퓨터에서 마우스와 키보드 사용",
- "no channel known yet": "아직 알려진 채널 없음"
+ "no channel known yet": "아직 알려진 채널 없음",
+ "ADD COMPUTER": "컴퓨터 추가",
+ "Hold CTRL and move cursor to edge": "CTRL 키를 누르고 가장자리로 커서 이동",
+ "Switch computers": "컴퓨터 전환",
+ "Remove computer": "컴퓨터를 제거할까요",
+ "Place above": "위에 배치",
+ "Place below": "아래에 배치",
+ "Place left": "왼쪽에 배치",
+ "Place right": "오른쪽에 배치",
+ "Switch as soon as the pointer reaches the edge of the screen": "포인터가 화면 가장자리에 닿는 즉시 전환합니다",
+ "The edge only switches while a Ctrl key is held": "Ctrl 키를 누르고 있을 때만 가장자리에서 전환합니다"
 }

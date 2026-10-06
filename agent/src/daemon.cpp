@@ -1242,7 +1242,8 @@ json Daemon::rpc(const std::string& method, const json& p) {
     // where the pointer is, for Flow's screen edges (X11; null where the agent cannot tell)
     if (method == "pointer") {
         int x = 0, y = 0;
-        if (apps::pointerPosition(x, y)) return json{{"x", x}, {"y", y}};
+        bool ctrl = false;
+        if (apps::pointerPosition(x, y, ctrl)) return json{{"x", x}, {"y", y}, {"ctrl", ctrl}};
         return nullptr;
     }
     // the display's refresh rate, from the app: smooth scrolling plays one step a frame

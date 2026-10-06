@@ -1021,5 +1021,15 @@
  "Channels": "Canaux",
  "On {computer}": "Sur {computer}",
  "Use your mouse and keyboard on more than one computer": "Utilisez votre souris et votre clavier sur plusieurs ordinateurs",
- "no channel known yet": "canal pas encore connu"
+ "no channel known yet": "canal pas encore connu",
+ "ADD COMPUTER": "AJOUTER UN ORDINATEUR",
+ "Hold CTRL and move cursor to edge": "Maintenir CTRL enfoncé et déplacer le curseur au bord",
+ "Switch computers": "Changer d’ordinateur",
+ "Remove computer": "Supprimer l’ordinateur",
+ "Place above": "Placer au-dessus",
+ "Place below": "Placer en dessous",
+ "Place left": "Placer à gauche",
+ "Place right": "Placer à droite",
+ "Switch as soon as the pointer reaches the edge of the screen": "Changer dès que le pointeur atteint le bord de l’écran",
+ "The edge only switches while a Ctrl key is held": "Le bord ne change d’ordinateur que si une touche Ctrl est maintenue"
 }

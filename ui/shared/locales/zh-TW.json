@@ -1021,5 +1021,15 @@
  "Channels": "通道",
  "On {computer}": "在 {computer} 上",
  "Use your mouse and keyboard on more than one computer": "在多台電腦上使用滑鼠和鍵盤",
- "no channel known yet": "尚無已知通道"
+ "no channel known yet": "尚無已知通道",
+ "ADD COMPUTER": "新增電腦",
+ "Hold CTRL and move cursor to edge": "按住 CTRL 並將游標移動到邊緣",
+ "Switch computers": "切換電腦",
+ "Remove computer": "確定要移除電腦",
+ "Place above": "放在上方",
+ "Place below": "放在下方",
+ "Place left": "放在左側",
+ "Place right": "放在右側",
+ "Switch as soon as the pointer reaches the edge of the screen": "指標一到達螢幕邊緣就切換",
+ "The edge only switches while a Ctrl key is held": "只有按住 Ctrl 鍵時，邊緣才會切換"
 }

@@ -1021,5 +1021,15 @@
  "Channels": "Kanalen",
  "On {computer}": "Op {computer}",
  "Use your mouse and keyboard on more than one computer": "Gebruik je muis en toetsenbord op meer dan één computer",
- "no channel known yet": "nog geen kanaal bekend"
+ "no channel known yet": "nog geen kanaal bekend",
+ "ADD COMPUTER": "COMPUTER TOEVOEGEN",
+ "Hold CTRL and move cursor to edge": "CTRL ingedrukt houden en cursor naar de rand bewegen",
+ "Switch computers": "Tussen computers schakelen",
+ "Remove computer": "Computer verwijderen",
+ "Place above": "Boven plaatsen",
+ "Place below": "Onder plaatsen",
+ "Place left": "Links plaatsen",
+ "Place right": "Rechts plaatsen",
+ "Switch as soon as the pointer reaches the edge of the screen": "Wissel zodra de aanwijzer de schermrand bereikt",
+ "The edge only switches while a Ctrl key is held": "De rand wisselt alleen terwijl een Ctrl-toets wordt ingedrukt"
 }

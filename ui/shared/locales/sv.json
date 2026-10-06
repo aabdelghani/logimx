@@ -1021,5 +1021,15 @@
  "Channels": "Kanaler",
  "On {computer}": "På {computer}",
  "Use your mouse and keyboard on more than one computer": "Använd mus och tangentbord på mer än en dator",
- "no channel known yet": "ingen känd kanal ännu"
+ "no channel known yet": "ingen känd kanal ännu",
+ "ADD COMPUTER": "LÄGG TILL DATOR",
+ "Hold CTRL and move cursor to edge": "Håll in CTRL och flytta markören till kanten",
+ "Switch computers": "Växla datorer",
+ "Remove computer": "Ta bort dator",
+ "Place above": "Placera ovanför",
+ "Place below": "Placera nedanför",
+ "Place left": "Placera till vänster",
+ "Place right": "Placera till höger",
+ "Switch as soon as the pointer reaches the edge of the screen": "Byt så fort pekaren når skärmkanten",
+ "The edge only switches while a Ctrl key is held": "Kanten byter bara medan en Ctrl-tangent hålls nedtryckt"
 }

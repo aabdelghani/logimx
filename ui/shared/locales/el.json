@@ -1021,5 +1021,15 @@
  "Channels": "Κανάλια",
  "On {computer}": "Στο {computer}",
  "Use your mouse and keyboard on more than one computer": "Χρησιμοποιήστε ποντίκι και πληκτρολόγιο σε περισσότερους από έναν υπολογιστές",
- "no channel known yet": "δεν είναι γνωστό κανάλι ακόμη"
+ "no channel known yet": "δεν είναι γνωστό κανάλι ακόμη",
+ "ADD COMPUTER": "ΠΡΟΣΘΗΚΗ ΥΠΟΛΟΓΙΣΤΗ",
+ "Hold CTRL and move cursor to edge": "Κρατήστε το CTRL και μετακινήστε τον δρομέα στην άκρη",
+ "Switch computers": "Εναλλαγή υπολογιστών",
+ "Remove computer": "Κατάργηση υπολογιστή",
+ "Place above": "Τοποθέτηση πάνω",
+ "Place below": "Τοποθέτηση κάτω",
+ "Place left": "Τοποθέτηση αριστερά",
+ "Place right": "Τοποθέτηση δεξιά",
+ "Switch as soon as the pointer reaches the edge of the screen": "Αλλαγή μόλις ο δείκτης φτάσει στην άκρη της οθόνης",
+ "The edge only switches while a Ctrl key is held": "Η άκρη αλλάζει υπολογιστή μόνο όσο κρατάτε πατημένο ένα πλήκτρο Ctrl"
 }

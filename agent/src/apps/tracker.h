@@ -20,7 +20,7 @@ bool skipTaskbar(unsigned long xid);
 
 // Where the pointer is on the desktop (X11 pixels; macOS points). Electron's own reading goes stale
 // (Linux: outside its windows; macOS: while the mouse is away); false where this cannot tell.
-bool pointerPosition(int& x, int& y);
+bool pointerPosition(int& x, int& y, bool& ctrl);   // ctrl: a Ctrl key is held (Flow's Hold Ctrl mode)
 // Put the pointer at a desktop position (Flow: where it enters from the other computer).
 bool warpPointer(int x, int y);
 
