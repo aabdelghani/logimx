@@ -339,6 +339,15 @@ async function switchTo(peer, edge, pos) {
 // the pointer pushed against an edge of its screen that no other screen continues past (with
 // screens of different sizes, the edge of the main screen can be inside the desktop's outline)
 let atEdge = null, edgeSince = 0, loggedEdge = 0;
+// within margin pixels of an outer screen edge (the same edges edgeOf counts)
+function nearEdge(pt, margin) {
+  const all = screen.getAllDisplays().map(d => d.bounds);
+  const b = all.find(r => pt.x >= r.x && pt.x < r.x + r.width && pt.y >= r.y && pt.y < r.y + r.height);
+  if (!b) return true;
+  const beyond = (x, y) => all.some(r => r !== b && x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
+  return (pt.x < b.x + margin && !beyond(b.x - 1, pt.y)) || (pt.x > b.x + b.width - 1 - margin && !beyond(b.x + b.width, pt.y)) ||
+    (pt.y < b.y + margin && !beyond(pt.x, b.y - 1)) || (pt.y > b.y + b.height - 1 - margin && !beyond(pt.x, b.y + b.height));
+}
 function edgeOf(pt) {
   const all = screen.getAllDisplays().map(d => d.bounds);
   const b = all.find(r => pt.x >= r.x && pt.x < r.x + r.width && pt.y >= r.y && pt.y < r.y + r.height);
@@ -362,6 +371,7 @@ async function pointer() {
   return screen.getCursorScreenPoint();
 }
 let nearLogged = 0, ticking = false, leftEdge = true, quietUntil = 0, mouseHere = false;
+const REARM_PX = 24;
 // devices arriving here: the pointer is still read where it last was (often the edge it left by,
 // facing the computer it came from), so no edge counts until the pointer has moved off it, and
 // none for a quarter second in any case; otherwise the devices bounce straight back
@@ -382,8 +392,10 @@ async function edgeCheck() {
     return;
   }
   const pt = await pointer(), side = edgeOf(pt);
-  // after a switch, the pointer leaves the edge before it can switch again
-  if (!leftEdge || Date.now() < quietUntil) { if (!side) leftEdge = true; return; }
+  // after a switch or an arrival, the pointer moves well inside (deeper than where it is brought
+  // in) before an edge counts again: a pointer still at the edge, or wobbling a pixel off it, must not
+  // send the devices straight back
+  if (!leftEdge || Date.now() < quietUntil) { if (!nearEdge(pt, REARM_PX)) leftEdge = true; return; }
   if (!side && Date.now() - nearLogged > 30000) {
     const b = screen.getDisplayNearestPoint(pt).bounds;
     if (pt.x - b.x < 3 || b.x + b.width - pt.x < 4 || pt.y - b.y < 3 || b.y + b.height - pt.y < 4) { nearLogged = Date.now(); log('near an edge, not counted', pt, b); }
