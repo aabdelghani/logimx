@@ -228,7 +228,7 @@ static bool backlightSaving(const json& cfg, const std::optional<hidpp::Battery>
 
 void ManagedDevice::applySettings(const std::string& only) {
     std::lock_guard<std::recursive_mutex> lk(m_);
-    // up to 0.10.1 the SmartShift switch set the wheel's mode itself (off was free-spin): such a
+    // up to 0.10.0 the SmartShift switch set the wheel's mode itself (off was free-spin): such a
     // setting becomes a ratchet wheel, with SmartShift as that switch had it
     {
         json& raw = daemon_.config().device(pid_, kind_)["settings"];
