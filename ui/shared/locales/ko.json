@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "키보드용. 위의 손쉬운 사용과 함께 허용되거나 바로 다음에 요청됩니다",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "키보드용. 시스템 설정 > 개인정보 보호 및 보안 > 입력 모니터링: NotLogi 켜기",
  "Input Monitoring": "입력 모니터링",
- "Window size": "창 크기"
+ "Window size": "창 크기",
+ "Install NotLogi": "NotLogi 설치",
+ "Pair your mouse on a different channel": "다른 채널에 마우스 페어링",
+ "Connect to the same network": "같은 네트워크에 연결",
+ "Connect other computers": "다른 컴퓨터 연결",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "다른 컴퓨터에서 위의 3단계를 따라 Flow를 통해 연결하세요.",
+ "Other computer": "기타 컴퓨터"
 }

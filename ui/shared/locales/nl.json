@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Voor toetsenborden. Samen met Toegankelijkheid hierboven toegestaan, of direct daarna gevraagd",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Voor toetsenborden. Systeeminstellingen > Privacy en beveiliging > Invoermonitoring: schakel NotLogi in",
  "Input Monitoring": "Invoermonitoring",
- "Window size": "Venstergrootte"
+ "Window size": "Venstergrootte",
+ "Install NotLogi": "NotLogi installeren",
+ "Pair your mouse on a different channel": "Muis op een ander kanaal koppelen",
+ "Connect to the same network": "Verbinden met hetzelfde netwerk",
+ "Connect other computers": "Andere computer(s) verbinden",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Volg op de andere computers de 3 stappen hierboven om ze via Flow te verbinden.",
+ "Other computer": "Andere computer"
 }

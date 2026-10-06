@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Για πληκτρολόγια. Επιτρέπεται μαζί με την Προσβασιμότητα παραπάνω ή ζητείται αμέσως μετά",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Για πληκτρολόγια. Ρυθμίσεις συστήματος > Απόρρητο και ασφάλεια > Παρακολούθηση εισόδου: ενεργοποιήστε το NotLogi",
  "Input Monitoring": "Παρακολούθηση εισόδου",
- "Window size": "Μέγεθος παραθύρου"
+ "Window size": "Μέγεθος παραθύρου",
+ "Install NotLogi": "Εγκατάσταση NotLogi",
+ "Pair your mouse on a different channel": "Σύζευξη ποντικιού σε διαφορετικό κανάλι",
+ "Connect to the same network": "Σύνδεση στο ίδιο δίκτυο",
+ "Connect other computers": "Συνδέστε έναν άλλο υπολογιστή(ές)",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Ακολουθήστε τα 3 παραπάνω βήματα στους άλλους υπολογιστές για να τους συνδέσετε μέσω του Flow.",
+ "Other computer": "Άλλοι υπολογιστές"
 }

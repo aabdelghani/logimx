@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Näppäimistöille. Sallitaan yhdessä yllä olevan Käyttöavun kanssa tai kysytään heti sen jälkeen",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Näppäimistöille. Järjestelmäasetukset > Tietosuoja ja suojaus > Syötteen valvonta: ota NotLogi käyttöön",
  "Input Monitoring": "Syötteen valvonta",
- "Window size": "Ikkunan koko"
+ "Window size": "Ikkunan koko",
+ "Install NotLogi": "Asenna NotLogi",
+ "Pair your mouse on a different channel": "Pariliitä hiiri eri kanavalla",
+ "Connect to the same network": "Yhdistä samaan verkkoon",
+ "Connect other computers": "Yhdistä muihin tietokoneisiin",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Käy läpi yllä mainitut kolme vaihetta toisilla tietokoneilla niiden yhdistämiseksi Flow’n kautta.",
+ "Other computer": "Muut tietokoneet"
 }

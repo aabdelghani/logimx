@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Para teclados. Se permite junto con Accesibilidad, arriba, o se pide justo después",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Para teclados. Ajustes del Sistema > Privacidad y seguridad > Monitorización de entrada: activa NotLogi",
  "Input Monitoring": "Monitorización de entrada",
- "Window size": "Tamaño de la ventana"
+ "Window size": "Tamaño de la ventana",
+ "Install NotLogi": "Instalar NotLogi",
+ "Pair your mouse on a different channel": "Emparejar ratón en otro canal",
+ "Connect to the same network": "Conectar a la misma red",
+ "Connect other computers": "Conectar otros ordenadores",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Sigue los 3 pasos anteriores en otros ordenadores para conectarlos mediante Flow.",
+ "Other computer": "Otros ordenadores"
 }

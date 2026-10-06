@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "Для клавиатур. Разрешается вместе с универсальным доступом выше или запрашивается сразу после него",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "Для клавиатур. Системные настройки > Конфиденциальность и безопасность > Мониторинг ввода: включите NotLogi",
  "Input Monitoring": "Мониторинг ввода",
- "Window size": "Размер окна"
+ "Window size": "Размер окна",
+ "Install NotLogi": "Установите NotLogi",
+ "Pair your mouse on a different channel": "Выполните сопряжение мыши на другом канале",
+ "Connect to the same network": "Подключитесь к той же сети",
+ "Connect other computers": "Подключение других компьютеров",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Выполните 3 вышеуказанных действия на других компьютерах, чтобы подключить их с помощью Flow.",
+ "Other computer": "Другие компьютеры"
 }

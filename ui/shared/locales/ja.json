@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "キーボード用。上のアクセシビリティと一緒に許可されるか、その直後に確認されます",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "キーボード用。システム設定 > プライバシーとセキュリティ > 入力監視：NotLogi をオンにします",
  "Input Monitoring": "入力監視",
- "Window size": "ウィンドウサイズ"
+ "Window size": "ウィンドウサイズ",
+ "Install NotLogi": "NotLogi をインストールします",
+ "Pair your mouse on a different channel": "別のチャネルでマウスをペアリングします",
+ "Connect to the same network": "同じネットワークに接続します",
+ "Connect other computers": "別のコンピュータへの接続",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Flow を通して他のコンピュータに接続するには、他のコンピュータ上で上記の 3 ステップを実行します。",
+ "Other computer": "その他のコンピュータ"
 }

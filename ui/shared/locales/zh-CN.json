@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "用于键盘。与上方的辅助功能一起授权，或紧接着请求",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "用于键盘。系统设置 > 隐私与安全性 > 输入监控：打开 NotLogi",
  "Input Monitoring": "输入监控",
- "Window size": "窗口大小"
+ "Window size": "窗口大小",
+ "Install NotLogi": "安装 NotLogi",
+ "Pair your mouse on a different channel": "在其他频道上配对鼠标",
+ "Connect to the same network": "连接至同一网络",
+ "Connect other computers": "连接其他电脑",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "在其他电脑上执行上述 3 个步骤，以通过 Flow 连接。",
+ "Other computer": "其他电脑"
 }

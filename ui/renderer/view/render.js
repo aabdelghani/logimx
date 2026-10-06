@@ -6,13 +6,13 @@ import { batClass, pctText } from '../../shared/battery.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
-export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder } = ctx); }
+let MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, flowWizard, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
+export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, flowWizard, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder } = ctx); }
 
 // ============================================================ render
 // Animations run when something new appears, not on every refresh: the page when it is
 // navigated to, the dialog when it opens. A refresh of the same page redraws it in place.
-let lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
+let lastWiz = false, lastPageKey = null, lastDlg = null, lastNavKey = null, lastDrawer = false;
 // A field being typed into survives a redraw (a battery tick, the focused app changing): the same
 // text, the same caret, still focused. Fields are known by their data-field or as the folder's name.
 function typingIn() {
@@ -51,6 +51,9 @@ function render() {
   else if (!S.devices.length) html = renderEmpty();
   else html = renderWindow();
   html += renderDialog();
+  // the Flow sheet slides up once, when it opens, not on every redraw
+  if (S.flowWizard) html += flowWizard(!lastWiz);
+  lastWiz = !!S.flowWizard;
   // a key's panel or a settings panel (Backlight, Point & scroll): either one sends the page list out
   const panelOn = () => !!(drawerUp()) || (S.page !== 'home' && (S.addPanel || backlightPanel(dev())));
   const drawerWill = panelOn();

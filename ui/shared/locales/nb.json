@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "For tastaturer. Tillates sammen med Tilgjengelighet over, eller spørres om rett etter",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "For tastaturer. Systeminnstillinger > Personvern og sikkerhet > Overvåking av inndata: slå på NotLogi",
  "Input Monitoring": "Overvåking av inndata",
- "Window size": "Vindusstørrelse"
+ "Window size": "Vindusstørrelse",
+ "Install NotLogi": "Installer NotLogi",
+ "Pair your mouse on a different channel": "Par musen på en annen kanal",
+ "Connect to the same network": "Koble til samme nettverk",
+ "Connect other computers": "Koble til datamaskiner",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "Følg de tre trinnene ovenfor på andre datamaskiner for å koble dem til via Flow.",
+ "Other computer": "Andre datamaskiner"
 }

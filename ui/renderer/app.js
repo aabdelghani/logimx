@@ -103,6 +103,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
   }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.flowWizard && !S.dlg) { onAction('flow-wiz-cancel', { dataset: {} }); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recording()) { S.dlg = S.dlg === 'prompt' && S.prompt && S.prompt.back ? S.prompt.back : null; changed(); } });
   // on Home the arrow keys page through the devices when there are more than fit
   document.addEventListener('keydown', e => {

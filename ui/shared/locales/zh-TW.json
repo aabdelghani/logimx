@@ -989,5 +989,11 @@
  "For keyboards. Allowed together with Accessibility above, or asked for right after it": "用於鍵盤。與上方的輔助使用一起允許，或緊接著要求",
  "For keyboards. System Settings > Privacy & Security > Input Monitoring: switch on NotLogi": "用於鍵盤。系統設定 > 隱私權與安全性 > 輸入監控：開啟 NotLogi",
  "Input Monitoring": "輸入監控",
- "Window size": "視窗大小"
+ "Window size": "視窗大小",
+ "Install NotLogi": "安裝 NotLogi",
+ "Pair your mouse on a different channel": "在不同的頻道上配對滑鼠",
+ "Connect to the same network": "連線到相同網路",
+ "Connect other computers": "連線到其他電腦",
+ "Follow the above 3 steps on other computers to connect to them via Flow.": "在其他電腦上遵循上述 3 個步驟，以透過 Flow 進行連線。",
+ "Other computer": "其他電腦"
 }

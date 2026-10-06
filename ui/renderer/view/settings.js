@@ -68,6 +68,28 @@ function flowIntro(f) {
     <div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div>
   </div>`;
 }
+// connecting another computer, as Options+ walks through it: this computer and the other one side by
+// side, the three things the other one needs, then Continue or Cancel; it covers the whole window
+function flowWizard(opening) {
+  const f = S.flow || {};
+  return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true">
+    <div class="fw-body">
+      <div class="fw-art">
+        <div class="fw-pc me"><i class="fa-solid fa-laptop"></i><span class="n">${t('This computer')}</span>${f.name ? `<span class="h">${esc(f.name)}</span>` : ''}</div>
+        <div class="fw-link"><span class="fw-line"></span><i class="fa-solid fa-arrow-pointer fw-ptr"></i></div>
+        <div class="fw-pc other"><i class="fa-solid fa-display"></i><span class="n">${t('Other computer')}</span></div>
+      </div>
+      <ol class="fw-steps">
+        <li><b>1</b><span>${t('Install NotLogi')}</span></li>
+        <li><b>2</b><span>${t('Pair your mouse on a different channel')}</span></li>
+        <li><b>3</b><span>${t('Connect to the same network')}</span></li>
+      </ol>
+      <div class="fw-title">${t('Connect other computers')}</div>
+      <div class="fw-sub">${t('Follow the above 3 steps on other computers to connect to them via Flow.')}</div>
+      <div class="fw-btns"><button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button><button class="btn primary" data-act="flow-wiz-go">${t('Continue')}</button></div>
+    </div>
+  </div>`;
+}
 function pageFlow() {
   const f = S.flow;
   if (!f) { flowRefresh(); return sec(t('Flow'), card(row(t('Loading…'), '', ''))); }
@@ -121,4 +143,4 @@ function pageAbout() {
     sec(t('Diagnostics'), card(`<div class="logs">${logs.map(l => `<span class="${l.c || 'dim'}">${esc(l.t)}</span>`).join('')}</div>`) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" data-act="report"><i class="fa-solid fa-bug"></i>${t('Report a problem')}</button><button class="btn" data-act="export-diag"><i class="fa-solid fa-file-zipper"></i>${t('Export diagnostics')}</button><button class="btn" data-act="copy-diag"><i class="fa-solid fa-copy"></i>${t('Copy')}</button></div>`, `<button class="btn sm flat" data-act="refresh-logs">${t('Refresh')}</button>`);
 }
 
-export const provide = { pageNotif, pageBackup, pageSettings, FLOW_POS, flowIntro, pageFlow, pageAbout };
+export const provide = { flowWizard, pageNotif, pageBackup, pageSettings, FLOW_POS, flowIntro, pageFlow, pageAbout };
