@@ -48,11 +48,11 @@ function render() {
   const dlgOpened = !!S.dlg && S.dlg !== lastDlg && !(S.dlg === 'picker' && lastDlg === 'prompt'); lastDlg = S.dlg;
   let html = '';
   if (S.mode === 'onboard') html = renderOnboard();
-  else if (!S.devices.length) html = renderEmpty();
+  else if (!S.devices.length && S.page !== 'flow') html = renderEmpty();   // Flow stays reachable while the devices are on another computer
   else html = renderWindow();
   html += renderDialog();
   // the Flow sheet slides up once, when it opens, not on every redraw (nor between its steps)
-  const wiz = S.flowWizard || (S.mode !== 'onboard' && S.page === 'flow' && dev() && S.flow && !(S.flow.peers || []).length ? 'setup' : false);
+  const wiz = S.flowWizard || (S.mode !== 'onboard' && S.page === 'flow' && S.flow && !(S.flow.peers || []).length ? 'setup' : false);
   if (wiz) html += flowWizard(wiz, !lastWiz);
   lastWiz = !!wiz;
   // a key's panel or a settings panel (Backlight, Point & scroll): either one sends the page list out
@@ -275,7 +275,7 @@ function renderPage(d) {
     case 'apps': return pageApps();
     case 'ring': return pageRing();
     case 'notif': return pageNotif();
-    case 'flow': return d ? pageFlow() : '';
+    case 'flow': return pageFlow();
     case 'backup': return pageBackup();
     case 'settings': return pageSettings();
     case 'about': return pageAbout();

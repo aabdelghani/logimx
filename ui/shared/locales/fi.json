@@ -1013,5 +1013,13 @@
  "Your keyboard follows the pointer from one computer to the other": "Näppäimistö seuraa osoitinta tietokoneelta toiselle",
  "Computers on this network": "Tietokoneet tässä verkossa",
  "No other computer with NotLogi on this network right now": "Tässä verkossa ei juuri nyt ole muita tietokoneita, joissa on NotLogi",
- "Open Flow on it and choose Add computer to connect": "Avaa siinä Flow ja valitse Lisää tietokone yhdistääksesi"
+ "Open Flow on it and choose Add computer to connect": "Avaa siinä Flow ja valitse Lisää tietokone yhdistääksesi",
+ "A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.": "Laite seuraa osoitinta kanavalla, jolla se on yhdistetty kyseiseen tietokoneeseen. Auto oppii sen, kun laite yhdistyy sinne NotLogin ollessa käynnissä.",
+ "Auto: channel {n}, from its name": "Auto: kanava {n}, nimen perusteella",
+ "Auto: channel {n}, learned": "Auto: kanava {n}, opittu",
+ "Channel {n}": "Kanava {n}",
+ "Channels": "Kanavat",
+ "On {computer}": "Tietokoneella {computer}",
+ "Use your mouse and keyboard on more than one computer": "Käytä hiirtä ja näppäimistöä useammalla kuin yhdellä tietokoneella",
+ "no channel known yet": "kanavaa ei vielä tiedetä"
 }

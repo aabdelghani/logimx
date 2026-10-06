@@ -1013,5 +1013,13 @@
  "Your keyboard follows the pointer from one computer to the other": "キーボードがポインターに合わせてコンピュータ間を移動します",
  "Computers on this network": "このネットワーク上のコンピュータ",
  "No other computer with NotLogi on this network right now": "現在、このネットワークに NotLogi を使っている他のコンピュータはありません",
- "Open Flow on it and choose Add computer to connect": "そのコンピュータで Flow を開き、「コンピュータを追加」を選んで接続します"
+ "Open Flow on it and choose Add computer to connect": "そのコンピュータで Flow を開き、「コンピュータを追加」を選んで接続します",
+ "A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.": "デバイスは、そのコンピュータとペアリングされたチャネルでポインターに追従します。自動は、NotLogi の実行中にデバイスがそこへ接続したときにチャネルを覚えます。",
+ "Auto: channel {n}, from its name": "自動：チャネル {n}（名前から）",
+ "Auto: channel {n}, learned": "自動：チャネル {n}（学習済み）",
+ "Channel {n}": "チャネル {n}",
+ "Channels": "チャネル",
+ "On {computer}": "{computer} 上",
+ "Use your mouse and keyboard on more than one computer": "マウスとキーボードを複数のコンピュータで使う",
+ "no channel known yet": "チャネルはまだ不明です"
 }

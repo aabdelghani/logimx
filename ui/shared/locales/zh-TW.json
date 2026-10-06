@@ -1013,5 +1013,13 @@
  "Your keyboard follows the pointer from one computer to the other": "鍵盤會跟隨指標從一台電腦切換到另一台",
  "Computers on this network": "此網路中的電腦",
  "No other computer with NotLogi on this network right now": "目前此網路中沒有其他執行 NotLogi 的電腦",
- "Open Flow on it and choose Add computer to connect": "在該電腦上開啟 Flow 並選擇「新增電腦」以連線"
+ "Open Flow on it and choose Add computer to connect": "在該電腦上開啟 Flow 並選擇「新增電腦」以連線",
+ "A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.": "裝置會透過與該電腦配對的通道跟隨指標。當 NotLogi 執行時裝置連線到那台電腦，自動即會記住該通道。",
+ "Auto: channel {n}, from its name": "自動：通道 {n}（依名稱）",
+ "Auto: channel {n}, learned": "自動：通道 {n}（已學習）",
+ "Channel {n}": "通道 {n}",
+ "Channels": "通道",
+ "On {computer}": "在 {computer} 上",
+ "Use your mouse and keyboard on more than one computer": "在多台電腦上使用滑鼠和鍵盤",
+ "no channel known yet": "尚無已知通道"
 }

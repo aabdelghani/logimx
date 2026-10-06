@@ -46,6 +46,7 @@ const morePages = () => [
   ['notif', 'fa-bell', t('Notifications'), t('On-screen overlays, low battery, devices connecting')],
   ['backup', 'fa-cloud-arrow-down', t('Backup & sync'), t('Back up, restore, export and import settings')],
   ['apps', 'fa-layer-group', t('Profiles'), t('Settings for each application')],
+  ['flow', 'fa-diagram-project', t('Flow'), t('Use your mouse and keyboard on more than one computer')],
 ].concat(S.devices.some(isMouse) ? [] : [['ring', 'fa-circle-notch', t('Action ring'), t('Eight actions around the pointer')]],
   [['about', 'fa-circle-info', t('About NotLogi'), t('Version, links, diagnostics')]]);
 
@@ -112,6 +113,13 @@ function pageFlow() {
     sec(t('Arrangement'), card(grid) +
       `<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn sm" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('Add computer')}</button></div>`) +
     sec(t('Computers on this network'), card(nearRows)) +
+    // the channel each device uses for each computer: Auto (learned, or guessed from the device's own
+    // list of computers) or set by hand when Auto picks the wrong one
+    (peers.some(p => (p.devices || []).length) ? sec(t('Channels'), card(peers.map(p => (p.devices || []).map(dv => {
+      const auto = dv.from && dv.from !== 'manual' ? (dv.from === 'reported' ? t('Auto: channel {n}, learned', { n: dv.host + 1 }) : t('Auto: channel {n}, from its name', { n: dv.host + 1 })) : t('Auto');
+      const opts = [`<option value="auto" ${dv.from !== 'manual' ? 'selected' : ''}>${auto}</option>`].concat(Array.from({ length: dv.count }, (_, i) => `<option value="${i}" ${dv.from === 'manual' && dv.host === i ? 'selected' : ''}>${t('Channel {n}', { n: i + 1 })}</option>`));
+      return `<div class="row"><i class="fa-solid ${dv.kind === 'mouse' ? 'fa-computer-mouse' : 'fa-keyboard'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(dv.name)}</div><div class="sub">${t('On {computer}', { computer: esc(p.name) })}${dv.host === null ? ' · ' + t('no channel known yet') : ''}</div></div><select class="sel" data-act="flow-channel" data-key="${esc(dv.serial)}" data-peer="${esc(p.id)}">${opts.join('')}</select></div>`;
+    }).join('')).join('')) + `<div class="hint">${t('A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.')}</div>`) : '') +
     sec(t('Flow Settings'), card(
       row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
       row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard, 'data-act="flow-toggle" data-key="clipboard"')) +

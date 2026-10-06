@@ -28,7 +28,7 @@ export const commands = {
   'flow-wiz-cancel': async (it, e, d, key) => {
     if (S.flowWizard === 'search') api.host.flowSearch(false);
     S.flowWizard = false;
-    if (S.page === 'flow' && !paired() && d) go(devicePages(d)[0], d.id);
+    if (S.page === 'flow' && !paired()) { if (d) go(devicePages(d)[0], d.id); else go('home'); }
     changed(); return;
   },
   'flow-wiz-go': async (it, e, d, key) => { S.flowWizard = 'search'; changed(); S.flow = await api.host.flowSearch(true); changed(); return; },
@@ -38,6 +38,8 @@ export const commands = {
   'flow-toggle': async (it, e, d, key) => { const cur = (S.flow || {})[key] !== false; await setFlow({ [key]: !cur }); return; },
   'flow-side': async (it, e, d, key) => { await setFlow({ id: key, pos: it.data.val }); return; },
   'flow-connect': async (it, e, d, key) => { S.flow = await api.host.flowConnect(key); changed(); return; },
+  // the channel a device uses for a computer, when Auto picks the wrong one (null: Auto again)
+  'flow-channel': async (it, e, d, key) => { const v = it.value === 'auto' ? null : Number(it.value); await setFlow({ id: it.data.peer, channel: { serial: key, host: v } }); return; },
   'flow-remove': async (it, e, d, key) => { S.flow = await api.host.flowRemove(key); changed(); return; },
 };
 

@@ -1013,5 +1013,13 @@
  "Your keyboard follows the pointer from one computer to the other": "Το πληκτρολόγιο ακολουθεί τον δείκτη από τον έναν υπολογιστή στον άλλο",
  "Computers on this network": "Υπολογιστές σε αυτό το δίκτυο",
  "No other computer with NotLogi on this network right now": "Κανένας άλλος υπολογιστής με NotLogi σε αυτό το δίκτυο αυτή τη στιγμή",
- "Open Flow on it and choose Add computer to connect": "Ανοίξτε το Flow σε αυτόν και επιλέξτε Προσθήκη υπολογιστή για σύνδεση"
+ "Open Flow on it and choose Add computer to connect": "Ανοίξτε το Flow σε αυτόν και επιλέξτε Προσθήκη υπολογιστή για σύνδεση",
+ "A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.": "Μια συσκευή ακολουθεί τον δείκτη στο κανάλι με το οποίο είναι συζευγμένη με εκείνον τον υπολογιστή. Το Αυτόματο το μαθαίνει όταν η συσκευή συνδέεται εκεί με το NotLogi σε λειτουργία.",
+ "Auto: channel {n}, from its name": "Αυτόματο: κανάλι {n}, από το όνομα",
+ "Auto: channel {n}, learned": "Αυτόματο: κανάλι {n}, γνωστό",
+ "Channel {n}": "Κανάλι {n}",
+ "Channels": "Κανάλια",
+ "On {computer}": "Στο {computer}",
+ "Use your mouse and keyboard on more than one computer": "Χρησιμοποιήστε ποντίκι και πληκτρολόγιο σε περισσότερους από έναν υπολογιστές",
+ "no channel known yet": "δεν είναι γνωστό κανάλι ακόμη"
 }

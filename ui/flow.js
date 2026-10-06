@@ -85,17 +85,27 @@ function learnChannels() {
   if (changed) { save(c); hello(); }
   return c.channels;
 }
-// the channel a device uses to reach a computer: as that computer reported it, else the computer's
-// name in the device's own list of hosts
-function channelFor(d, peer) {
+// the channel a device uses to reach a computer, and where that came from: set by hand on this
+// computer, as that computer reported it, else its name in the device's own list of hosts (a name
+// listed on more than one channel: the one the mouse uses for that computer, else the first)
+function channelInfo(d, peer) {
+  const man = (peer.manual || {})[d.serial];
+  if (typeof man === 'number') return { host: man, from: 'manual' };
   const ch = (peer.channels || {})[d.serial];
-  if (ch && typeof ch.host === 'number') return ch.host;
+  if (ch && typeof ch.host === 'number') return { host: ch.host, from: 'reported' };
   const norm = s => String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9']+/g, ' ').trim();
   const want = norm(peer.name);
   const names = (((d.state || {}).hosts || {}).names) || [];
-  const hit = names.find(h => h.name && (norm(h.name) === want || want.startsWith(norm(h.name)) || norm(h.name).startsWith(want)));
-  return hit ? hit.index : null;
+  const hits = names.filter(h => h.name && (norm(h.name) === want || want.startsWith(norm(h.name)) || norm(h.name).startsWith(want))).map(h => h.index);
+  if (!hits.length) return { host: null, from: null };
+  if (hits.length > 1 && d.kind !== 'mouse') {
+    const mouse = devices().find(x => x.kind === 'mouse' && x.serial !== d.serial);
+    const m = mouse ? channelInfo(mouse, peer).host : null;
+    if (m !== null && hits.includes(m)) return { host: m, from: 'name' };
+  }
+  return { host: hits[0], from: 'name' };
 }
+const channelFor = (d, peer) => channelInfo(d, peer).host;
 
 // ----------------------------------------------------------------- network
 function lanAddrs() {
@@ -174,6 +184,7 @@ async function onMessage(msg, ip) {
   const s = seen.get(peer.id); if (s) s.ip = ip;
   if (m.t === 'switch') {
     log('switch from', peer.name, ip, m.clip ? (m.clip.text ? 'text' : 'image') : 'no clipboard');
+    arrived();
     // the devices are coming here: take the clipboard
     if (m.clip && cfg().clipboard) writeClip(m.clip);
     return { ok: true };
@@ -325,7 +336,11 @@ async function pointer() {
   }
   return screen.getCursorScreenPoint();
 }
-let nearLogged = 0, ticking = false, leftEdge = true;
+let nearLogged = 0, ticking = false, leftEdge = true, quietUntil = 0, mouseHere = false;
+// devices arriving here: the pointer is still read where it last was (often the edge it left by,
+// facing the computer it came from), so no edge counts until the pointer has moved off it, and
+// none for a moment in any case; otherwise the devices bounce straight back
+function arrived() { leftEdge = false; quietUntil = Date.now() + 1500; atEdge = null; }
 async function edgeTick() {
   if (ticking) return;
   ticking = true;
@@ -334,13 +349,16 @@ async function edgeTick() {
 async function edgeCheck() {
   const c = cfg();
   if (!c.enabled || !c.edge || !c.peers.length) return;
-  if (!devices().some(d => d.kind === 'mouse' && d.online !== false)) {   // the mouse is elsewhere
+  const here = devices().some(d => d.kind === 'mouse' && d.online !== false);
+  if (here && !mouseHere) { arrived(); log('mouse arrived'); }
+  mouseHere = here;
+  if (!here) {   // the mouse is elsewhere
     if (Date.now() - nearLogged > 5000) { nearLogged = Date.now(); log('no mouse connected here', (state.devices || []).map(d => `${d.name} ${d.kind} online=${d.online} serial=${d.serial || '-'}`)); }
     return;
   }
   const pt = await pointer(), side = edgeOf(pt);
   // after a switch, the pointer leaves the edge before it can switch again
-  if (!leftEdge) { if (!side) leftEdge = true; return; }
+  if (!leftEdge || Date.now() < quietUntil) { if (!side) leftEdge = true; return; }
   if (!side && Date.now() - nearLogged > 30000) {
     const b = screen.getDisplayNearestPoint(pt).bounds;
     if (pt.x - b.x < 3 || b.x + b.width - pt.x < 4 || pt.y - b.y < 3 || b.y + b.height - pt.y < 4) { nearLogged = Date.now(); log('near an edge, not counted', pt, b); }
@@ -366,7 +384,8 @@ function info() {
   return {
     id: c.id, name: computerName(), ip: addr ? addr.address : '', enabled: c.enabled, clipboard: c.clipboard, keyboard: c.keyboard, edge: c.edge,
     searching, error: lastError,
-    peers: c.peers.map(p => ({ id: p.id, name: p.name, os: p.os, pos: p.pos, online: online(p) })),
+    peers: c.peers.map(p => ({ id: p.id, name: p.name, os: p.os, pos: p.pos, online: online(p),
+      devices: devices().filter(d => d.kind === 'mouse' || d.kind === 'keyboard').map(d => { const ci = channelInfo(d, p); return { serial: d.serial, name: d.name, kind: d.kind, host: ci.host, from: ci.from, count: (((d.state || {}).hosts || {}).count) || 3 }; }) })),
     // NotLogi on other computers of this network, not paired yet; searching ones can be connected
     nearby: [...seen].filter(([id, x]) => !c.peers.some(p => p.id === id) && Date.now() - x.at < ONLINE_MS)
       .map(([id, x]) => ({ id, name: x.name, os: x.os, searching: x.searching && Date.now() - x.at < 3000 })),
@@ -396,6 +415,15 @@ function init(opts) {
     const p = {};
     for (const k of ['enabled', 'clipboard', 'keyboard', 'edge']) if (patch && typeof patch[k] === 'boolean') p[k] = patch[k];
     const c = patchCfg(p);
+    if (patch && patch.id && patch.channel && patch.channel.serial) {
+      const peer = c.peers.find(x => x.id === patch.id);
+      if (peer) {
+        peer.manual = Object.assign({}, peer.manual);
+        const h = patch.channel.host;
+        if (typeof h === 'number' && h >= 0 && h < 6) peer.manual[patch.channel.serial] = h; else delete peer.manual[patch.channel.serial];
+        save(c);
+      }
+    }
     if (patch && patch.pos && patch.id) {
       const peer = c.peers.find(x => x.id === patch.id);
       if (peer && OPPOSITE[patch.pos]) {

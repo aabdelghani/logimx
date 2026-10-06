@@ -53,8 +53,10 @@ function homeFit() {
 function renderEmpty() {
   const c = S.conflicts[0], needsBuild = agentNeedsBuild();
   const booting = !S.ready || (S.connected && !S.loaded);
+  // the devices may simply be on the other computer: Flow stays one click away
+  const flowBtn = S.flow && (S.flow.peers || []).length ? `<button class="hbtn icon" data-act="page" data-page="flow" title="${t('Flow')}"><i class="fa-solid fa-diagram-project"></i></button>` : '';
   return `<div class="window"><main class="main empty-wrap">
-    <header class="hb"><span class="title">NotLogi</span><div class="right"><div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
+    <header class="hb"><span class="title">NotLogi</span><div class="right">${flowBtn}<div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
     ${S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted' ? `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.', { what: (S.ax || { trusted: true }).trusted ? t('Input Monitoring') : t('Accessibility') })}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>` : ''}
     ${c ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span>${t('<strong>{name} is running.</strong> Two programs diverting the same buttons will fight over the device.', { name: esc(c.name) })}</span><button class="bact" data-act="stop-tool" data-tool="${esc(c.name)}">${t('Stop {name}', { name: esc(c.name) })}</button></div>` : ''}
     <div class="empty"><div class="ring"><i class="${booting || S.agentBusy ? 'fa-solid fa-spinner fa-spin' : S.connected ? 'fa-brands fa-usb' : 'fa-solid fa-power-off'}"></i></div>

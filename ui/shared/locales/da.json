@@ -1013,5 +1013,13 @@
  "Your keyboard follows the pointer from one computer to the other": "Dit tastatur følger markøren fra den ene computer til den anden",
  "Computers on this network": "Computere på dette netværk",
  "No other computer with NotLogi on this network right now": "Ingen anden computer med NotLogi på dette netværk lige nu",
- "Open Flow on it and choose Add computer to connect": "Åbn Flow på den, og vælg Tilføj computer for at oprette forbindelse"
+ "Open Flow on it and choose Add computer to connect": "Åbn Flow på den, og vælg Tilføj computer for at oprette forbindelse",
+ "A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.": "En enhed følger markøren på den kanal, den er parret på med den computer. Auto lærer kanalen, når enheden forbindes der, mens NotLogi kører.",
+ "Auto: channel {n}, from its name": "Auto: kanal {n}, ud fra navnet",
+ "Auto: channel {n}, learned": "Auto: kanal {n}, lært",
+ "Channel {n}": "Kanal {n}",
+ "Channels": "Kanaler",
+ "On {computer}": "På {computer}",
+ "Use your mouse and keyboard on more than one computer": "Brug din mus og dit tastatur på mere end én computer",
+ "no channel known yet": "ingen kendt kanal endnu"
 }

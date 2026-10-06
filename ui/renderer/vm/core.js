@@ -42,7 +42,7 @@ const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat(
 // what the device's left bar lists; the other device pages (Gestures, opened from a button set to
 // gestures, and the MX Master 4's haptics, folded into Settings) are reached from these
 const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy'];
-const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about'];
+const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about', 'flow'];   // Flow opens without a device too
 const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
 function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; changed(); }
 

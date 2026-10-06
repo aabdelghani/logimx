@@ -1013,5 +1013,13 @@
  "Your keyboard follows the pointer from one computer to the other": "La tastiera segue il puntatore da un computer all’altro",
  "Computers on this network": "Computer in questa rete",
  "No other computer with NotLogi on this network right now": "Al momento nessun altro computer con NotLogi in questa rete",
- "Open Flow on it and choose Add computer to connect": "Apri Flow su di esso e scegli Aggiungi computer per collegarti"
+ "Open Flow on it and choose Add computer to connect": "Apri Flow su di esso e scegli Aggiungi computer per collegarti",
+ "A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.": "Un dispositivo segue il puntatore sul canale con cui è associato a quel computer. Auto lo impara quando il dispositivo si collega lì con NotLogi in esecuzione.",
+ "Auto: channel {n}, from its name": "Auto: canale {n}, dal nome",
+ "Auto: channel {n}, learned": "Auto: canale {n}, appreso",
+ "Channel {n}": "Canale {n}",
+ "Channels": "Canali",
+ "On {computer}": "Su {computer}",
+ "Use your mouse and keyboard on more than one computer": "Usa mouse e tastiera su più di un computer",
+ "no channel known yet": "nessun canale ancora noto"
 }
