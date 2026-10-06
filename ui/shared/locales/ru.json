@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "Уведите указатель за край экрана, чтобы перейти к компьютеру с той стороны",
  "Move to the other side": "Переместить на другую сторону",
  "Switch computers by pushing the pointer against the edge of the screen": "Переключайте компьютеры, упирая указатель в край экрана",
- "Your keyboard follows the pointer from one computer to the other": "Клавиатура следует за указателем с одного компьютера на другой"
+ "Your keyboard follows the pointer from one computer to the other": "Клавиатура следует за указателем с одного компьютера на другой",
+ "Computers on this network": "Компьютеры в этой сети",
+ "No other computer with NotLogi on this network right now": "Сейчас в этой сети нет других компьютеров с NotLogi",
+ "Open Flow on it and choose Add computer to connect": "Откройте на нём Flow и выберите «Добавить компьютер», чтобы подключиться"
 }

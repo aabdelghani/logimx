@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "Vie osoitin näytön reunan yli päästäksesi sillä puolella olevaan tietokoneeseen",
  "Move to the other side": "Siirrä toiselle puolelle",
  "Switch computers by pushing the pointer against the edge of the screen": "Vaihda tietokonetta työntämällä osoitin näytön reunaa vasten",
- "Your keyboard follows the pointer from one computer to the other": "Näppäimistö seuraa osoitinta tietokoneelta toiselle"
+ "Your keyboard follows the pointer from one computer to the other": "Näppäimistö seuraa osoitinta tietokoneelta toiselle",
+ "Computers on this network": "Tietokoneet tässä verkossa",
+ "No other computer with NotLogi on this network right now": "Tässä verkossa ei juuri nyt ole muita tietokoneita, joissa on NotLogi",
+ "Open Flow on it and choose Add computer to connect": "Avaa siinä Flow ja valitse Lisää tietokone yhdistääksesi"
 }

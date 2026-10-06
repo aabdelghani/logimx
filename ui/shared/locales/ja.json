@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "ポインターを画面の端の外へ動かすと、その側のコンピュータに移動します",
  "Move to the other side": "反対側に移動",
  "Switch computers by pushing the pointer against the edge of the screen": "ポインターを画面の端に押し当ててコンピュータを切り替えます",
- "Your keyboard follows the pointer from one computer to the other": "キーボードがポインターに合わせてコンピュータ間を移動します"
+ "Your keyboard follows the pointer from one computer to the other": "キーボードがポインターに合わせてコンピュータ間を移動します",
+ "Computers on this network": "このネットワーク上のコンピュータ",
+ "No other computer with NotLogi on this network right now": "現在、このネットワークに NotLogi を使っている他のコンピュータはありません",
+ "Open Flow on it and choose Add computer to connect": "そのコンピュータで Flow を開き、「コンピュータを追加」を選んで接続します"
 }

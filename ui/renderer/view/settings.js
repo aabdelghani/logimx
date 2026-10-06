@@ -94,15 +94,24 @@ function pageFlow() {
   if (!f) { flowRefresh(); return ''; }
   const peers = f.peers || [];
   if (!peers.length) return '';
+  // the arrangement: this computer in the middle, each paired one on the side its screen sits;
+  // arrows place it, the side it is on is lit
+  const ARROWS = [['up', 'fa-arrow-up', t('Above')], ['left', 'fa-arrow-left', t('Left')], ['right', 'fa-arrow-right', t('Right')], ['down', 'fa-arrow-down', t('Below')]];
   const tile = p => `<div class="fl-pc ${p.online ? 'on' : ''}">
       <i class="${OS_ICON[p.os] || 'fa-solid fa-desktop'} os"></i><div class="n">${esc(p.name)}</div>
       <div class="st"><span class="dot ${p.online ? 'ok' : ''}"></span>${p.online ? t('Ready') : t('Not found')}</div>
-      <div class="acts"><button class="hbtn icon" data-act="flow-side" data-key="${esc(p.id)}" data-val="${p.pos === 'left' ? 'right' : 'left'}" title="${t('Move to the other side')}"><i class="fa-solid fa-right-left"></i></button><button class="hbtn icon" data-act="flow-remove" data-key="${esc(p.id)}" title="${t('Remove')}"><i class="fa-solid fa-trash"></i></button></div></div>`;
+      <div class="acts">${ARROWS.map(([pos, ic, l]) => `<button class="hbtn icon ${p.pos === pos ? 'on' : ''}" data-act="flow-side" data-key="${esc(p.id)}" data-val="${pos}" title="${l}" ${p.pos === pos ? 'disabled' : ''}><i class="fa-solid ${ic}"></i></button>`).join('')}<button class="hbtn icon" data-act="flow-remove" data-key="${esc(p.id)}" title="${t('Remove')}"><i class="fa-solid fa-trash"></i></button></div></div>`;
   const me = `<div class="fl-pc me"><i class="${OS_ICON[IS_MAC() ? 'darwin' : IS_WIN() ? 'win32' : 'linux']} os"></i><div class="n">${esc(f.name)}</div><div class="st">${t('This computer')}</div></div>`;
-  const left = peers.filter(p => p.pos === 'left' || p.pos === 'up'), right = peers.filter(p => p.pos !== 'left' && p.pos !== 'up');
+  const at = pos => peers.filter(p => p.pos === pos).map(tile).join('');
+  const grid = `<div class="fl-grid"><div class="fg-up">${at('up')}</div><div class="fg-left">${at('left')}</div><div class="fg-me">${me}</div><div class="fg-right">${at('right')}</div><div class="fg-down">${at('down')}</div></div>`;
+  // NotLogi on other computers of this network: searching ones connect here
+  const near = f.nearby || [];
+  const nearRows = near.length ? near.map(n => `<div class="row"><i class="${OS_ICON[n.os] || 'fa-solid fa-desktop'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(n.name)}</div><div class="sub">${n.searching ? t('Searching for computers') : t('Open Flow on it and choose Add computer to connect')}</div></div>${n.searching ? `<button class="btn sm primary" data-act="flow-connect" data-key="${esc(n.id)}">${t('Connect')}</button>` : ''}</div>`).join('')
+    : `<div class="row sub" style="color:var(--dim)">${t('No other computer with NotLogi on this network right now')}</div>`;
   return sec(t('Flow'), card(row(t('Flow'), f.enabled ? t('Move the pointer off the edge of the screen to reach the computer on that side') : t('Off'), sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')))) +
-    sec(t('Computers'), card(`<div class="fl-row">${left.map(tile).join('')}${me}${right.map(tile).join('')}</div>`) +
+    sec(t('Arrangement'), card(grid) +
       `<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn sm" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('Add computer')}</button></div>`) +
+    sec(t('Computers on this network'), card(nearRows)) +
     sec(t('Flow Settings'), card(
       row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
       row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard, 'data-act="flow-toggle" data-key="clipboard"')) +

@@ -235,11 +235,11 @@ function startSearch() {
   notify();
 }
 function stopSearch() { searching = false; clearTimeout(searchTimer); schedule(); notify(); }
-// announce every second while searching, every few seconds otherwise
+// announce every second while searching, every few seconds otherwise (so the others list it)
 function schedule() {
   clearInterval(helloTimer);
   const c = cfg();
-  if (!searching && !(c.enabled && c.peers.length)) return;
+  if (!searching && !c.enabled) return;
   helloTimer = setInterval(() => { learnChannels(); hello(); notify(true); }, searching ? 1000 : 4000);
 }
 
@@ -285,17 +285,25 @@ async function switchTo(peer) {
   switching = false; coolUntil = Date.now() + 1000;
   notify();
 }
-// the pointer pushed against an outer edge of the screens, toward a computer placed there
+// the pointer pushed against an edge of its screen that no other screen continues past (with
+// screens of different sizes, the edge of the main screen can be inside the desktop's outline)
 let atEdge = null, edgeSince = 0;
+function edgeOf(pt) {
+  const all = screen.getAllDisplays().map(d => d.bounds);
+  const b = all.find(r => pt.x >= r.x && pt.x < r.x + r.width && pt.y >= r.y && pt.y < r.y + r.height);
+  if (!b) return null;
+  const beyond = (x, y) => all.some(r => r !== b && x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
+  if (pt.x <= b.x && !beyond(b.x - 1, pt.y)) return 'left';
+  if (pt.x >= b.x + b.width - 1 && !beyond(b.x + b.width, pt.y)) return 'right';
+  if (pt.y <= b.y && !beyond(pt.x, b.y - 1)) return 'up';
+  if (pt.y >= b.y + b.height - 1 && !beyond(pt.x, b.y + b.height)) return 'down';
+  return null;
+}
 function edgeTick() {
   const c = cfg();
   if (!c.enabled || !c.edge || !c.peers.length) return;
   if (!devices().some(d => d.kind === 'mouse' && d.online !== false)) return;   // the mouse is elsewhere
-  const pt = screen.getCursorScreenPoint();
-  const all = screen.getAllDisplays().map(d => d.bounds);
-  const minX = Math.min(...all.map(b => b.x)), maxX = Math.max(...all.map(b => b.x + b.width)) - 1;
-  const minY = Math.min(...all.map(b => b.y)), maxY = Math.max(...all.map(b => b.y + b.height)) - 1;
-  const side = pt.x <= minX ? 'left' : pt.x >= maxX ? 'right' : pt.y <= minY ? 'up' : pt.y >= maxY ? 'down' : null;
+  const side = edgeOf(screen.getCursorScreenPoint());
   if (side !== atEdge) { atEdge = side; edgeSince = Date.now(); return; }
   if (!side || Date.now() - edgeSince < 40) return;   // held there, not just passing through a corner
   const peer = c.peers.find(p => p.pos === side && online(p));
@@ -315,6 +323,9 @@ function info() {
     id: c.id, name: computerName(), ip: addr ? addr.address : '', enabled: c.enabled, clipboard: c.clipboard, keyboard: c.keyboard, edge: c.edge,
     searching, error: lastError,
     peers: c.peers.map(p => ({ id: p.id, name: p.name, os: p.os, pos: p.pos, online: online(p) })),
+    // NotLogi on other computers of this network, not paired yet; searching ones can be connected
+    nearby: [...seen].filter(([id, x]) => !c.peers.some(p => p.id === id) && Date.now() - x.at < ONLINE_MS)
+      .map(([id, x]) => ({ id, name: x.name, os: x.os, searching: x.searching && Date.now() - x.at < 3000 })),
   };
 }
 let lastInfo = '';
@@ -339,11 +350,28 @@ function init(opts) {
     const p = {};
     for (const k of ['enabled', 'clipboard', 'keyboard', 'edge']) if (patch && typeof patch[k] === 'boolean') p[k] = patch[k];
     const c = patchCfg(p);
-    if (patch && patch.pos && patch.id) { const peer = c.peers.find(x => x.id === patch.id); if (peer && OPPOSITE[patch.pos]) { peer.pos = patch.pos; save(c); } }
+    if (patch && patch.pos && patch.id) {
+      const peer = c.peers.find(x => x.id === patch.id);
+      if (peer && OPPOSITE[patch.pos]) {
+        const other = c.peers.find(x => x !== peer && x.pos === patch.pos);
+        if (other) other.pos = peer.pos;   // the side was taken: the two swap
+        peer.pos = patch.pos; save(c);
+      }
+    }
     schedule(); watchEdges(); notify();
     return info();
   });
   ipcMain.handle('flow-remove', (_e, id) => { removePeer(id); schedule(); watchEdges(); return info(); });
+  // connecting a computer seen on the network: it pairs while that one is searching too
+  ipcMain.handle('flow-connect', async (_e, id) => {
+    const s = seen.get(id);
+    if (!s || !s.searching) return info();
+    if (!searching) startSearch();
+    if (cfg().id < id) await pair(id);   // otherwise it asks this one, which is searching now
+    return info();
+  });
+  // computers on the network show up even while Flow is not set up
+  setInterval(() => notify(true), 3000);
 }
 function setWindow(w) { win = w; }
 function shutdown() {

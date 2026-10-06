@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "Sposta il puntatore oltre il bordo dello schermo per raggiungere il computer su quel lato",
  "Move to the other side": "Sposta sull’altro lato",
  "Switch computers by pushing the pointer against the edge of the screen": "Cambia computer spingendo il puntatore contro il bordo dello schermo",
- "Your keyboard follows the pointer from one computer to the other": "La tastiera segue il puntatore da un computer all’altro"
+ "Your keyboard follows the pointer from one computer to the other": "La tastiera segue il puntatore da un computer all’altro",
+ "Computers on this network": "Computer in questa rete",
+ "No other computer with NotLogi on this network right now": "Al momento nessun altro computer con NotLogi in questa rete",
+ "Open Flow on it and choose Add computer to connect": "Apri Flow su di esso e scegli Aggiungi computer per collegarti"
 }

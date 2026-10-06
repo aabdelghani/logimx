@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "將指標移出螢幕邊緣即可到達那一側的電腦",
  "Move to the other side": "移到另一側",
  "Switch computers by pushing the pointer against the edge of the screen": "將指標推向螢幕邊緣即可切換電腦",
- "Your keyboard follows the pointer from one computer to the other": "鍵盤會跟隨指標從一台電腦切換到另一台"
+ "Your keyboard follows the pointer from one computer to the other": "鍵盤會跟隨指標從一台電腦切換到另一台",
+ "Computers on this network": "此網路中的電腦",
+ "No other computer with NotLogi on this network right now": "目前此網路中沒有其他執行 NotLogi 的電腦",
+ "Open Flow on it and choose Add computer to connect": "在該電腦上開啟 Flow 並選擇「新增電腦」以連線"
 }

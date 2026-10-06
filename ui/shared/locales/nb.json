@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "Før pekeren forbi skjermkanten for å nå datamaskinen på den siden",
  "Move to the other side": "Flytt til den andre siden",
  "Switch computers by pushing the pointer against the edge of the screen": "Bytt datamaskin ved å skyve pekeren mot skjermkanten",
- "Your keyboard follows the pointer from one computer to the other": "Tastaturet følger pekeren fra én datamaskin til den andre"
+ "Your keyboard follows the pointer from one computer to the other": "Tastaturet følger pekeren fra én datamaskin til den andre",
+ "Computers on this network": "Datamaskiner på dette nettverket",
+ "No other computer with NotLogi on this network right now": "Ingen annen datamaskin med NotLogi på dette nettverket akkurat nå",
+ "Open Flow on it and choose Add computer to connect": "Åpne Flow på den og velg Legg til datamaskin for å koble til"
 }

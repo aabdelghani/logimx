@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "Μετακινήστε τον δείκτη έξω από την άκρη της οθόνης για να φτάσετε στον υπολογιστή εκείνης της πλευράς",
  "Move to the other side": "Μετακίνηση στην άλλη πλευρά",
  "Switch computers by pushing the pointer against the edge of the screen": "Αλλαγή υπολογιστή σπρώχνοντας τον δείκτη στην άκρη της οθόνης",
- "Your keyboard follows the pointer from one computer to the other": "Το πληκτρολόγιο ακολουθεί τον δείκτη από τον έναν υπολογιστή στον άλλο"
+ "Your keyboard follows the pointer from one computer to the other": "Το πληκτρολόγιο ακολουθεί τον δείκτη από τον έναν υπολογιστή στον άλλο",
+ "Computers on this network": "Υπολογιστές σε αυτό το δίκτυο",
+ "No other computer with NotLogi on this network right now": "Κανένας άλλος υπολογιστής με NotLogi σε αυτό το δίκτυο αυτή τη στιγμή",
+ "Open Flow on it and choose Add computer to connect": "Ανοίξτε το Flow σε αυτόν και επιλέξτε Προσθήκη υπολογιστή για σύνδεση"
 }

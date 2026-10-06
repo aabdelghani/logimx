@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "포인터를 화면 가장자리 밖으로 움직이면 그쪽 컴퓨터로 이동합니다",
  "Move to the other side": "반대쪽으로 이동",
  "Switch computers by pushing the pointer against the edge of the screen": "포인터를 화면 가장자리에 밀어 컴퓨터를 전환합니다",
- "Your keyboard follows the pointer from one computer to the other": "키보드가 포인터를 따라 컴퓨터 간에 이동합니다"
+ "Your keyboard follows the pointer from one computer to the other": "키보드가 포인터를 따라 컴퓨터 간에 이동합니다",
+ "Computers on this network": "이 네트워크의 컴퓨터",
+ "No other computer with NotLogi on this network right now": "지금 이 네트워크에 NotLogi를 사용하는 다른 컴퓨터가 없습니다",
+ "Open Flow on it and choose Add computer to connect": "해당 컴퓨터에서 Flow를 열고 컴퓨터 추가를 선택해 연결하세요"
 }

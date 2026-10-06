@@ -1186,3 +1186,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-pc .n { font-weight: 700; overflow-wrap: anywhere; }
 .fl-pc .st { font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
 .fl-pc .acts { display: flex; gap: 4px; margin-top: 4px; }
+
+.fl-grid { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: ". up ." "left me right" ". down ."; gap: 14px; align-items: center; justify-items: center; padding: 18px 8px; }
+.fl-grid .fg-up { grid-area: up; } .fl-grid .fg-left { grid-area: left; justify-self: end; } .fl-grid .fg-me { grid-area: me; }
+.fl-grid .fg-right { grid-area: right; justify-self: start; } .fl-grid .fg-down { grid-area: down; }
+.fl-pc .acts .hbtn.on { background: var(--accbg); color: #fff; opacity: 1; }

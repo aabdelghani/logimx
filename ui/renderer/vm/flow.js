@@ -37,6 +37,7 @@ export const commands = {
   'flow-add': async (it, e, d, key) => { S.flowWizard = 'setup'; changed(); return; },
   'flow-toggle': async (it, e, d, key) => { const cur = (S.flow || {})[key] !== false; await setFlow({ [key]: !cur }); return; },
   'flow-side': async (it, e, d, key) => { await setFlow({ id: key, pos: it.data.val }); return; },
+  'flow-connect': async (it, e, d, key) => { S.flow = await api.host.flowConnect(key); changed(); return; },
   'flow-remove': async (it, e, d, key) => { S.flow = await api.host.flowRemove(key); changed(); return; },
 };
 

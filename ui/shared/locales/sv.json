@@ -1010,5 +1010,8 @@
  "Move the pointer off the edge of the screen to reach the computer on that side": "För pekaren förbi skärmkanten för att nå datorn på den sidan",
  "Move to the other side": "Flytta till andra sidan",
  "Switch computers by pushing the pointer against the edge of the screen": "Byt dator genom att trycka pekaren mot skärmkanten",
- "Your keyboard follows the pointer from one computer to the other": "Tangentbordet följer pekaren från en dator till en annan"
+ "Your keyboard follows the pointer from one computer to the other": "Tangentbordet följer pekaren från en dator till en annan",
+ "Computers on this network": "Datorer i det här nätverket",
+ "No other computer with NotLogi on this network right now": "Ingen annan dator med NotLogi i det här nätverket just nu",
+ "Open Flow on it and choose Add computer to connect": "Öppna Flow på den och välj Lägg till dator för att ansluta"
 }
