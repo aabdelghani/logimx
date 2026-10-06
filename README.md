@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
-    <img src="docs/logo.png" alt="NotLogi" width="260">
+    <img src="docs/logo.png" alt="NotLogi" width="220">
   </picture>
 </p>
 
