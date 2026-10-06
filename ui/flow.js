@@ -185,6 +185,8 @@ async function onMessage(msg, ip) {
   if (m.t === 'switch') {
     log('switch from', peer.name, ip, m.clip ? (m.clip.text ? 'text' : 'image') : 'no clipboard');
     arrived();
+    // the devices are on their way: the agent looks for them every 150 ms meanwhile
+    if (rpc) rpc('expect_device', { ms: 6000 }).catch(() => {});
     // the devices are coming here: take the clipboard
     if (m.clip && cfg().clipboard) writeClip(m.clip);
     return { ok: true };
@@ -339,8 +341,8 @@ async function pointer() {
 let nearLogged = 0, ticking = false, leftEdge = true, quietUntil = 0, mouseHere = false;
 // devices arriving here: the pointer is still read where it last was (often the edge it left by,
 // facing the computer it came from), so no edge counts until the pointer has moved off it, and
-// none for a moment in any case; otherwise the devices bounce straight back
-function arrived() { leftEdge = false; quietUntil = Date.now() + 1500; atEdge = null; }
+// none for a quarter second in any case; otherwise the devices bounce straight back
+function arrived() { leftEdge = false; quietUntil = Date.now() + 250; atEdge = null; }
 async function edgeTick() {
   if (ticking) return;
   ticking = true;

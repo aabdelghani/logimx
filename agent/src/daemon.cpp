@@ -458,7 +458,7 @@ void ManagedDevice::handle(const hidpp::Event& ev) {
         if (ev.data.value("reconnect", false)) {
             INFO("%s: reconnected, re-applying", dev_->name().c_str());
             auto self = shared_from_this();
-            std::thread([self] { std::this_thread::sleep_for(500ms); self->reapply(); }).detach();
+            std::thread([self] { std::this_thread::sleep_for(150ms); self->reapply(); }).detach();
         }
     } else if (ev.kind == "fn_swap") {
         state_["fn_swap"] = ev.data["on"];
@@ -591,7 +591,10 @@ int Daemon::run() {
     auto lastScan = std::chrono::steady_clock::time_point{};
     auto lastPoll = std::chrono::steady_clock::now();
     std::optional<std::chrono::steady_clock::time_point> scanAt;   // debounced scan request
-    const auto pollInterval = ifd >= 0 ? 15s : 3s;
+    // without a hot-plug signal (macOS, Windows) look every second; while Flow is handing devices
+    // over to this computer, every 150 ms
+    const auto pollInterval = ifd >= 0 ? std::chrono::milliseconds(15000) : std::chrono::milliseconds(1000);
+    const auto steadyMs = [] { return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); };
     while (!stop_) {
         auto now = std::chrono::steady_clock::now();
 #ifdef __linux__
@@ -613,7 +616,8 @@ int Daemon::run() {
             }
         }
 #endif
-        if ((scanAt && now >= *scanAt) || now - lastScan > pollInterval) {
+        const bool expecting = steadyMs() < expectUntil_.load();
+        if ((scanAt && now >= *scanAt) || now - lastScan > (expecting ? std::chrono::milliseconds(150) : pollInterval)) {
             scan();
             lastScan = now;
             scanAt.reset();
@@ -628,7 +632,7 @@ int Daemon::run() {
             }
             lastPoll = now;
         }
-        std::this_thread::sleep_for(100ms);
+        std::this_thread::sleep_for(expecting ? 25ms : 100ms);
     }
 #ifdef __linux__
     if (ifd >= 0) ::close(ifd);
@@ -756,9 +760,16 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
     auto md = std::make_shared<ManagedDevice>(*this, t, std::move(dev), pid, serial);
     INFO("device %s (%s) pid %04x via %s idx %d, %zu features, %zu controls", md->dev().name().c_str(), md->dev().kind().c_str(),
          pid, t.path().c_str(), idx, md->dev().features().size(), md->dev().controls().size());
+    // what the hand feels first (diverted buttons, gestures, the ring), then announce the device so
+    // the window and Flow can use it, then the rest of its settings and state
     md->setProfile(appClass_);
-    md->applySettings();
     md->applyAssignments();
+    {
+        std::lock_guard<std::mutex> lk(mapMutex_);
+        devices_[key] = md;
+    }
+    broadcast("device_added", md->summary());
+    md->applySettings();
     md->readState();
     // a receiver re-plug resets the current host's stored name to a factory default;
     // write this computer's hostname back so Easy-Switch shows a meaningful name
@@ -779,12 +790,7 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
         }
     } catch (...) {
     }
-    json s = md->summary();
-    {
-        std::lock_guard<std::mutex> lk(mapMutex_);
-        devices_[key] = md;
-    }
-    broadcast("device_added", s);
+    broadcast("device", md->summary());
     // the first battery answer after a (re)link is the value the firmware stored before
     // sleeping; re-read once the device has had time to measure
     std::thread([this, md] {
@@ -1225,6 +1231,12 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return nullptr;
     }
     // the display's refresh rate, from the app: smooth scrolling plays one step a frame
+    // Flow: devices are being switched to this computer; look for them every 150 ms for a while
+    if (method == "expect_device") {
+        long long ms = std::max(500LL, std::min(15000LL, static_cast<long long>(p.value("ms", 5000.0))));
+        expectUntil_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + ms;
+        return true;
+    }
     if (method == "set_display") {
         if (p.contains("hz") && p["hz"].is_number()) actions::Smoother::setFrameRate(p["hz"].get<double>());
         return true;

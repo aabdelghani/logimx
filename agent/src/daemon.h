@@ -142,4 +142,6 @@ class Daemon {
     PairingSession pair_;
     std::mutex pairMutex_;
     std::chrono::steady_clock::time_point lastRetry_{};
+    // Flow: devices are on their way here; scan every 150 ms until then (steady clock, ms)
+    std::atomic<long long> expectUntil_{0};
 };
