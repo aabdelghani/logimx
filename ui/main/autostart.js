@@ -92,7 +92,7 @@ function setAutostart(on) {
     removeAgentUnit(unitPath);
   }
   const autostartDir = path.join(os.homedir(), '.config', 'autostart'), desktop = path.join(autostartDir, 'logimx.desktop');
-  if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=NotLogi\nIcon=logimx\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
+  if (on) { try { fs.mkdirSync(autostartDir, { recursive: true }); fs.writeFileSync(desktop, `[Desktop Entry]\nType=Application\nName=NotLogi\nIcon=notlogi\nExec=${launchCmd()} --hidden\nStartupWMClass=${WM_CLASS}\nX-GNOME-Autostart-enabled=true\n`); } catch (e) {} }
   else { try { fs.unlinkSync(desktop); } catch (e) {} }
 }
 function ensureDesktopEntry() {
@@ -102,9 +102,12 @@ function ensureDesktopEntry() {
     const iconDir = path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor', '256x256', 'apps');
     const appDir = path.join(os.homedir(), '.local', 'share', 'applications');
     fs.mkdirSync(iconDir, { recursive: true }); fs.mkdirSync(appDir, { recursive: true });
-    const iconSrc = path.join(ROOT, 'assets', 'icon.png'), iconDst = path.join(iconDir, 'logimx.png');
+    // the icon goes by the name notlogi: the desktop keeps an icon it has shown by its name until the
+    // next login, so the old penguin (named logimx) would stay in the dock after an update
+    const iconSrc = path.join(ROOT, 'assets', 'icon.png'), iconDst = path.join(iconDir, 'notlogi.png');
     if (!fs.existsSync(iconDst) || fs.statSync(iconDst).size !== fs.statSync(iconSrc).size) fs.copyFileSync(iconSrc, iconDst);
-    const entry = `[Desktop Entry]\nType=Application\nName=NotLogi\nComment=Unofficial mouse & keyboard tools for Linux\nExec=${launchCmd()}\nIcon=logimx\nTerminal=false\nCategories=Settings;HardwareSettings;\nKeywords=mouse;keyboard;MX;Bolt;\nStartupWMClass=${WM_CLASS}\nStartupNotify=true\n`;
+    try { fs.unlinkSync(path.join(iconDir, 'logimx.png')); } catch (e) {}
+    const entry = `[Desktop Entry]\nType=Application\nName=NotLogi\nComment=Unofficial mouse & keyboard tools for Linux\nExec=${launchCmd()}\nIcon=notlogi\nTerminal=false\nCategories=Settings;HardwareSettings;\nKeywords=mouse;keyboard;MX;Bolt;\nStartupWMClass=${WM_CLASS}\nStartupNotify=true\n`;
     const dst = path.join(appDir, 'logimx.desktop');
     let cur = ''; try { cur = fs.readFileSync(dst, 'utf8'); } catch (e) {}
     if (cur !== entry) { fs.writeFileSync(dst, entry); execFile('update-desktop-database', [appDir], () => {}); execFile('gtk-update-icon-cache', ['-f', '-t', path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor')], () => {}); }
