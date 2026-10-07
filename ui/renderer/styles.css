@@ -1206,7 +1206,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-cog.on { background: var(--accbg); color: #fff; }
 .fl-top .lbl { font-weight: 600; }
 .fl-bottom { display: flex; justify-content: center; }
-.fl-bottom .fl-add { font-size: 16px; font-weight: 700; letter-spacing: .05em; padding: 16px 40px; border-radius: 14px; gap: 12px; }
+.fl-bottom .fl-add { translate: 100px 0; font-size: 16px; font-weight: 700; letter-spacing: .05em; padding: 16px 40px; border-radius: 14px; gap: 12px; }
 .fl-bottom .fl-add i { font-size: 18px; }
 .fl-screen { display: flex; flex-direction: column; align-items: center; }
 .fl-display { position: relative; width: 190px; height: 116px; border-radius: 12px; border: 3px solid var(--fg); background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px; box-sizing: border-box; text-align: center; opacity: .55; }
