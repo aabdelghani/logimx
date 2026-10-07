@@ -274,7 +274,7 @@ void ManagedDevice::applySettings(const std::string& only) {
                 if (auto hr = dev_->hires()) wheelMult_ = std::max(1, hr->multiplier);
                 dev_->setHires(true, true, false);
             } else {
-                dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", true), wheelInvert_);
+                dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", false), wheelInvert_);
             }
         }
         if (dev_->has(hidpp::BACKLIGHT2) && want("backlight")) {
@@ -383,7 +383,7 @@ void ManagedDevice::releaseAll() {
     // the wheel back to the system, as the settings have it
     if (wheelTaken_ && dev_->has(hidpp::HIRES_WHEEL)) {
         const json h = cfg_.value("settings", json::object()).value("hires", json::object());
-        try { dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", true), h.value("invert", false)); } catch (...) {}
+        try { dev_->setHires(false, kernelScalesWheel(id()) || h.value("enabled", false), h.value("invert", false)); } catch (...) {}
         wheelTaken_ = false;
     }
 }

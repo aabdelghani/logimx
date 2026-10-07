@@ -62,7 +62,7 @@ MX_MASTER_3S = {
     "settings": {
         "dpi": 1000,
         "smartshift": {"mode": "ratchet", "enabled": False, "threshold": 14},
-        "hires": {"enabled": True, "invert": False},
+        "hires": {"enabled": False, "invert": False},
         "thumbwheel": {"invert": False},
     },
     "profiles": {
@@ -86,7 +86,7 @@ MX_ANYWHERE_3S = {
     "settings": {
         "dpi": 1000,
         "smartshift": {"mode": "ratchet", "enabled": False, "threshold": 12},
-        "hires": {"enabled": True, "invert": False},
+        "hires": {"enabled": False, "invert": False},
     },
     "profiles": {
         "default": {
