@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "포인터가 화면 가장자리에 닿는 즉시 전환합니다",
  "The edge only switches while a Ctrl key is held": "Ctrl 키를 누르고 있을 때만 가장자리에서 전환합니다",
  "Drag a computer to where its screen sits: above, left, right or below this one": "컴퓨터를 화면이 있는 위치(이 컴퓨터의 위, 왼쪽, 오른쪽, 아래)로 끌어 놓으세요",
- "Drag to where its screen sits": "화면이 있는 위치로 끌어 놓기"
+ "Drag to where its screen sits": "화면이 있는 위치로 끌어 놓기",
+ "Drag the screen to change its position": "화면을 끌어 위치를 변경하세요"
 }

@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "Wissel zodra de aanwijzer de schermrand bereikt",
  "The edge only switches while a Ctrl key is held": "De rand wisselt alleen terwijl een Ctrl-toets wordt ingedrukt",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Sleep een computer naar waar zijn scherm staat: boven, links, rechts of onder deze",
- "Drag to where its screen sits": "Sleep naar waar het scherm staat"
+ "Drag to where its screen sits": "Sleep naar waar het scherm staat",
+ "Drag the screen to change its position": "Sleep het scherm om de positie te wijzigen"
 }

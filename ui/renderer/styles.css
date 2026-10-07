@@ -1039,8 +1039,7 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 /* the application bar belongs to the middle of the device view: with a panel open on the right it
    slides to the middle's top-right corner, beside the panel, and back when the panel closes */
 .devview2 .cfg-top .pbar { transition: transform .28s cubic-bezier(0, 0, .2, 1); }
-.devview2.drawer-open .cfg-top .pbar { transform: translateX(-430px); }
-.devview2.drawer-open.drawer-closing .cfg-top .pbar { transform: none; transition-duration: .18s; transition-timing-function: cubic-bezier(.4, 0, 1, 1); }
+/* a side panel opening leaves the profile icons and the close button where they are */
 @media (prefers-reduced-motion: reduce) { .devview2 .cfg-top .pbar { transition: none; } }
 .switch[disabled] { opacity: .55; cursor: not-allowed; pointer-events: none; }
 /* the profile bar: the app profile in use right now (the app in front) carries a live dot */
@@ -1194,9 +1193,9 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 
 /* Flow's page: the computers as screens, the switch and cog at the top right, Add computer below */
 /* the whole page area: switch and cog pinned top right, ADD COMPUTER pinned at the bottom, the screens centred between */
-.fl-page { position: absolute; inset: 64px 0 0 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 70px 24px 150px; box-sizing: border-box; overflow: auto; }
+.fl-page { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 70px 24px 150px; box-sizing: border-box; overflow: auto; }
 /* the Flow switch and the settings cog at the top right of the page area, Add computer at its bottom */
-.dev-config:has(.fl-page) { position: relative; align-self: stretch; height: 100%; }
+.dev-config:has(.fl-page) .content { position: relative; }   /* the page's own anchor: the window's top bar stays where it is */
 .fl-page .fl-top { position: absolute; top: 8px; right: 40px; z-index: 2; }
 .fl-page .fl-bottom { position: absolute; left: 0; right: 0; bottom: 36px; z-index: 2; flex-direction: column; align-items: center; gap: 10px; }
 .fl-top { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
@@ -1233,3 +1232,10 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-slot { min-width: 190px; min-height: 134px; border-radius: 14px; display: flex; align-items: center; justify-content: center; transition: background .15s, box-shadow .15s; }
 .fl-grid.dragging .fl-slot { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accbg) 45%, transparent); background: color-mix(in srgb, var(--accbg) 6%, transparent); }
 .fl-grid.dragging .fl-slot.over { box-shadow: inset 0 0 0 3px var(--accbg); background: color-mix(in srgb, var(--accbg) 14%, transparent); }
+
+/* hovering another computer's screen says it can be dragged */
+.fl-screen { position: relative; }
+.fl-tip { position: absolute; top: calc(100% + 4px); left: 50%; translate: -50% 4px; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--acc-fg, #fff); background: var(--accbg); padding: 5px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px; opacity: 0; pointer-events: none; transition: opacity .15s, translate .15s; z-index: 3; }
+.fl-tip i { font-size: 12px; }
+.fl-screen[data-peer]:hover .fl-tip { opacity: 1; translate: -50% 0; }
+.fl-grid.dragging .fl-tip { opacity: 0 !important; }

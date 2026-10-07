@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "Vaihda heti, kun osoitin saavuttaa näytön reunan",
  "The edge only switches while a Ctrl key is held": "Reuna vaihtaa vain, kun Ctrl-näppäintä pidetään painettuna",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Vedä tietokone sinne, missä sen näyttö on: tämän yläpuolelle, vasemmalle, oikealle tai alapuolelle",
- "Drag to where its screen sits": "Vedä sinne, missä sen näyttö on"
+ "Drag to where its screen sits": "Vedä sinne, missä sen näyttö on",
+ "Drag the screen to change its position": "Vedä näyttöä muuttaaksesi sen paikkaa"
 }

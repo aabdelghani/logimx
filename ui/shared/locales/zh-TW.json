@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "指標一到達螢幕邊緣就切換",
  "The edge only switches while a Ctrl key is held": "只有按住 Ctrl 鍵時，邊緣才會切換",
  "Drag a computer to where its screen sits: above, left, right or below this one": "將電腦拖到其螢幕所在的位置：此電腦的上方、左側、右側或下方",
- "Drag to where its screen sits": "拖到其螢幕所在的位置"
+ "Drag to where its screen sits": "拖到其螢幕所在的位置",
+ "Drag the screen to change its position": "拖曳螢幕以變更其位置"
 }

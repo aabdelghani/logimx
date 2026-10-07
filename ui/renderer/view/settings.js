@@ -97,9 +97,9 @@ function flowScreen(f, p) {
   const status = me ? t('This computer') : p.online ? t('Ready') : t('Not found');
   // another computer: dragged to where its screen sits, its ⋯ removes it
   const more = me ? '' : `<div class="fl-more"><button class="hbtn icon" data-act="flow-menu" data-key="${esc(p.id)}" title="${t('More')}"><i class="fa-solid fa-ellipsis"></i></button>${open ? `<div class="menu fl-menu" data-menu><button class="danger" data-act="flow-remove" data-key="${esc(p.id)}"><i class="fa-solid fa-trash"></i><span>${t('Remove computer')}</span></button></div>` : ''}</div>`;
-  return `<div class="fl-screen ${me ? 'me' : ''} ${!me && p.online ? 'on' : ''}" ${me ? '' : `data-peer="${esc(p.id)}" title="${t('Drag to where its screen sits')}"`}>
+  return `<div class="fl-screen ${me ? 'me' : ''} ${!me && p.online ? 'on' : ''}" ${me ? '' : `data-peer="${esc(p.id)}"`}>
       <div class="fl-display"><i class="${icon} os"></i><div class="n">${esc(me ? f.name : p.name)}</div><div class="st">${!me ? `<span class="dot ${p.online ? 'ok' : ''}"></span>` : ''}${status}</div>${more}</div>
-      <div class="fl-stand"></div></div>`;
+      <div class="fl-stand"></div>${me ? '' : `<div class="fl-tip"><i class="fa-solid fa-up-down-left-right"></i>${t('Drag the screen to change its position')}</div>`}</div>`;
 }
 function pageFlow() {
   const f = S.flow;

@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "Skift, så snart markøren når skærmkanten",
  "The edge only switches while a Ctrl key is held": "Kanten skifter kun, mens en Ctrl-tast holdes nede",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Træk en computer derhen, hvor dens skærm står: over, til venstre, til højre for eller under denne",
- "Drag to where its screen sits": "Træk derhen, hvor skærmen står"
+ "Drag to where its screen sits": "Træk derhen, hvor skærmen står",
+ "Drag the screen to change its position": "Træk skærmen for at ændre dens placering"
 }

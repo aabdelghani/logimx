@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "Przełącz, gdy tylko wskaźnik dotrze do krawędzi ekranu",
  "The edge only switches while a Ctrl key is held": "Krawędź przełącza tylko przy wciśniętym klawiszu Ctrl",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Przeciągnij komputer tam, gdzie stoi jego ekran: nad, na lewo, na prawo lub pod tym",
- "Drag to where its screen sits": "Przeciągnij tam, gdzie stoi jego ekran"
+ "Drag to where its screen sits": "Przeciągnij tam, gdzie stoi jego ekran",
+ "Drag the screen to change its position": "Przeciągnij ekran, aby zmienić jego położenie"
 }

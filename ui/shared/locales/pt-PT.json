@@ -1033,5 +1033,6 @@
  "Switch as soon as the pointer reaches the edge of the screen": "Muda assim que o ponteiro chega ao limite do ecrã",
  "The edge only switches while a Ctrl key is held": "O limite só muda enquanto uma tecla Ctrl estiver premida",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Arraste um computador para onde está o ecrã dele: acima, à esquerda, à direita ou abaixo deste",
- "Drag to where its screen sits": "Arraste para onde está o ecrã"
+ "Drag to where its screen sits": "Arraste para onde está o ecrã",
+ "Drag the screen to change its position": "Arraste o ecrã para mudar a posição"
 }
