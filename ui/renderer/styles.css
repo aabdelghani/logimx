@@ -1197,7 +1197,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* the Flow switch and the settings cog at the top right of the page area, Add computer at its bottom */
 .dev-config:has(.fl-page) .content { position: relative; }   /* the page's own anchor: the window's top bar stays where it is */
 .fl-page .fl-top { position: absolute; top: 8px; right: 40px; z-index: 2; }
-.fl-page .fl-bottom { position: absolute; left: 0; right: 0; bottom: 36px; z-index: 2; flex-direction: column; align-items: center; gap: 10px; }
+.fl-page .fl-bottom { position: absolute; left: 0; right: 40px; bottom: 36px; z-index: 2; flex-direction: column; align-items: flex-end; gap: 10px; }   /* under the settings cog */
 .fl-top { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
 .fl-top .lbl { font-size: 16px; }
 .fl-cog { width: 52px; height: 52px; border-radius: 14px; border: 0; background: var(--btn); color: var(--fg); font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -1206,7 +1206,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-cog.on { background: var(--accbg); color: #fff; }
 .fl-top .lbl { font-weight: 600; }
 .fl-bottom { display: flex; justify-content: center; }
-.fl-bottom .fl-add { translate: 100px 0; font-size: 16px; font-weight: 700; letter-spacing: .05em; padding: 16px 40px; border-radius: 14px; gap: 12px; }
+.fl-bottom .fl-add { font-size: 16px; font-weight: 700; letter-spacing: .05em; padding: 16px 40px; border-radius: 14px; gap: 12px; }
 .fl-bottom .fl-add i { font-size: 18px; }
 .fl-screen { display: flex; flex-direction: column; align-items: center; }
 .fl-display { position: relative; width: 190px; height: 116px; border-radius: 12px; border: 3px solid var(--fg); background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px; box-sizing: border-box; text-align: center; opacity: .55; }
