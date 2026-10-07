@@ -55,6 +55,22 @@ Through a Bolt or Unifying receiver, or over Bluetooth.
 
 ## Features
 
+### Flow
+
+One mouse and keyboard for several computers (Linux and macOS; Windows untested). Move the pointer
+off the edge of the screen and it carries on on the next computer, with the keyboard and the
+clipboard.
+
+- Set up in three steps: install NotLogi on both, pair the mouse on another channel, same network
+- Drag the computers' screens to where they sit
+- Switch at the edge, or only while holding Ctrl
+
+| Flow | Flow settings |
+|---|---|
+| ![Flow](screenshots/flow.png) | ![Flow settings](screenshots/flow-settings.png) |
+
+![Setting up Flow](screenshots/flow-setup.png)
+
 ### Action ring
 
 Hold a button, flick toward an action, let go. Up to eight actions around the pointer.
@@ -72,22 +88,6 @@ Hold a button, flick toward an action, let go. Up to eight actions around the po
 ![Button actions with the action ring](screenshots/mouse-button-panel.png)
 
 ![Volume bar while dragging](screenshots/ring-volume-bar.png)
-
-### Flow
-
-One mouse and keyboard for several computers (Linux and macOS; Windows untested). Move the pointer
-off the edge of the screen and it carries on on the next computer, with the keyboard and the
-clipboard.
-
-- Set up in three steps: install NotLogi on both, pair the mouse on another channel, same network
-- Drag the computers' screens to where they sit
-- Switch at the edge, or only while holding Ctrl
-
-| Flow | Flow settings |
-|---|---|
-| ![Flow](screenshots/flow.png) | ![Flow settings](screenshots/flow-settings.png) |
-
-![Setting up Flow](screenshots/flow-setup.png)
 
 ### MX Master 4
 
