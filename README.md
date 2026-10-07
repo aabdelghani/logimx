@@ -13,10 +13,12 @@
 [![Platforms: Linux, Windows, macOS](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20beta%20%C2%B7%20macOS%20beta-2dd4bf.svg)](#requirements)
 [![Devices: MX Master 4 and 3S, MX Keys family](https://img.shields.io/badge/devices-MX%20Master%204%20%2F%203S%20%C2%B7%20MX%20Keys%20family-2dd4bf.svg)](#supported-devices)
 [![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
+[![Flow](https://img.shields.io/badge/flow-several%20computers-2dd4bf.svg)](#flow)
 
 NotLogi configures MX mice and keyboards on Linux, Windows (beta) and macOS (beta), with full support for the **MX Master 4** and an
 **action ring**: eight actions of your choice around the pointer, opened by a button and chosen
-with a flick of the mouse. It also covers button and key assignments, gestures, the thumb wheel,
+with a flick of the mouse, and **Flow**: one mouse and keyboard across several computers, the
+pointer moving from one screen to the next. It also covers button and key assignments, gestures, the thumb wheel,
 SmartShift, DPI, the keyboard backlight and more. On Linux it runs on GNOME, KDE and other
 desktops, on X11 and Wayland.
 
@@ -32,7 +34,11 @@ manufacturer of these devices.
 - **Action ring.** Hold a button, flick toward an action, let go. Eight slots, several profiles,
   drag and drop from the action list onto the ring, a free-pointer mode, and the desktop's own
   light or dark style, accent colour and font. On the MX Master 4 each step of the ring is felt
-  as a haptic tick.
+  as a haptic tick. Folders put more actions on a second circle around the ring.
+- **Flow.** Use one mouse and keyboard on several computers (Linux and macOS; Windows untested): push the
+  pointer off the edge of the screen, or hold Ctrl and do it, and the mouse, the keyboard and the
+  clipboard go to the computer on that side. The computers find each other on the local network
+  and pair with a shared key.
 - **MX Master 4.** Haptic feedback with its strength, the haptic panel as a button of its own
   (it opens the action ring out of the box), how hard the panel must be pressed, and the ratchet
   force of the wheel.
@@ -66,7 +72,7 @@ built by CI from the tagged source.
 **Debian / Ubuntu (.deb)**: installs the app, the agent, the udev rule and a systemd user service.
 
 ```
-sudo apt install ./logimx_0.11.0_amd64.deb
+sudo apt install ./logimx_0.12.0_amd64.deb
 systemctl --user enable --now logimx      # starts the agent now; it starts by itself after the next login
 logimx                                    # or open NotLogi from the app grid
 ```
@@ -75,17 +81,17 @@ logimx                                    # or open NotLogi from the app grid
 wizard installs the udev rule through pkexec.
 
 ```
-chmod +x NotLogi-0.11.0-x86_64.AppImage
-./NotLogi-0.11.0-x86_64.AppImage
+chmod +x NotLogi-0.12.0-x86_64.AppImage
+./NotLogi-0.12.0-x86_64.AppImage
 ```
 
-**Windows 10 and 11 (NotLogi-Setup-0.11.0.exe), beta**: a setup wizard. It shows the license, asks
+**Windows 10 and 11 (NotLogi-Setup-0.12.0.exe), beta**: a setup wizard. It shows the license, asks
 whether to install for you alone or for everyone on the computer, lets you choose the folder, and
 offers to start NotLogi at sign-in and to put a shortcut on the desktop. Nothing else is needed: no
 driver, no runtime. The setup is not signed yet, so SmartScreen asks once: choose **More info**,
 then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `%APPDATA%\NotLogi`.
 
-**macOS 11 or newer (NotLogi-0.11.0-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
+**macOS 11 or newer (NotLogi-0.12.0-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
 disk image, agree to the license and drag NotLogi to Applications. The app is not notarized yet, so
 the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
 Security > Open Anyway**). NotLogi then asks for the **Accessibility** permission, which it needs to
@@ -131,14 +137,46 @@ Several ring profiles can be kept and switched from the panel.
   the screen under the pointer (laptop backlight, or external monitors over DDC/CI with ddcutil;
   the app offers a one-click setup when something is missing).
 - **Easy-Switch** to another computer, from the ring itself.
-- **Folders**: a slot's ⋯ menu makes it a folder of up to eight more actions. Hovering it fans them
-  out on a second circle around the ring, centred on the folder; build them the same way in the
-  settings, with an Add at each end of the row.
+- **Folders**: a slot's ⋯ menu makes it a folder of up to eight more actions. Clicking it in the
+  settings opens it: the ring dims with the folder lit, its actions pop out one by one on a second
+  circle centred on the folder, with an Add at each end of the row, and its name can be typed over
+  at the top left. On the ring itself, hovering the folder fans its actions out the same way.
 - Coming soon: a **next ring profile** slot.
+
+| A folder in the settings | The folder on the ring |
+|---|---|
+| ![Ring folder in the settings](screenshots/ring-folder.png) | ![Ring folder on the desktop](screenshots/ring-folder-overlay.png) |
 
 ![Button actions with the action ring](screenshots/mouse-button-panel.png)
 
 ![Volume bar while dragging](screenshots/ring-volume-bar.png)
+
+### Flow
+
+One mouse and keyboard for several computers, as Logitech's Flow does it. Each computer runs
+NotLogi; the mouse (and the keyboard) is paired with each of them on its own Easy-Switch channel.
+
+1. On the mouse's **Flow** page, **Set up Flow** (or **ADD COMPUTER**) shows the three steps:
+   install NotLogi on the other computer, pair the mouse on a different channel, connect to the same
+   network. **Continue** searches the network and pairs with the computers searching at the same
+   time.
+2. The computers then appear as screens, side by side as they sit. Drag a screen to the side of this
+   computer where it really is (left, right, above or below); its ⋯ removes it.
+3. Push the pointer off that edge and the mouse switches to the other computer, coming in at the
+   same height on its facing edge. The keyboard follows when **Link keyboard** is on, and the
+   clipboard comes along with **Share clipboard**.
+
+The cog at the top right opens Flow's settings: **Switch computers** by moving the cursor to the
+edge, or only while holding Ctrl; Link keyboard; Share clipboard; the channel each device uses for
+each computer (learned automatically while the device is connected there); and the computers with
+NotLogi on the network. Everything stays on the local network: the computers sign what they send
+each other with a key shared when they pair.
+
+| Flow | Flow settings |
+|---|---|
+| ![Flow](screenshots/flow.png) | ![Flow settings](screenshots/flow-settings.png) |
+
+![Setting up Flow](screenshots/flow-setup.png)
 
 ### MX Master 4
 
@@ -174,6 +212,9 @@ or its name, opens its actions on the right:
 
 Choosing an action applies it at once.
 
+The mouse's own Back and Forward buttons also work inside NotLogi: Back does what the window's back
+arrow does, Forward returns to where Back left.
+
 ![Mouse buttons](screenshots/mouse-buttons.png)
 
 ### Application profiles
@@ -195,8 +236,9 @@ The profile follows the window in front:
 
 ### Point and scroll
 
-Over Bluetooth, Linux's own Logitech driver scales the wheel, so smooth scrolling stays on there
-(turning it off would make scrolling many times slower); the switch says so on that connection.
+The high-resolution wheel (fine steps within each notch) is off by default. Over Bluetooth, Linux's
+own Logitech driver scales the wheel, so it stays on there (turning it off would make scrolling many
+times slower); the switch says so on that connection.
 
 DPI from 200 to 8000, desktop pointer speed, SmartShift with its sensitivity, smooth scrolling and
 natural scroll direction. The thumb wheel can scroll horizontally or vertically, zoom, or change
