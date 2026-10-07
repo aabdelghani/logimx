@@ -66,7 +66,7 @@ built by CI from the tagged source.
 **Debian / Ubuntu (.deb)**: installs the app, the agent, the udev rule and a systemd user service.
 
 ```
-sudo apt install ./logimx_0.10.1_amd64.deb
+sudo apt install ./logimx_0.11.0_amd64.deb
 systemctl --user enable --now logimx      # starts the agent now; it starts by itself after the next login
 logimx                                    # or open NotLogi from the app grid
 ```
@@ -75,17 +75,17 @@ logimx                                    # or open NotLogi from the app grid
 wizard installs the udev rule through pkexec.
 
 ```
-chmod +x NotLogi-0.10.1-x86_64.AppImage
-./NotLogi-0.10.1-x86_64.AppImage
+chmod +x NotLogi-0.11.0-x86_64.AppImage
+./NotLogi-0.11.0-x86_64.AppImage
 ```
 
-**Windows 10 and 11 (NotLogi-Setup-0.10.1.exe), beta**: a setup wizard. It shows the license, asks
+**Windows 10 and 11 (NotLogi-Setup-0.11.0.exe), beta**: a setup wizard. It shows the license, asks
 whether to install for you alone or for everyone on the computer, lets you choose the folder, and
 offers to start NotLogi at sign-in and to put a shortcut on the desktop. Nothing else is needed: no
 driver, no runtime. The setup is not signed yet, so SmartScreen asks once: choose **More info**,
 then **Run anyway**. Uninstall from **Settings > Apps**; your settings stay in `%APPDATA%\NotLogi`.
 
-**macOS 11 or newer (NotLogi-0.10.1-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
+**macOS 11 or newer (NotLogi-0.11.0-arm64.dmg for Apple silicon, -x64.dmg for Intel), beta**: open the
 disk image, agree to the license and drag NotLogi to Applications. The app is not notarized yet, so
 the first time, right-click it and choose **Open** (on macOS 15, **System Settings > Privacy &
 Security > Open Anyway**). NotLogi then asks for the **Accessibility** permission, which it needs to
