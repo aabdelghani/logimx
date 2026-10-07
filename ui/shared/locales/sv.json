@@ -1031,5 +1031,7 @@
  "Place left": "Placera till vänster",
  "Place right": "Placera till höger",
  "Switch as soon as the pointer reaches the edge of the screen": "Byt så fort pekaren når skärmkanten",
- "The edge only switches while a Ctrl key is held": "Kanten byter bara medan en Ctrl-tangent hålls nedtryckt"
+ "The edge only switches while a Ctrl key is held": "Kanten byter bara medan en Ctrl-tangent hålls nedtryckt",
+ "Drag a computer to where its screen sits: above, left, right or below this one": "Dra en dator dit dess skärm står: ovanför, till vänster, till höger om eller nedanför den här",
+ "Drag to where its screen sits": "Dra dit skärmen står"
 }

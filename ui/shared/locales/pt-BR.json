@@ -1031,5 +1031,7 @@
  "Place left": "Posicionar à esquerda",
  "Place right": "Posicionar à direita",
  "Switch as soon as the pointer reaches the edge of the screen": "Troca assim que o ponteiro chega à borda da tela",
- "The edge only switches while a Ctrl key is held": "A borda só troca enquanto uma tecla Ctrl estiver pressionada"
+ "The edge only switches while a Ctrl key is held": "A borda só troca enquanto uma tecla Ctrl estiver pressionada",
+ "Drag a computer to where its screen sits: above, left, right or below this one": "Arraste um computador para onde fica a tela dele: acima, à esquerda, à direita ou abaixo deste",
+ "Drag to where its screen sits": "Arraste para onde fica a tela"
 }

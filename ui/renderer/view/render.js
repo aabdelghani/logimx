@@ -294,7 +294,27 @@ function renderDialog() {
 }
 
 // ============================================================ bind
+// Flow: another computer's screen is dragged to the side of this one where it sits (a taken side swaps)
+function bindFlowDrag() {
+  const grid = root.querySelector('.fl-grid');
+  if (!grid) return;
+  grid.querySelectorAll('.fl-screen[data-peer]').forEach(el => {
+    el.draggable = true;
+    el.ondragstart = e => { e.dataTransfer.setData('text/plain', el.dataset.peer); e.dataTransfer.effectAllowed = 'move'; requestAnimationFrame(() => grid.classList.add('dragging')); };
+    el.ondragend = () => grid.classList.remove('dragging');
+  });
+  grid.querySelectorAll('[data-drop]').forEach(z => {
+    z.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; z.classList.add('over'); };
+    z.ondragleave = () => z.classList.remove('over');
+    z.ondrop = e => {
+      e.preventDefault(); z.classList.remove('over'); grid.classList.remove('dragging');
+      const id = e.dataTransfer.getData('text/plain');
+      if (id) onAction('flow-side', { dataset: { key: id, val: z.dataset.drop } });
+    };
+  });
+}
 function bind() {
+  bindFlowDrag();
   root.querySelectorAll('[data-stop]').forEach(e => e.onclick = ev => ev.stopPropagation());
   root.querySelectorAll('.nav-item').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.dev || S.dev));
   // a button's name beside the mouse opens it just like its ring

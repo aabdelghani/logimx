@@ -91,20 +91,14 @@ function flowWizard(step, opening) {
 // the computers drawn as screens where they sit, each with a ⋯ menu; the Flow switch and a settings cog
 // at the top right (the cog opens the rest of Flow's settings); Add computer at the bottom
 const OS_ICON = { darwin: 'fa-brands fa-apple', win32: 'fa-brands fa-windows', linux: 'fa-brands fa-linux' };
-const FLOW_SIDES = () => [['left', t('Place left'), 'fa-arrow-left'], ['right', t('Place right'), 'fa-arrow-right'], ['up', t('Place above'), 'fa-arrow-up'], ['down', t('Place below'), 'fa-arrow-down']];
 function flowScreen(f, p) {
-  const me = !p, key = me ? 'me' : p.id, open = S.menu === 'flow:' + key;
+  const me = !p, open = !me && S.menu === 'flow:' + p.id;
   const icon = me ? OS_ICON[IS_MAC() ? 'darwin' : IS_WIN() ? 'win32' : 'linux'] : (OS_ICON[p.os] || 'fa-solid fa-desktop');
   const status = me ? t('This computer') : p.online ? t('Ready') : t('Not found');
-  // its own menu: where it sits, its channels, removing it; for this computer, its name and address
-  const menu = !open ? '' : `<div class="menu fl-menu" data-menu>${me
-    ? `<div class="mhead">${esc(f.name)}</div><div class="mline">${esc(f.ip || t('no network'))}</div>`
-    : `<div class="mhead">${esc(p.name)}</div>${FLOW_SIDES().map(([pos, l, ic]) => `<button data-act="flow-side" data-key="${esc(p.id)}" data-val="${pos}"><i class="fa-solid ${ic}"></i><span>${l}</span>${p.pos === pos ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}
-      <button data-act="flow-channels"><i class="fa-solid fa-sliders"></i><span>${t('Channels')}</span></button>
-      <button class="danger" data-act="flow-remove" data-key="${esc(p.id)}"><i class="fa-solid fa-trash"></i><span>${t('Remove computer')}</span></button>`}</div>`;
-  return `<div class="fl-screen ${me ? 'me' : ''} ${!me && p.online ? 'on' : ''}">
-      <div class="fl-display"><i class="${icon} os"></i><div class="n">${esc(me ? f.name : p.name)}</div><div class="st">${!me ? `<span class="dot ${p.online ? 'ok' : ''}"></span>` : ''}${status}</div>
-        <div class="fl-more"><button class="hbtn icon" data-act="flow-menu" data-key="${esc(key)}" title="${t('More')}"><i class="fa-solid fa-ellipsis"></i></button>${menu}</div></div>
+  // another computer: dragged to where its screen sits, its ⋯ removes it
+  const more = me ? '' : `<div class="fl-more"><button class="hbtn icon" data-act="flow-menu" data-key="${esc(p.id)}" title="${t('More')}"><i class="fa-solid fa-ellipsis"></i></button>${open ? `<div class="menu fl-menu" data-menu><button class="danger" data-act="flow-remove" data-key="${esc(p.id)}"><i class="fa-solid fa-trash"></i><span>${t('Remove computer')}</span></button></div>` : ''}</div>`;
+  return `<div class="fl-screen ${me ? 'me' : ''} ${!me && p.online ? 'on' : ''}" ${me ? '' : `data-peer="${esc(p.id)}" title="${t('Drag to where its screen sits')}"`}>
+      <div class="fl-display"><i class="${icon} os"></i><div class="n">${esc(me ? f.name : p.name)}</div><div class="st">${!me ? `<span class="dot ${p.online ? 'ok' : ''}"></span>` : ''}${status}</div>${more}</div>
       <div class="fl-stand"></div></div>`;
 }
 function pageFlow() {
@@ -115,7 +109,8 @@ function pageFlow() {
   const at = pos => peers.filter(p => p.pos === pos).map(p => flowScreen(f, p)).join('');
   return `<div class="fl-page">
     <div class="fl-top"><span class="lbl">${t('Flow')}</span>${sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')}<button class="fl-cog ${S.flowPanel ? 'on' : ''}" data-act="flow-settings" title="${t('Flow Settings')}"><i class="fa-solid fa-gear"></i></button></div>
-    <div class="fl-grid"><div class="fg-up">${at('up')}</div><div class="fg-left">${at('left')}</div><div class="fg-me">${flowScreen(f, null)}</div><div class="fg-right">${at('right')}</div><div class="fg-down">${at('down')}</div></div>
+    <div class="fl-grid">${['up', 'left'].map(pos => `<div class="fg-${pos} fl-slot" data-drop="${pos}">${at(pos)}</div>`).join('')}<div class="fg-me">${flowScreen(f, null)}</div>${['right', 'down'].map(pos => `<div class="fg-${pos} fl-slot" data-drop="${pos}">${at(pos)}</div>`).join('')}</div>
+    <div class="hint" style="text-align:center">${t('Drag a computer to where its screen sits: above, left, right or below this one')}</div>
     <div class="fl-bottom"><button class="btn primary fl-add" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('ADD COMPUTER')}</button>
       ${f.error ? `<div class="hint" style="color:var(--err)">${esc(f.error)}</div>` : ''}<div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div></div>
   </div>`;

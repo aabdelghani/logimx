@@ -1031,5 +1031,7 @@
  "Place left": "左に配置",
  "Place right": "右に配置",
  "Switch as soon as the pointer reaches the edge of the screen": "ポインターが画面の端に届いた時点で切り替えます",
- "The edge only switches while a Ctrl key is held": "Ctrl キーを押している間だけ端で切り替えます"
+ "The edge only switches while a Ctrl key is held": "Ctrl キーを押している間だけ端で切り替えます",
+ "Drag a computer to where its screen sits: above, left, right or below this one": "コンピュータを画面の位置（このコンピュータの上・左・右・下）にドラッグします",
+ "Drag to where its screen sits": "画面の位置にドラッグ"
 }

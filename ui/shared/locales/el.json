@@ -1031,5 +1031,7 @@
  "Place left": "Τοποθέτηση αριστερά",
  "Place right": "Τοποθέτηση δεξιά",
  "Switch as soon as the pointer reaches the edge of the screen": "Αλλαγή μόλις ο δείκτης φτάσει στην άκρη της οθόνης",
- "The edge only switches while a Ctrl key is held": "Η άκρη αλλάζει υπολογιστή μόνο όσο κρατάτε πατημένο ένα πλήκτρο Ctrl"
+ "The edge only switches while a Ctrl key is held": "Η άκρη αλλάζει υπολογιστή μόνο όσο κρατάτε πατημένο ένα πλήκτρο Ctrl",
+ "Drag a computer to where its screen sits: above, left, right or below this one": "Σύρετε έναν υπολογιστή εκεί που βρίσκεται η οθόνη του: πάνω, αριστερά, δεξιά ή κάτω από αυτόν",
+ "Drag to where its screen sits": "Σύρετε εκεί που βρίσκεται η οθόνη του"
 }

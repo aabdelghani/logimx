@@ -1031,5 +1031,7 @@
  "Place left": "Разместить слева",
  "Place right": "Разместить справа",
  "Switch as soon as the pointer reaches the edge of the screen": "Переключаться, как только указатель достигнет края экрана",
- "The edge only switches while a Ctrl key is held": "Край переключает компьютер, только пока удерживается клавиша Ctrl"
+ "The edge only switches while a Ctrl key is held": "Край переключает компьютер, только пока удерживается клавиша Ctrl",
+ "Drag a computer to where its screen sits: above, left, right or below this one": "Перетащите компьютер туда, где стоит его экран: над этим, слева, справа или под ним",
+ "Drag to where its screen sits": "Перетащите туда, где стоит его экран"
 }
