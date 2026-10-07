@@ -40,7 +40,9 @@ function ringStage() {
     // the ⋯ on a slot: make it a folder, open it, or clear it (inside a folder: clear only)
     const dots = !f || sl ? `<span class="rs-dots" data-act="rs-menu" data-key="${i}" title="${t('More')}"><i class="fa-solid fa-ellipsis"></i></span>` : '';
     const label = sl ? t(sl.label) : f ? t('Add') : t('Add action');   // i18n: data
-    return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''} ${anim && anim.kind === 'out' && i === anim.from ? 'just-closed' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(f ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i])}" title="${esc(f ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i>${dots}</button>` +
+    // back out of a folder: each button starts where the dimmed inner ring had it
+    const from = anim && anim.kind === 'out' ? `;--ix:${(50 + RING_IN * c).toFixed(1)}%;--iy:${(50 + RING_IN * sn).toFixed(1)}%` : '';
+    return `<button class="rs-chip ${sl ? '' : 'empty'} ${isFolderSlot(sl) ? 'folder' : ''} ${ringEditing(i) ? 'selected' : ''} ${anim && anim.kind === 'out' && i === anim.from ? 'just-closed' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--k:${k}${from}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(f ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i])}" title="${esc(f ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i])}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i>${dots}</button>` +
       `<div class="rs-lab ${ringEditing(i) ? 'on' : ''} ${sl ? '' : 'empty'}" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(f ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i])}" style="left:${lx.toFixed(1)}%;top:${ly.toFixed(1)}%;transform:translate(${tx},${ty});--k:${k}">${esc(label)}${isFolderSlot(sl) ? ' <i class="fa-solid fa-chevron-right rs-more"></i>' : ''}</div>` +
       (S.menu === 'rs:' + i ? ringSlotMenu(sl, i, x, y, !!f) : '');
   }).join('');

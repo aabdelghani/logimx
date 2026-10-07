@@ -1107,10 +1107,13 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .rs-disc.anim-in .rs-chip:not(.parent) { animation: rs-pop-in .32s cubic-bezier(.2, .9, .3, 1.3) backwards; animation-delay: calc(.08s + var(--k, 0) * 50ms); }
 .rs-disc.anim-in .rs-lab { animation: rs-fade-in .25s ease-out backwards; animation-delay: calc(.16s + var(--k, 0) * 50ms); }
 .rs-disc.anim-in::before { animation: rs-fade-in .4s ease-out .3s both; }
-/* back out: the folder glides from the middle back to its place, the rest of the ring fades in */
-@keyframes rs-back-home { from { left: 50%; top: 50%; } }
-.rs-disc.anim-out .rs-chip.just-closed { animation: rs-back-home .5s cubic-bezier(.65, 0, .35, 1) both; z-index: 2; }
-.rs-disc.anim-out .rs-chip:not(.just-closed), .rs-disc.anim-out .rs-lab, .rs-disc.anim-out .rs-hub { animation: rs-fade-in .3s ease-out .35s both; }
+/* back out of a folder: the dimmed inner ring grows back out to its place and lights up, the labels
+   fade in after it, and the folder just left gives a pulse */
+@keyframes rs-ring-back { from { left: var(--ix); top: var(--iy); scale: .78; opacity: .42; } }
+@keyframes rs-pulse { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 55%, transparent); } to { box-shadow: 0 0 0 18px transparent; } }
+.rs-disc.anim-out .rs-chip { animation: rs-ring-back .42s cubic-bezier(.2, 0, 0, 1) backwards; }
+.rs-disc.anim-out .rs-chip.just-closed { animation: rs-ring-back .42s cubic-bezier(.2, 0, 0, 1) backwards, rs-pulse .6s ease-out .4s; z-index: 2; }
+.rs-disc.anim-out .rs-lab, .rs-disc.anim-out .rs-hub { animation: rs-fade-in .25s ease-out .3s backwards; }
 /* the folder's name slides in beside the back arrow */
 @keyframes rs-name-in { from { opacity: 0; translate: -14px 0; } to { opacity: 1; translate: 0 0; } }
 .devview2 .cfg-back .folder-name.enter { animation: rs-name-in .35s ease-out .15s backwards; }   /* only on the way into a folder, not on every redraw */

@@ -68,9 +68,9 @@ function drawerSection(p, k) {
     }
     const r = mouse ? null : RECOMMEND[p.cid];
     const own = r ? r[0] : p.section === 'thumbwheel' ? t('Horizontal scroll') : (p.ctl && p.ctl.label) || p.label || t('Default');
-    // a button's own function comes first; the gesture button has none worth choosing (left to the
-    // mouse it does nothing here), so its list starts with what it can do instead
-    const rows = p.section === 'buttons' && p.cid === 195 ? [] : [Object.assign(presetItem('native'), { label: own, meta: t('Default') })];
+    // a button's own function comes first; the gesture button and the MX Master 4's haptic panel have
+    // none worth choosing (left to the mouse they do nothing here), so their list starts with what they can do
+    const rows = p.section === 'buttons' && (p.cid === 195 || p.cid === 416) ? [] : [Object.assign(presetItem('native'), { label: own, meta: t('Default') })];
     for (const c of (r || []).slice(1)) if (OPTS_CARD[c] && ok.has(OPTS_CARD[c])) rows.push(presetItem(OPTS_CARD[c]));
     // a button that can be held and moved offers the action ring and gestures right after its own
     // function; the fixed gesture presets give way to the button's own gestures

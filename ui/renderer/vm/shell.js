@@ -11,6 +11,7 @@ export const state = {
   theme: 'light', mode: 'app', page: 'home', dev: null, dlg: null, menu: null, appDetail: null, conflictDismissed: false,
   ob: { step: 1, preset: 'gnome' }, ptSel: undefined, esSel: undefined, blClosed: undefined,
   cfgFrom: undefined, cfgKind: undefined, cfgBack: undefined,
+  navFwd: [], navAt: null,   // where the mouse's Forward button goes back to, and the place it is valid from
 };
 
 // Home's devices: all of them, except inactive ones removed from the list (they come back when
@@ -22,12 +23,36 @@ function unhideIfBack(d) {
   if (!d || isOffline(d) || !hiddenDevices().includes(d.id)) return;
   api.host.uiSettings({ hidden_devices: hiddenDevices().filter(x => x !== d.id) }).then(u => { if (u) S.ui = u; changed(); }).catch(() => {});
 }
+// where the window is, for the mouse's Back and Forward buttons
+const navKey = () => `${S.page}|${S.dev}|${S.appDetail ? 'app' : ''}|${(S.ringPath || []).join(',')}`;
+const navPlace = () => ({ key: navKey(), page: S.page, dev: S.dev, cfgFrom: S.cfgFrom, cfgKind: S.cfgKind, cfgBack: S.cfgBack, ringPath: (S.ringPath || []).slice() });
 // what its buttons do: data-act name → command, given the button's data and value (it), the
 // event, the device on screen and the button's data-key
 export const commands = {
   'page': async (it, e, d, key) => { go(it.data.page); if (it.data.page === 'ring') openRingPanel(); return; },
+  // the mouse's Back button: what the back arrow does, remembering the place left so Forward can return
+  'nav-back': async (it, e, d, key) => {
+    const snap = navPlace(), fwd = S.navAt === navKey() ? S.navFwd : [];
+    await commands['go-home'](it, e, d, key);
+    S.navFwd = navKey() !== snap.key ? [snap].concat(fwd).slice(0, 20) : fwd;
+    S.navAt = navKey();
+    return;
+  },
+  // the mouse's Forward button: back to the place Back left, as long as nothing else moved the window since
+  'nav-forward': async (it, e, d, key) => {
+    if (S.navAt !== navKey() || !S.navFwd.length) return;
+    const [p, ...rest] = S.navFwd;
+    if (p.page === S.page && p.dev === S.dev && p.ringPath.length) { S.ringPath = p.ringPath.slice(); S.ringAnim = { kind: 'in', from: p.ringPath[0] }; changed(); }
+    else {
+      go(p.page, p.dev);
+      if (p.page === 'gestures') { S.cfgFrom = p.cfgFrom; S.cfgKind = p.cfgKind; S.cfgBack = p.cfgBack; }
+      if (ringEditorOn()) { openRingPanel(dev()); if (p.ringPath.length) { S.ringPath = p.ringPath.slice(); changed(); } }
+    }
+    S.navFwd = rest; S.navAt = navKey();
+    return;
+  },
   'go-home': async (it, e, d, key) => {
-    if (ringEditorOn() && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; ringSelect(i); changed(); return; }
+    if (ringEditorOn() && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; S.ringAnim = { kind: 'out', from: i }; ringSelect(i); changed(); return; }
     // opened from a button's Configure: back to the mouse's Buttons, panel and all
     // with that button's actions open again on the right (the panel changes in place)
     if (S.cfgFrom && S.page === 'gestures') {

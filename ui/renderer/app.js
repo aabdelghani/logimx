@@ -98,14 +98,26 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, render, ringEditorOn, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !recording() && S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
+    if (e.key === 'Escape' && !recording() && ringEditorOn() && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
   }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !S.dlg && S.flowPanel && !root.querySelector('.flow-wiz')) { onAction('flow-panel-close', { dataset: {} }); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !S.dlg && root.querySelector('.flow-wiz')) { onAction('flow-wiz-cancel', { dataset: {} }); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.dlg && !recording()) { S.dlg = S.dlg === 'prompt' && S.prompt && S.prompt.back ? S.prompt.back : null; changed(); } });
+  // the mouse's Back and Forward buttons move through the window as its back arrow does: Back closes
+  // the sheet, dialog or panel on top first, else steps back; Forward returns to where Back left
+  document.addEventListener('mouseup', e => {
+    if ((e.button !== 3 && e.button !== 4) || recording()) return;
+    e.preventDefault();
+    if (e.button === 4) { onAction('nav-forward', { dataset: {} }); return; }
+    if (root.querySelector('.flow-wiz')) onAction('flow-wiz-cancel', { dataset: {} });
+    else if (S.dlg && !(S.dlg === 'picker' && S.picker && S.picker.drawer)) onAction('close-dlg', { dataset: {} });
+    else if (S.flowPanel) onAction('flow-panel-close', { dataset: {} });
+    else onAction('nav-back', { dataset: {} });
+  });
+  document.addEventListener('mousedown', e => { if (e.button === 3 || e.button === 4) e.preventDefault(); });
   // on Home the arrow keys page through the devices when there are more than fit
   document.addEventListener('keydown', e => {
     if (S.page !== 'home' || S.dlg || recording() || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || /input|textarea|select/i.test((e.target || {}).tagName || '')) return;

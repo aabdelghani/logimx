@@ -169,7 +169,7 @@ export const commands = {
     toast(r && r.ok ? (S.briStatus && S.briStatus.ok ? t('Monitor brightness is ready') : t('Set up; this monitor does not answer brightness requests')) : (r && r.error) || t('Failed'), !(r && r.ok));
     changed(); return;
   },
-  'ring-up': async (it, e, d, key) => { const i = (S.ringPath || [])[0]; S.ringPath = []; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } changed(); return; },
+  'ring-up': async (it, e, d, key) => { const i = (S.ringPath || [])[0]; S.ringPath = []; S.ringAnim = { kind: 'out', from: i }; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } changed(); return; },
   'ring-app-drop': async (it, e, d, key) => { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast(t('Uses the global ring')); changed(); return; },
   'ring-travel': async (it, e, d, key) => { await saveRing({ travel: Number(it.value) }); return; },
   'ring-free': async (it, e, d, key) => { await saveRing({ free_pointer: !it.on }); changed(); return; },

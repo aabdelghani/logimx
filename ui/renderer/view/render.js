@@ -48,7 +48,7 @@ function render() {
   const dlgOpened = !!S.dlg && S.dlg !== lastDlg && !(S.dlg === 'picker' && lastDlg === 'prompt'); lastDlg = S.dlg;
   let html = '';
   if (S.mode === 'onboard') html = renderOnboard();
-  else if (!S.devices.length && S.page !== 'flow') html = renderEmpty();   // Flow stays reachable while the devices are on another computer
+  else if (!S.devices.length && S.page !== 'flow' && S.page !== 'ring') html = renderEmpty();   // Flow and the action ring stay reachable while the devices are on another computer
   else html = renderWindow();
   html += renderDialog();
   // the Flow sheet slides up once, when it opens, not on every redraw (nor between its steps)
