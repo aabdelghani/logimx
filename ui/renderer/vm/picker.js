@@ -155,6 +155,11 @@ function openPicker(o) {
   S.picker = { drawer: !!o.drawer, fold: o.drawer ? { rec: true } : null, dev: d ? d.id : null, section, cid, label: o.label, profile: o.profile || S.editProfile || 'default', cat: o.cat || 'all', current, ctl, sel: null, slot: o.slot, recording: o.drawer ? false : o.cat === 'key' };
   S.dlg = 'picker'; changed();
 }
+// the ring's actions open on the right with the ring, on its first empty slot (else the top one)
+function openRingPanel(d) {
+  const first = Math.max(0, ringSlots().findIndex(s => !s));
+  openPicker({ drawer: true, dev: d || dev(), section: 'ring', cid: first, label: RING_DIRS[first] });
+}
 async function assignPicked(action) {
   const p = S.picker; const d = S.devices.find(x => x.id === p.dev);
   if (p.section === 'ring') {
@@ -243,15 +248,14 @@ export const commands = {
     // it there, otherwise the Action ring page
     const p = S.picker, dd = S.devices.find(x => x.id === p.dev) || d, cap = dd && gestureCapable(dd).some(c => c.cid === p.cid);
     fx.stopRecorder();
-    if (!cap) { go('ring'); return; }
+    if (!cap) { go('ring'); openRingPanel(); return; }
     // the ring in the middle with its actions open on the right (the left bar folds away, as
     // with any panel); the back arrow returns to the mouse's Buttons
     // the panel stays where it is and changes to the ring's: no closing and reopening on the way
     S.holdCid = Object.assign({}, S.holdCid, { [dd.id]: p.cid });
     S.page = 'gestures'; S.dev = dd.id; S.menu = null; S.appDetail = null;
     S.cfgFrom = 'buttons'; S.cfgKind = 'ring'; S.cfgBack = { cid: p.cid, label: p.label, profile: p.profile };
-    const slots = ringSlots(), first = Math.max(0, slots.findIndex(s => !s));
-    openPicker({ drawer: true, dev: dd, section: 'ring', cid: first, label: RING_DIRS[first] });
+    openRingPanel(dd);
     return;
   },
   'acc-toggle': async (it, e, d, key) => { const p = S.picker; p.fold = Object.assign({}, p.fold || PICKER_FOLD, { [key]: !(p.fold || PICKER_FOLD)[key] }); p.unfolded = p.fold[key] ? key : null; changed(); return; },
@@ -317,4 +321,4 @@ export const commands = {
   },
 };
 
-export const provide = { PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem, setChord, dropOnGesture, keyGrab, PICKER_FOLD, takeUnfolded, assignTyped };
+export const provide = { openRingPanel, PICKER_CATS, CAT_OF, CAT_LABEL, pickerItems, OPTS_CARD, RECOMMEND, MOUSE_RECOMMEND, AK, AW, APP_ACTIONS, BROWSER, OFFICE, CALL, APP_SETS, appSet, appLabel, recItem, MOUSE_GROUP, WHEEL_GROUP, K, keyRange, keyGroups, OPTS_CATS, DRAWER_SECTIONS, ACTION_GROUPS, groupsFor, sectionsFor, KEY_GROUP_NAMES, curOf, keyCur, RING_RECOMMEND, RING_DRAG, RING_WHEEL, easyLabel, GESTURE_RECOMMEND, GESTURE_TYPES, allowedFor, drawerItems, openPicker, assignPicked, presetItem, setChord, dropOnGesture, keyGrab, PICKER_FOLD, takeUnfolded, assignTyped };
