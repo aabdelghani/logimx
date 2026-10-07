@@ -1239,3 +1239,6 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-tip i { font-size: 12px; }
 .fl-screen[data-peer]:hover .fl-tip { opacity: 1; translate: -50% 0; }
 .fl-grid.dragging .fl-tip { opacity: 0 !important; }
+
+/* Flow's channels are shown for reference only: learned by NotLogi, not set here */
+.fl-muted { opacity: .5; pointer-events: none; }

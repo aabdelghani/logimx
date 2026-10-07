@@ -124,7 +124,7 @@ function flowPanel(f) {
   const channels = peers.map(p => (p.devices || []).map(dv => {
     const auto = dv.from && dv.from !== 'manual' ? (dv.from === 'reported' ? t('Auto: channel {n}, learned', { n: dv.host + 1 }) : t('Auto: channel {n}, from its name', { n: dv.host + 1 })) : t('Auto');
     const opts = [`<option value="auto" ${dv.from !== 'manual' ? 'selected' : ''}>${auto}</option>`].concat(Array.from({ length: dv.count }, (_, i) => `<option value="${i}" ${dv.from === 'manual' && dv.host === i ? 'selected' : ''}>${t('Channel {n}', { n: i + 1 })}</option>`));
-    return `<div class="row"><i class="fa-solid ${dv.kind === 'mouse' ? 'fa-computer-mouse' : 'fa-keyboard'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(dv.name)}</div><div class="sub">${t('On {computer}', { computer: esc(p.name) })}${dv.host === null ? ' · ' + t('no channel known yet') : ''}</div></div><select class="sel" data-act="flow-channel" data-key="${esc(dv.serial)}" data-peer="${esc(p.id)}">${opts.join('')}</select></div>`;
+    return `<div class="row"><i class="fa-solid ${dv.kind === 'mouse' ? 'fa-computer-mouse' : 'fa-keyboard'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(dv.name)}</div><div class="sub">${t('On {computer}', { computer: esc(p.name) })}${dv.host === null ? ' · ' + t('no channel known yet') : ''}</div></div><select class="sel" data-act="flow-channel" data-key="${esc(dv.serial)}" data-peer="${esc(p.id)}" disabled>${opts.join('')}</select></div>`;
   }).join('')).join('');
   const nearRows = near.length ? near.map(n => `<div class="row"><i class="${OS_ICON[n.os] || 'fa-solid fa-desktop'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(n.name)}</div><div class="sub">${n.searching ? t('Searching for computers') : t('Open Flow on it and choose Add computer to connect')}</div></div>${n.searching ? `<button class="btn sm primary" data-act="flow-connect" data-key="${esc(n.id)}">${t('Connect')}</button>` : ''}</div>`).join('')
     : `<div class="row sub" style="color:var(--dim)">${t('No other computer with NotLogi on this network right now')}</div>`;
@@ -135,7 +135,7 @@ function flowPanel(f) {
       ${sec(t('Sharing'), card(
         row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
         row(t('Share clipboard'), t('Copy on one computer, paste on another'), sw(f.clipboard, 'data-act="flow-toggle" data-key="clipboard"'))))}
-      ${channels ? `<div id="fl-channels">${sec(t('Channels'), card(channels) + `<div class="hint">${t('A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.')}</div>`)}</div>` : ''}
+      ${channels ? `<div id="fl-channels" class="fl-muted">${sec(t('Channels'), card(channels) + `<div class="hint">${t('A device follows the pointer on the channel it is paired on with that computer. Auto learns it when the device connects there with NotLogi running.')}</div>`)}</div>` : ''}
       ${sec(t('Computers on this network'), card(nearRows))}
     </div></div>`;
 }
