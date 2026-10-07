@@ -186,10 +186,19 @@ function alignToNav() {
   }
 }
 
+// in a ring folder: its name top-left, typed over in place (Enter saves, Esc puts it back)
+function folderNameField() {
+  const f = ringFolder(ringTop(ringState()));
+  if (!f) return '';
+  const name = f.label || t('New folder');
+  return `<input class="cfg-name folder-name ${S.ringAnim && S.ringAnim.kind === 'in' ? 'enter' : ''}" data-field="folderName" value="${esc(name)}" size="${Math.max(8, Math.min(24, name.length + 1))}" title="${t('Click to rename the folder')}" spellcheck="false"><button class="hbtn icon folder-rename" data-act="folder-rename" title="${t('Rename the folder')}"><i class="fa-solid fa-pen"></i></button><span class="folder-hint">${t('Enter to save · Esc to cancel')}</span>`;
+}
 function renderWindow() {
   const d = dev();
   const devPage = !S.appDetail && d && S.page !== 'home' && (devicePages(d).includes(S.page) || S.page === 'thumb');
   const mode = S.appDetail ? 'general' : S.page === 'home' ? 'home' : devPage ? 'device' : 'general';
+  // the action ring's own page (no mouse here) is the same editor as a button's Configure action ring
+  const ringSolo = mode === 'general' && !S.appDetail && S.page === 'ring';
   const title = S.appDetail ? (S.appDetail.name || t('Application')) : mode === 'device' ? d.name : (PAGES[S.page] ? PAGES[S.page][0] : 'NotLogi');
   const conflict = !S.conflictDismissed && S.conflicts.length && ['buttons', 'gestures', 'keys'].includes(S.page);
   const cname = conflict ? S.conflicts[0].name : '';
@@ -211,7 +220,10 @@ function renderWindow() {
           <button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
   let body;
-  if (mode === 'device') {
+  if (ringSolo) {
+    const drawer = drawerUp();
+    body = `<div class="devview2 ring-solo ${drawer ? 'drawer-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${folderNameField() || `<span class="cfg-name">${t('Action ring')}</span>`}</div></aside><section class="dev-config solo"><div class="cfg-top"><div class="right">${ringProfileBar()}<button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button></div></div><div class="content"><div class="page">${pageRing()}</div></div></section>${drawer ? renderPicker() : ''}</div>`;
+  } else if (mode === 'device') {
     const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
     // the device's pages listed down the left (the first is open by default) with Settings at the
     // foot; the page itself on the right under the window buttons
@@ -219,13 +231,13 @@ function renderWindow() {
     const items = navPages(d).map(p => p === 'easy' && !easyView(d) ? `<button class="dnav-item soon" disabled title="${t('Coming soon')}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}<span class="soon-tag">${t('Soon')}</span></button>` : `<button class="dnav-item ${S.page === p || (p === 'buttons' && ['thumb', 'gestures'].includes(S.page)) ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
     const flowSide = S.page === 'flow' && !!S.flowPanel && !!S.flow;   // Flow's settings, in the same side panel as the other pages
     const drawer = drawerUp(), blp = !drawer && (flowSide || S.addPanel || backlightPanel(d));
-    body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${S.page === 'gestures' && S.cfgKind === 'ring' && ringFolder(ringTop(ringState())) ? `<input class="cfg-name folder-name ${S.ringAnim && S.ringAnim.kind === 'in' ? 'enter' : ''}" data-field="folderName" value="${esc(ringFolder(ringTop(ringState())).label || t('New folder'))}" size="${Math.max(8, Math.min(24, (ringFolder(ringTop(ringState())).label || t('New folder')).length + 1))}" title="${t('Click to rename the folder')}" spellcheck="false"><button class="hbtn icon folder-rename" data-act="folder-rename" title="${t('Rename the folder')}"><i class="fa-solid fa-pen"></i></button><span class="folder-hint">${t('Enter to save · Esc to cancel')}</span>` : `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>${t('Settings')}</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (flowSide ? flowPanel(S.flow) : S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
+    body = `<div class="devview2 ${drawer || blp ? 'drawer-open' : ''} ${blp ? 'panel-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${(S.page === 'gestures' && S.cfgKind === 'ring' && folderNameField()) || `<span class="cfg-name">${esc(d.name)}</span>`}</div><nav>${items}<button class="dnav-item ${S.page === 'info' ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="info"><i class="fa-solid fa-sliders"></i>${t('Settings')}</button></nav>${navBattery(d)}</aside><section class="dev-config solo ${S.page === 'info' ? 'full' : ''}"><div class="cfg-top">${controls}</div><div class="content"><div class="page">${renderPage(d)}</div></div></section>${drawer ? renderPicker() : blp ? (flowSide ? flowPanel(S.flow) : S.addPanel ? renderAddPanel(d) : S.page === 'pointer' ? renderPointerPanel(d) : S.page === 'easy' ? renderEasyPanel(d) : renderBacklightPanel(d)) : ''}</div>`;
   } else {
     body = `<div class="content ${mode === 'home' ? 'landing' : ''}"><div class="page">${renderPage(d)}</div></div>${mode === 'home' ? `<div class="wish-line"><i class="fa-solid fa-heart"></i><span>${t('Have a wish? Found a problem? I\'m here to make it happen, I love to build!')}</span><span class="wish-promise"><i class="fa-solid fa-stopwatch"></i>${t('Granted within 24 hours')}</span><button class="btn primary" data-act="wish"><i class="fa-solid fa-wand-magic-sparkles"></i>${t('Make a wish')}</button><button class="btn" data-act="report"><i class="fa-solid fa-bug"></i>${t('Report an issue')}</button></div><footer class="agent-line ${S.connected ? '' : 'off'}"><i class="fa-solid fa-circle"></i>${S.connected ? t('Agent connected') : t('Agent not running')} · v${S.status.version || VERSION}</footer>` : ''}`;
   }
   return `<div class="window">
     <main class="main">
-      ${mode === 'device' ? '' : `<header class="hb">
+      ${mode === 'device' || ringSolo ? '' : `<header class="hb">
         <div class="left">${left}</div>
         <span class="title">${mode === 'home' ? '' : esc(title)}</span>
         ${controls}

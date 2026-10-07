@@ -1195,7 +1195,9 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* the whole page area: switch and cog pinned top right, ADD COMPUTER pinned at the bottom, the screens centred between */
 .fl-page { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 70px 24px 150px; box-sizing: border-box; overflow: auto; }
 /* the Flow switch and the settings cog at the top right of the page area, Add computer at its bottom */
-.dev-config:has(.fl-page) .content { position: relative; }   /* the page's own anchor: the window's top bar stays where it is */
+/* the page itself is the Flow page's anchor, full height, so it looks the same while it slides in (the slide's
+   transform makes the page the anchor) and after; the window's top bar stays where it is */
+.dev-config:has(.fl-page) .content > .page { position: relative; max-width: none; margin: -24px -28px -40px; height: calc(100% + 64px); }
 .fl-page .fl-top { position: absolute; top: 8px; right: 40px; z-index: 2; }
 .fl-page .fl-bottom { position: absolute; left: 0; right: 40px; bottom: 36px; z-index: 2; flex-direction: column; align-items: flex-end; gap: 10px; }   /* under the settings cog */
 .fl-top { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
@@ -1242,3 +1244,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 
 /* Flow's channels are shown for reference only: learned by NotLogi, not set here */
 .fl-muted { opacity: .5; pointer-events: none; }
+/* the Action ring page (no mouse here): the ring editor over the whole width, its name top-left */
+.devview2.ring-solo { grid-template-columns: 1fr; }
+.devview2.ring-solo.drawer-open { grid-template-columns: 1fr 460px; }
+.devview2.ring-solo .dnav { position: absolute; left: 0; top: 0; width: auto; padding: 0 12px 0 14px; z-index: 2; }

@@ -51,6 +51,8 @@ async function saveFolderName(name) {
   S.ringPath = path;
 }
 // the panel turns to a place in the open ring or folder
+// the ring's editor is on screen: a button's Configure action ring, or the Action ring page itself
+const ringEditorOn = () => S.page === 'ring' || (S.page === 'gestures' && S.cfgKind === 'ring');
 const ringSelect = i => { const p = S.picker; if (!p || p.section !== 'ring') return; p.insert = null; p.cid = i; p.label = (S.ringPath || []).length ? t('Action {n}', { n: i + 1 }) : RING_DIRS[i]; p.current = (ringSlots()[i] || {}).action || null; p.sel = null; p.selKey = null; };
 // a folder keeps the direction it sits in on the ring: its first action goes the same way, the
 // next ones continue clockwise from there (the real ring draws them at those same directions)
@@ -183,4 +185,4 @@ export const commands = {
   'ring-clear': async (it, e, d, key) => { await saveRingSlots([]); toast(t('Slots cleared')); changed(); return; },
 };
 
-export const provide = { ringState, ringApp, ringViewApp, appRing, ringTop, ringFolder, ringSlots, saveRing, saveRingSlots, ringAppName, ringAppMatch, ringUseName, ringInserting, ringSelectAdd, saveFolderName, ringSelect, ringTidyFolders, ringEditing, dropOnRing, brightnessStatus };
+export const provide = { ringEditorOn, ringState, ringApp, ringViewApp, appRing, ringTop, ringFolder, ringSlots, saveRing, saveRingSlots, ringAppName, ringAppMatch, ringUseName, ringInserting, ringSelectAdd, saveFolderName, ringSelect, ringTidyFolders, ringEditing, dropOnRing, brightnessStatus };

@@ -3,8 +3,8 @@ import { isFolderSlot, RING_DIRS } from '../../shared/ring.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringViewApp, row, sec, sw, takeCue;
-export function link(ctx) { ({ S, appRing, card, drop, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringViewApp, row, sec, sw, takeCue } = ctx); }
+let S, appRing, card, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringViewApp, row, sec, sw, takeCue;
+export function link(ctx) { ({ S, appRing, card, esc, range, ringApp, ringAppName, ringEditing, ringFolder, ringInserting, ringSlots, ringState, ringTop, ringViewApp, row, sec, sw, takeCue } = ctx); }
 
 // which ring an app uses, as one sentence (the app's name already escaped)
 const usesLine = (app, rs, k) => { const ar = appRing(rs, k); return !ar ? t('{app} · uses the global ring', { app }) : ar.legacy ? t('{app} · uses its own ring', { app }) : t('{app} · uses {ring}', { app, ring: esc(t(rs.profiles[ar.i].name)) }); };   // i18n: data
@@ -120,19 +120,11 @@ function ringBehaviour() {
   const size = `<div class="row"><span class="grow lbl">${t('Ring size')}</span><span class="seg">${sz('small', t('Small'))}${sz('medium', t('Medium'))}${sz('large', t('Large'))}</span></div>`;
   return `<div class="ring-behaviour">${sec(t('Ring behaviour'), card(size + free + feel))}</div>`;
 }
+// the Action ring page (no mouse here): the same editor as a button's Configure action ring, with how
+// the ring behaves under it while no slot's actions are open on the right (the panel shows it then)
 function pageRing() {
-  const rs = ringState(), slots = ringSlots();
-  const filled = slots.filter(Boolean).length;
-  const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}" title="${t('{n} of 8 slots filled', { n: p.slots.filter(Boolean).length })}">${esc(t(p.name))}</button>`).join('');   // i18n: data
-  const profilesRow = `<div class="row" style="gap:10px"><div class="chips grow">${pchips}<button class="pill" data-act="ring-profile-add" title="${t('New profile')}"><i class="fa-solid fa-plus"></i>${t('New')}</button></div><button class="btn flat" data-act="ring-profile-rename" title="${t('Rename this profile')}"><i class="fa-solid fa-pen"></i></button><button class="btn flat" data-act="ring-profile-copy" title="${t('Duplicate this profile')}"><i class="fa-solid fa-copy"></i></button>${rs.profiles.length > 1 ? `<button class="btn flat danger" data-act="ring-profile-delete" title="${t('Delete this profile')}"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
-  // preview: the same geometry as the overlay, icons on a disc
-  const chips = slots.map((sl, i) => { const a = (i * 45 - 90) * Math.PI / 180; const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a); return `<button class="ring-chip ${sl ? '' : 'empty'} ${ringEditing(i) ? 'selected' : ''}" style="left:${x}%;top:${y}%" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}" title="${esc(sl ? t(sl.label) : t('Empty · {dir}', { dir: RING_DIRS[i] }))}"><i class="fa-solid ${sl ? esc(sl.icon || 'fa-circle-dot') : 'fa-plus'}"></i></button>`; }).join('');   // i18n: data
-  const preview = `<div class="ring-preview"><div class="ring-disc">${chips}<div class="ring-hub"><i class="fa-solid fa-xmark"></i></div></div><div class="ring-side"><div class="lbl">${filled ? t('{n} of 8 slots filled', { n: filled }) : t('No actions yet')}</div><div class="sub">${rs.free_pointer ? t('Hold the button, move the pointer onto an action and let go to run it; or tap the button and click. 1 to 8 and Esc work too.') : t('Hold the button and nudge the mouse toward an action, then let go to run it; or tap the button and click. 1 to 8 and Esc work too.')}</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>${t('Try it')}</button>${filled ? `<button class="btn flat danger" data-act="ring-clear"><i class="fa-solid fa-trash"></i>${t('Clear all')}</button>` : ''}</div></div></div>`;
-  const rows = slots.map((sl, i) => `<div class="row ${ringEditing(i) ? 'editing' : ''}"><span class="num">${i + 1}</span><span class="grow lbl">${RING_DIRS[i]}</span>${sl ? drop(sl.action, `data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"`) : `<button class="drop blank" data-act="pick" data-section="ring" data-cid="${i}" data-label="${esc(RING_DIRS[i])}"><i class="fa-solid ic fa-plus"></i>${t('Empty')}<i class="fa-solid fa-chevron-down chev"></i></button>`}</div>`).join('');
-  const travel = rs.travel;
-  const free = `<div class="row"><div class="grow"><div class="lbl">${t('Keep the pointer visible and free')}</div><div class="sub">${rs.free_pointer ? t('The pointer stays on screen and moves anywhere; the action under it is the one chosen') : t('While the button is held the pointer hides and the mouse steers the ring')}</div></div>${sw(rs.free_pointer, 'data-act="ring-free"')}</div>`;
-  const feel = rs.free_pointer ? '' : `<div class="row"><div class="grow"><div class="lbl">${t('Travel before it picks')}</div><div class="sub">${t('How far the mouse moves before an action is chosen: lower is snappier, higher is calmer')}</div></div>${range('data-act="ring-travel" data-out="rtravel"', travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${travel}</span></div>`;
-  return sec(t('Action ring'), card(preview + free + feel)) + sec(t('Profiles'), card(profilesRow), t('sets of actions, one in use')) + sec(t('Slots · {name}', { name: t(rs.profiles[rs.active].name) }), card(rows), t('clockwise from the top'));   // i18n: data
+  const panel = S.dlg === 'picker' && S.picker && S.picker.drawer;
+  return `<div class="ring-page">${ringStage()}<div class="rs-bar"><span></span><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>${t('Try it')}</button></div>${panel ? '' : ringBehaviour()}</div>`;
 }
 
 export const provide = { ringProfileBar, ringStage, RING_IN, RING_OUT, ringParentRing, ringFolderRow, ringSlotMenu, ringProfileMenu, ringBehaviour, pageRing };

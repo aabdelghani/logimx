@@ -3,8 +3,8 @@
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast;
-export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast } = ctx); }
+let IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast, ringEditorOn;
+export function link(ctx) { ({ IS_MAC, IS_WIN, S, SLOTS, agentNeedsBuild, api, applyPreset, call, changed, dev, devicePages, drawerUp, fx, gestureControl, go, isOffline, openPicker, refresh, ringSelect, sidePanelClosed, toast, ringEditorOn } = ctx); }
 
 // the screen state this view model owns: where the window is: page and device, dialog and menu open, first run, theme
 export const state = {
@@ -27,7 +27,7 @@ function unhideIfBack(d) {
 export const commands = {
   'page': async (it, e, d, key) => { go(it.data.page); return; },
   'go-home': async (it, e, d, key) => {
-    if (S.page === 'gestures' && S.cfgKind === 'ring' && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; ringSelect(i); changed(); return; }
+    if (ringEditorOn() && (S.ringPath || []).length) { const i = S.ringPath[0]; S.ringPath = []; S.menu = null; ringSelect(i); changed(); return; }
     // opened from a button's Configure: back to the mouse's Buttons, panel and all
     // with that button's actions open again on the right (the panel changes in place)
     if (S.cfgFrom && S.page === 'gestures') {

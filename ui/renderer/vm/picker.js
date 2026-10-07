@@ -6,8 +6,8 @@ import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 import { en, inEnglish, t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast;
-export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast } = ctx); }
+let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast, ringEditorOn;
+export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast, ringEditorOn } = ctx); }
 
 // the screen state this view model owns: the action picker open (null: none)
 export const state = {
@@ -208,11 +208,11 @@ export const commands = {
     // a folder on the ring opens straight away (its ⋯ menu removes it)
     if (it.data.ins && S.picker && S.picker.section === 'ring') { ringSelectAdd(it.data.ins); changed(); return; }
     const fc = Number(it.data.cid);
-    if (it.data.section === 'ring' && S.page === 'gestures' && S.cfgKind === 'ring' && !(S.ringPath || []).length && isFolderSlot(ringSlots()[fc])) {
+    if (it.data.section === 'ring' && ringEditorOn() && !(S.ringPath || []).length && isFolderSlot(ringSlots()[fc])) {
       S.menu = null; S.ringPath = [fc]; S.ringAnim = { kind: 'in', from: fc }; ringSelectAdd(); changed(); return;
     }
     }
-    openPicker({ drawer: S.page === 'gestures' && (it.data.section === 'ring' || it.data.section === 'gesture'), dev: it.data.dev ? S.devices.find(x => x.id === it.data.dev) : d, section: it.data.section, cid: it.data.cid === 'thumb' ? 'thumb' : Number(it.data.cid), label: it.data.label, cat: it.data.cat, profile: it.data.profile }); return;
+    openPicker({ drawer: (S.page === 'gestures' && (it.data.section === 'ring' || it.data.section === 'gesture')) || (S.page === 'ring' && it.data.section === 'ring'), dev: it.data.dev ? S.devices.find(x => x.id === it.data.dev) : d, section: it.data.section, cid: it.data.cid === 'thumb' ? 'thumb' : Number(it.data.cid), label: it.data.label, cat: it.data.cat, profile: it.data.profile }); return;
   },
   'pick-gesture': async (it, e, d, key) => { openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid: gestureControl(d), label: SLOTS[S.dir][0], slot: it.data.slot }); return; },
   'pick-gestures': async (it, e, d, key) => {
