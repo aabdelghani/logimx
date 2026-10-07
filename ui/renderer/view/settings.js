@@ -114,12 +114,11 @@ function pageFlow() {
   if (!peers.length) return '';
   const at = pos => peers.filter(p => p.pos === pos).map(p => flowScreen(f, p)).join('');
   return `<div class="fl-page">
-    <div class="fl-top"><span class="lbl">${t('Flow')}</span>${sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')}<button class="hbtn icon ${S.flowPanel ? 'on' : ''}" data-act="flow-settings" title="${t('Flow Settings')}"><i class="fa-solid fa-gear"></i></button></div>
+    <div class="fl-top"><span class="lbl">${t('Flow')}</span>${sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')}<button class="fl-cog ${S.flowPanel ? 'on' : ''}" data-act="flow-settings" title="${t('Flow Settings')}"><i class="fa-solid fa-gear"></i></button></div>
     <div class="fl-grid"><div class="fg-up">${at('up')}</div><div class="fg-left">${at('left')}</div><div class="fg-me">${flowScreen(f, null)}</div><div class="fg-right">${at('right')}</div><div class="fg-down">${at('down')}</div></div>
-    <div class="fl-bottom"><button class="btn" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('ADD COMPUTER')}</button></div>
-    ${f.error ? `<div class="hint" style="color:var(--err);text-align:center">${esc(f.error)}</div>` : ''}
-    <div class="hint" style="text-align:center">${t('Works on your local network. Nothing is sent anywhere online.')}</div>
-  </div>${S.flowPanel ? flowPanel(f) : ''}`;
+    <div class="fl-bottom"><button class="btn primary fl-add" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('ADD COMPUTER')}</button>
+      ${f.error ? `<div class="hint" style="color:var(--err)">${esc(f.error)}</div>` : ''}<div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div></div>
+  </div>`;
 }
 // the rest of Flow's settings, in a panel on the right: how to switch computers, what goes along,
 // each device's channel, and NotLogi on other computers of this network
@@ -134,9 +133,9 @@ function flowPanel(f) {
   }).join('')).join('');
   const nearRows = near.length ? near.map(n => `<div class="row"><i class="${OS_ICON[n.os] || 'fa-solid fa-desktop'}" style="width:22px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${esc(n.name)}</div><div class="sub">${n.searching ? t('Searching for computers') : t('Open Flow on it and choose Add computer to connect')}</div></div>${n.searching ? `<button class="btn sm primary" data-act="flow-connect" data-key="${esc(n.id)}">${t('Connect')}</button>` : ''}</div>`).join('')
     : `<div class="row sub" style="color:var(--dim)">${t('No other computer with NotLogi on this network right now')}</div>`;
-  return `<div class="fl-scrim" data-act="flow-panel-close"></div><div class="fl-panel" data-stop>
-    <div class="dlg-head"><span class="dh-key">${t('Flow Settings')}</span><button class="hbtn icon" data-act="flow-panel-close" title="${t('Close')}"><i class="fa-solid fa-xmark"></i></button></div>
-    <div class="fl-panel-body">
+  return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
+    <div class="dlg-head"><span class="dh-key">${t('Modify settings')}</span><span class="dh-sub">${t('Flow')}</span></div>
+    <div class="dlg-body">
       ${sec(t('Switch computers'), card(choice('edge', t('Move cursor to edge'), t('Switch as soon as the pointer reaches the edge of the screen')) + choice('ctrl', t('Hold CTRL and move cursor to edge'), t('The edge only switches while a Ctrl key is held'))))}
       ${sec(t('Sharing'), card(
         row(t('Link keyboard'), t('Your keyboard follows the pointer from one computer to the other'), sw(f.keyboard, 'data-act="flow-toggle" data-key="keyboard"')) +
@@ -154,4 +153,4 @@ function pageAbout() {
     sec(t('Diagnostics'), card(`<div class="logs">${logs.map(l => `<span class="${l.c || 'dim'}">${esc(l.t)}</span>`).join('')}</div>`) + `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" data-act="report"><i class="fa-solid fa-bug"></i>${t('Report a problem')}</button><button class="btn" data-act="export-diag"><i class="fa-solid fa-file-zipper"></i>${t('Export diagnostics')}</button><button class="btn" data-act="copy-diag"><i class="fa-solid fa-copy"></i>${t('Copy')}</button></div>`, `<button class="btn sm flat" data-act="refresh-logs">${t('Refresh')}</button>`);
 }
 
-export const provide = { flowWizard, pageNotif, pageBackup, pageSettings, pageFlow, pageAbout };
+export const provide = { flowPanel, flowWizard, pageNotif, pageBackup, pageSettings, pageFlow, pageAbout };

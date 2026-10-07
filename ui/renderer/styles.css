@@ -1193,11 +1193,21 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-pc .acts .hbtn.on { background: var(--accbg); color: #fff; opacity: 1; }
 
 /* Flow's page: the computers as screens, the switch and cog at the top right, Add computer below */
-.fl-page { display: flex; flex-direction: column; gap: 14px; }
-.fl-top { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.fl-page { display: flex; flex-direction: column; gap: 18px; }
+/* the Flow switch and the settings cog at the top right of the page area, Add computer at its bottom */
+.dev-config:has(.fl-page) { position: relative; align-self: stretch; height: 100%; }
+.fl-page .fl-top { position: absolute; top: 72px; right: 40px; z-index: 2; }
+.fl-page .fl-bottom { position: absolute; left: 0; right: 0; bottom: 36px; z-index: 2; flex-direction: column; align-items: center; gap: 10px; }
+.fl-top { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.fl-top .lbl { font-size: 16px; }
+.fl-cog { width: 52px; height: 52px; border-radius: 14px; border: 0; background: var(--btn); color: var(--fg); font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.fl-cog i { font-size: 24px; }
+.fl-cog:hover { background: var(--btnh); }
+.fl-cog.on { background: var(--accbg); color: #fff; }
 .fl-top .lbl { font-weight: 600; }
 .fl-bottom { display: flex; justify-content: center; }
-.fl-bottom .btn { font-weight: 700; letter-spacing: .04em; }
+.fl-bottom .fl-add { font-size: 16px; font-weight: 700; letter-spacing: .05em; padding: 16px 40px; border-radius: 14px; gap: 12px; }
+.fl-bottom .fl-add i { font-size: 18px; }
 .fl-screen { display: flex; flex-direction: column; align-items: center; }
 .fl-display { position: relative; width: 210px; height: 132px; border-radius: 12px; border: 3px solid var(--fg); background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px; box-sizing: border-box; text-align: center; opacity: .55; }
 .fl-screen.on .fl-display { opacity: 1; }
@@ -1213,10 +1223,6 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-menu { right: 0; top: 30px; width: 220px; text-align: left; }
 .fl-menu .mline { font-size: 13px; color: var(--dim); padding: 2px 10px 6px; }
 .fl-menu button.danger { color: var(--err); }
-.fl-scrim { position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,.18); animation: fade .2s ease both; }
-.fl-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%); z-index: 901; background: var(--win); border-left: 1px solid var(--brd); display: flex; flex-direction: column; animation: drawer-in .28s cubic-bezier(0, 0, .2, 1) both; }
-.fl-panel .dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 6px; }
-.fl-panel-body { overflow: auto; padding: 0 20px 20px; }
 .fl-choice { width: 100%; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer; gap: 12px; }
 .fl-choice .radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--trk); flex: none; box-sizing: border-box; }
 .fl-choice.on .radio { border: 5px solid var(--accbg); }
