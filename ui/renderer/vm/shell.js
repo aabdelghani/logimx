@@ -38,7 +38,8 @@ export const commands = {
       return;
     }
     // with a panel open on the right, the back arrow folds the panel away first
-    if (drawerUp()) { fx.closeDrawer(); return; }
+    if (drawerUp() && S.page !== 'ring') { fx.closeDrawer(); return; }
+    if (S.page === 'ring') { S.dlg = null; S.picker = null; }
     if (fx.panelOpen()) { fx.closeDrawer(sidePanelClosed); return; }
     if (S.picker && S.picker.recording) { fx.stopRecorder(); S.picker.recording = false; } go('home'); return;
   },

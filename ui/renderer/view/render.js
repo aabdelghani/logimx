@@ -97,8 +97,8 @@ function render() {
   }
   // with a key's panel open, a click anywhere else in the middle closes it (another key opens that one)
   const mid = root.querySelector('.devview2.drawer-open:not(.panel-open) .dev-config');
-  // the ring opened from a button keeps its panel: the back arrow is the way out
-  if (mid && !(S.page === 'gestures' && S.cfgFrom)) mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
+  // the ring opened from a button, and the Action ring page, keep their panel: the back arrow is the way out
+  if (mid && !(S.page === 'gestures' && S.cfgFrom) && S.page !== 'ring') mid.addEventListener('click', e => { if (!e.target.closest('.hotspot, .ms-lab, .cfg-top, [data-act], input, select')) closeDrawer(); });
   // the backlight panel closes the same way: a click anywhere outside it (BACKLIGHT opens it again)
   const blMid = root.querySelector('.devview2.panel-open .dev-config');
   if (blMid) blMid.addEventListener('click', e => { if (!e.target.closest('.cfg-top, .bl-pin, .hotspot, .ms-lab')) closeDrawer(sidePanelClosed); });
