@@ -110,9 +110,8 @@ function pageFlow() {
   return `<div class="fl-page">
     <div class="fl-top"><span class="lbl">${t('Flow')}</span>${sw(f.enabled, 'data-act="flow-toggle" data-key="enabled"')}<button class="fl-cog ${S.flowPanel ? 'on' : ''}" data-act="flow-settings" title="${t('Flow Settings')}"><i class="fa-solid fa-gear"></i></button></div>
     <div class="fl-grid">${['up', 'left'].map(pos => `<div class="fg-${pos} fl-slot" data-drop="${pos}">${at(pos)}</div>`).join('')}<div class="fg-me">${flowScreen(f, null)}</div>${['right', 'down'].map(pos => `<div class="fg-${pos} fl-slot" data-drop="${pos}">${at(pos)}</div>`).join('')}</div>
-    <div class="hint" style="text-align:center">${t('Drag a computer to where its screen sits: above, left, right or below this one')}</div>
     <div class="fl-bottom"><button class="btn primary fl-add" data-act="flow-add"><i class="fa-solid fa-plus"></i>${t('ADD COMPUTER')}</button>
-      ${f.error ? `<div class="hint" style="color:var(--err)">${esc(f.error)}</div>` : ''}<div class="hint">${t('Works on your local network. Nothing is sent anywhere online.')}</div></div>
+      ${f.error ? `<div class="hint" style="color:var(--err)">${esc(f.error)}</div>` : ''}</div>
   </div>`;
 }
 // the rest of Flow's settings, in a panel on the right: how to switch computers, what goes along,
