@@ -49,16 +49,12 @@ function startedAtLogin() {
 }
 
 // The desktop's light/dark, accent colour and interface font, for the overlays.
-// The ring's look. On macOS it does not follow the system appearance or accent colour: dark mode
-// turned its buttons white and the yellow accent made it look nothing like the ring on Linux. It
-// keeps the light look (dark buttons, light middle) and Ubuntu's magenta, the same ring everywhere.
 function systemLook() {
-  if (IS_MAC) return { dark: false, accent: '#b34cb3', accentFg: '#ffffff', font: '-apple-system' };
   let accent = '#0067c0';
   try { const a = systemPreferences.getAccentColor(); if (a && /^[0-9a-f]{6}/i.test(a)) accent = '#' + a.slice(0, 6); } catch (e) {}
   const [r, g, b] = [1, 3, 5].map(i => parseInt(accent.slice(i, i + 2), 16));
   const accentFg = (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#1b1c1f' : '#ffffff';
-  return { dark: nativeTheme.shouldUseDarkColors, accent, accentFg, font: 'Segoe UI Variable Text, Segoe UI' };
+  return { dark: nativeTheme.shouldUseDarkColors, accent, accentFg, font: IS_MAC ? '-apple-system' : 'Segoe UI Variable Text, Segoe UI' };
 }
 
 function openBluetooth() {
