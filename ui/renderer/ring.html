@@ -29,7 +29,10 @@
     /* the nub that points from the chosen bubble at its label */
     .bub::after { content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px 9px 4px 9px; background: inherit; transform: rotate(var(--a)) translateX(calc(24px * var(--s, 1))) rotate(45deg) scale(0); transition: transform .09s ease-out; z-index: -1; }
     .bub.on { background: var(--acc); color: var(--acc-fg); transform: scale(1.14); }
-    .bub.on::after { transform: rotate(var(--a)) translateX(calc(24px * var(--s, 1))) rotate(45deg) scale(1); }
+    .bub.on::after { transform: rotate(var(--a)) translateX(calc(24px * var(--s, 1))) rotate(45deg) scale(1); opacity: 1; }
+    /* hidden by opacity too: a folder's popped-up actions draw it on top of themselves, where a scale of 0 alone
+       left a dark corner showing */
+    .bub::after { opacity: 0; }
     .bub.empty { background: transparent; color: var(--card); border: 2px dashed rgba(255,255,255,.75); box-shadow: 0 0 0 1px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.25); box-sizing: border-box; font-size: 15px; opacity: .7; text-shadow: 0 0 3px rgba(0,0,0,.6); }
     .bub.empty.on { opacity: 1; transform: scale(1.06); background: transparent; }
     .bub.empty::after { display: none; }
