@@ -1248,7 +1248,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .devview2.ring-solo { grid-template-columns: 1fr; }
 .devview2.ring-solo.drawer-open { grid-template-columns: 1fr 460px; }
 .devview2.ring-solo .dnav { position: absolute; left: 0; top: 0; width: auto; padding: 0 12px 0 14px; z-index: 2; }
-/* the ring's profiles step left of the action panel when it opens (the close button stays where it is) */
-.cfg-top .rpbar { transition: transform .3s cubic-bezier(.2, 0, 0, 1); }
-.devview2.drawer-open .cfg-top .rpbar { transform: translateX(-422px); }
-@media (prefers-reduced-motion: reduce) { .cfg-top .rpbar { transition: none; } }
+/* the profiles (applications, or the ring's) and Add application step left of a panel when it opens;
+   the close button stays where it is */
+.cfg-top .pbar { transition: transform .3s cubic-bezier(.2, 0, 0, 1); }
+.devview2.drawer-open .cfg-top .pbar { transform: translateX(-422px); }
+@media (prefers-reduced-motion: reduce) { .cfg-top .pbar { transition: none; } }
