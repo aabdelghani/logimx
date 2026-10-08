@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Il bordo cambia solo tenendo premuto un tasto Ctrl",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Trascina un computer dove si trova il suo schermo: sopra, a sinistra, a destra o sotto questo",
  "Drag to where its screen sits": "Trascina dove si trova il suo schermo",
- "Drag the screen to change its position": "Trascina lo schermo per cambiarne la posizione"
+ "Drag the screen to change its position": "Trascina lo schermo per cambiarne la posizione",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Controlla che il dispositivo risulti connesso nelle impostazioni Bluetooth. NotLogi continua ad attendere.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Tieni premuto il pulsante Easy-Switch per 3 secondi finché la luce lampeggia velocemente, poi sceglilo nelle impostazioni Bluetooth.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Se Logi Options+ è in esecuzione, chiudilo: occupa il dispositivo.",
+ "No receiver plugged in": "Nessun ricevitore collegato",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi ha bisogno del Monitoraggio dell’input per vedere i tuoi dispositivi.",
+ "Open Bluetooth settings again": "Riapri le impostazioni Bluetooth",
+ "Pair your device in Bluetooth settings": "Abbina il dispositivo nelle impostazioni Bluetooth",
+ "Paired but not showing up?": "Abbinato ma non compare?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Collega un ricevitore Bolt o Unifying per abbinarlo",
+ "Waiting for it to connect…": "In attesa della connessione…"
 }

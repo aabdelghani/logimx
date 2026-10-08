@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Kanten bytter bare mens en Ctrl-tast holdes nede",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Dra en datamaskin dit skjermen står: over, til venstre, til høyre for eller under denne",
  "Drag to where its screen sits": "Dra dit skjermen står",
- "Drag the screen to change its position": "Dra skjermen for å endre plasseringen"
+ "Drag the screen to change its position": "Dra skjermen for å endre plasseringen",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Sjekk at enheten vises som tilkoblet i Bluetooth-innstillingene. NotLogi venter fortsatt.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Hold Easy-Switch-knappen inne i 3 sekunder til lyset blinker raskt, og velg den deretter i Bluetooth-innstillingene.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Hvis Logi Options+ kjører, avslutt det: det holder på enheten.",
+ "No receiver plugged in": "Ingen mottaker koblet til",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi trenger Overvåking av inndata for å se enhetene dine.",
+ "Open Bluetooth settings again": "Åpne Bluetooth-innstillinger igjen",
+ "Pair your device in Bluetooth settings": "Par enheten i Bluetooth-innstillingene",
+ "Paired but not showing up?": "Paret, men vises ikke?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Koble til en Bolt- eller Unifying-mottaker for å pare med den",
+ "Waiting for it to connect…": "Venter på tilkobling…"
 }

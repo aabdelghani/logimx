@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Reuna vaihtaa vain, kun Ctrl-näppäintä pidetään painettuna",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Vedä tietokone sinne, missä sen näyttö on: tämän yläpuolelle, vasemmalle, oikealle tai alapuolelle",
  "Drag to where its screen sits": "Vedä sinne, missä sen näyttö on",
- "Drag the screen to change its position": "Vedä näyttöä muuttaaksesi sen paikkaa"
+ "Drag the screen to change its position": "Vedä näyttöä muuttaaksesi sen paikkaa",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Tarkista, että laite näkyy yhdistettynä Bluetooth-asetuksissa. NotLogi odottaa edelleen.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Pidä laitteen Easy-Switch-painiketta painettuna 3 sekuntia, kunnes valo vilkkuu nopeasti, ja valitse se sitten Bluetooth-asetuksista.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Jos Logi Options+ on käynnissä, sulje se: se varaa laitteen.",
+ "No receiver plugged in": "Vastaanotinta ei ole liitetty",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi tarvitsee Syötteen valvonnan nähdäkseen laitteesi.",
+ "Open Bluetooth settings again": "Avaa Bluetooth-asetukset uudelleen",
+ "Pair your device in Bluetooth settings": "Muodosta laitteen pari Bluetooth-asetuksissa",
+ "Paired but not showing up?": "Pari muodostettu, mutta laite ei näy?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Liitä Bolt- tai Unifying-vastaanotin muodostaaksesi parin sen kanssa",
+ "Waiting for it to connect…": "Odotetaan yhteyttä…"
 }

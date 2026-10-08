@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Η άκρη αλλάζει υπολογιστή μόνο όσο κρατάτε πατημένο ένα πλήκτρο Ctrl",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Σύρετε έναν υπολογιστή εκεί που βρίσκεται η οθόνη του: πάνω, αριστερά, δεξιά ή κάτω από αυτόν",
  "Drag to where its screen sits": "Σύρετε εκεί που βρίσκεται η οθόνη του",
- "Drag the screen to change its position": "Σύρετε την οθόνη για να αλλάξετε τη θέση της"
+ "Drag the screen to change its position": "Σύρετε την οθόνη για να αλλάξετε τη θέση της",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Ελέγξτε ότι η συσκευή εμφανίζεται ως συνδεδεμένη στις ρυθμίσεις Bluetooth. Το NotLogi συνεχίζει να περιμένει.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Κρατήστε πατημένο το κουμπί Easy-Switch για 3 δευτερόλεπτα μέχρι να αναβοσβήνει γρήγορα η λυχνία και μετά επιλέξτε τη συσκευή στις ρυθμίσεις Bluetooth.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Αν εκτελείται το Logi Options+, κλείστε το: δεσμεύει τη συσκευή.",
+ "No receiver plugged in": "Δεν έχει συνδεθεί δέκτης",
+ "NotLogi needs Input Monitoring to see your devices.": "Το NotLogi χρειάζεται την Παρακολούθηση εισόδου για να βλέπει τις συσκευές σας.",
+ "Open Bluetooth settings again": "Ξανά άνοιγμα ρυθμίσεων Bluetooth",
+ "Pair your device in Bluetooth settings": "Συζεύξτε τη συσκευή σας στις ρυθμίσεις Bluetooth",
+ "Paired but not showing up?": "Έγινε σύζευξη αλλά δεν εμφανίζεται;",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Συνδέστε έναν δέκτη Bolt ή Unifying για σύζευξη με αυτόν",
+ "Waiting for it to connect…": "Αναμονή σύνδεσης…"
 }

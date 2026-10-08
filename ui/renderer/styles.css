@@ -1256,3 +1256,12 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .cfg-top .pbar { transition: transform .3s cubic-bezier(.2, 0, 0, 1); }
 .devview2.drawer-open .cfg-top .pbar { transform: translateX(-422px); }
 @media (prefers-reduced-motion: reduce) { .cfg-top .pbar { transition: none; } }
+/* Add device: the receiver choice with no receiver plugged in */
+.choice[disabled] { opacity: .45; cursor: not-allowed; }
+.choice[disabled]:hover { background: var(--card); }
+/* Add device over the system's Bluetooth: what usually keeps a paired device from showing up */
+.pair-help { margin-top: 14px; border: 1px solid var(--brd); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; text-align: left; animation: rise .3s ease-out both; }
+.pair-help .ph-t { font-weight: 600; font-size: 14px; }
+.pair-help .ph-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--dim); }
+.pair-help .ph-row.warn { color: var(--fg); }
+.pair-help .ph-row.warn > i { color: var(--warn, #d97706); }

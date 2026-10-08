@@ -5,8 +5,8 @@ import { isMouse } from '../../shared/profiles.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let IS_LINUX, IS_MAC, IS_WIN, S, agentNeedsBuild, card, esc, row;
-export function link(ctx) { ({ IS_LINUX, IS_MAC, IS_WIN, S, agentNeedsBuild, card, esc, row } = ctx); }
+let IS_LINUX, IS_MAC, IS_WIN, S, agentNeedsBuild, card, esc, hasReceiver, row;
+export function link(ctx) { ({ IS_LINUX, IS_MAC, IS_WIN, S, agentNeedsBuild, card, esc, hasReceiver, row } = ctx); }
 
 // Bluetooth, the way Windows does it: put the device in pairing mode and it shows up here within
 // seconds; Connect pairs, trusts and connects it, showing a keyboard's passkey to type
@@ -28,12 +28,26 @@ function btPairBody(p) {
     ${passkey}<div class="bt-list">${rows || `<div class="bt-empty"><i class="fa-solid fa-satellite-dish"></i>${t('Searching for devices in pairing mode…')}</div>`}</div>
     <div class="hint" style="text-align:center"><a href="#" data-act="open-bt">${t('Use the system Bluetooth settings instead')}</a></div>`;
 }
+// Bluetooth through the system's settings (macOS, Windows): pair it there, the dialog waits for it to
+// arrive; after a while it says what usually keeps a paired device from showing up
+function sysWaitBody(p) {
+  const im = IS_MAC() && S.status.input_monitoring && S.status.input_monitoring !== 'granted';
+  const help = p.sys.slow ? `<div class="pair-help"><div class="ph-t">${t('Paired but not showing up?')}</div>
+      ${im ? `<div class="ph-row warn"><i class="fa-solid fa-triangle-exclamation"></i><span class="grow">${t('NotLogi needs Input Monitoring to see your devices.')}</span><button class="btn" data-act="im-open">${t('Open settings')}</button></div>` : ''}
+      <div class="ph-row"><i class="fa-solid fa-circle-info"></i><span class="grow">${t('If Logi Options+ is running, quit it: it holds the device.')}</span></div>
+      <div class="ph-row"><i class="fa-solid fa-circle-info"></i><span class="grow">${t('Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.')}</span></div></div>` : '';
+  return `<div class="center"><span class="ring"><i class="fa-brands fa-bluetooth-b"></i></span><div style="font-size:16px;font-weight:600">${t('Pair your device in Bluetooth settings')}</div>
+    <div class="hint">${t('Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.')}</div>
+    <div class="progress"><i></i></div><div class="hint">${t('Waiting for it to connect…')}</div></div>${help}`;
+}
 function renderPair() {
   const p = S.pair;
   const steps = [[1, t('Connection')], [2, t('Discover')], [3, t('Done')]].map(([n, l]) => `<button class="${n < p.step ? 'done' : n === p.step ? 'cur' : ''}"><span class="bar"></span><span class="t">${l}</span></button>`).join('');
   let body = '';
-  if (p.step === 1) body = `<button class="choice ${p.via !== 'bt' ? 'on' : ''}" data-act="pair-via" data-key="bolt"><span class="ic"><i class="fa-brands fa-usb"></i></span><div class="grow"><div>${t('Bolt receiver')}</div><div class="sub">${S.status.receivers ? esc(S.status.receivers) : t('Plugged in')}</div></div></button>
-    <button class="choice ${p.via === 'bt' ? 'on' : ''}" data-act="${IS_LINUX() ? 'pair-via' : 'open-bt'}" data-key="bt"><span class="ic"><i class="fa-brands fa-bluetooth-b"></i></span><div class="grow"><div>Bluetooth</div><div class="sub">${IS_LINUX() ? t('Found and connected right here') : t('Via the system Bluetooth settings')}</div></div></button><div class="hint">${t('Unifying receivers are supported for existing pairings only.')}</div>`;
+  // with no receiver plugged in the receiver choice is greyed out and Bluetooth is chosen
+  if (p.step === 1) body = `<button class="choice ${p.via !== 'bt' ? 'on' : ''}" data-act="pair-via" data-key="bolt" ${hasReceiver() ? '' : `disabled title="${t('Plug in a Bolt or Unifying receiver to pair with it')}"`}><span class="ic"><i class="fa-brands fa-usb"></i></span><div class="grow"><div>${t('Bolt receiver')}</div><div class="sub">${hasReceiver() ? esc(S.status.receivers) : t('No receiver plugged in')}</div></div></button>
+    <button class="choice ${p.via === 'bt' ? 'on' : ''}" data-act="pair-via" data-key="bt"><span class="ic"><i class="fa-brands fa-bluetooth-b"></i></span><div class="grow"><div>Bluetooth</div><div class="sub">${IS_LINUX() ? t('Found and connected right here') : t('Via the system Bluetooth settings')}</div></div></button><div class="hint">${t('Unifying receivers are supported for existing pairings only.')}</div>`;
+  else if (p.step === 2 && p.sys) body = sysWaitBody(p);
   else if (p.step === 2 && p.via === 'bt') body = btPairBody(p);
   else if (p.step === 2) {
     const f = p.found[0];
@@ -47,7 +61,7 @@ function renderPair() {
   return `<div class="scrim" data-act="close-dlg"><div class="dlg" data-stop>
     <div class="dlg-head">${t('Pair a device')}<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
     <div class="dlg-body"><div class="steps">${steps}</div>${body}</div>
-    <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="pair-cancel">${t('Cancel')}</button>${p.step === 2 && p.via === 'bt' ? '' : `<button class="btn primary" data-act="pair-next" ${p.step === 2 && !p.error ? 'disabled' : ''}>${p.step === 3 ? t('Finish') : p.step === 2 ? t('Retry') : t('Continue')}</button>`}</div></div></div></div>`;
+    <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="pair-cancel">${t('Cancel')}</button>${p.step === 2 && p.sys ? `<button class="btn" data-act="pair-bt-again"><i class="fa-brands fa-bluetooth-b"></i>${t('Open Bluetooth settings again')}</button>` : p.step === 2 && p.via === 'bt' ? '' : `<button class="btn primary" data-act="pair-next" ${p.step === 2 && !p.error ? 'disabled' : ''}>${p.step === 3 ? t('Finish') : p.step === 2 ? t('Retry') : t('Continue')}</button>`}</div></div></div></div>`;
 }
 function renderWish() {
   const w = S.wish || {};

@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Ctrl キーを押している間だけ端で切り替えます",
  "Drag a computer to where its screen sits: above, left, right or below this one": "コンピュータを画面の位置（このコンピュータの上・左・右・下）にドラッグします",
  "Drag to where its screen sits": "画面の位置にドラッグ",
- "Drag the screen to change its position": "画面をドラッグして位置を変更します"
+ "Drag the screen to change its position": "画面をドラッグして位置を変更します",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Bluetooth 設定でデバイスが接続済みと表示されているか確認してください。NotLogi は待機を続けます。",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Easy-Switch ボタンをライトが速く点滅するまで 3 秒間押し続け、Bluetooth 設定でデバイスを選択してください。",
+ "If Logi Options+ is running, quit it: it holds the device.": "Logi Options+ が実行中なら終了してください。デバイスを占有しています。",
+ "No receiver plugged in": "レシーバーが接続されていません",
+ "NotLogi needs Input Monitoring to see your devices.": "デバイスを認識するには、NotLogi に入力監視が必要です。",
+ "Open Bluetooth settings again": "Bluetooth 設定をもう一度開く",
+ "Pair your device in Bluetooth settings": "Bluetooth 設定でデバイスをペアリングしてください",
+ "Paired but not showing up?": "ペアリングしたのに表示されない場合",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Bolt または Unifying レシーバーを接続するとペアリングできます",
+ "Waiting for it to connect…": "接続を待っています…"
 }

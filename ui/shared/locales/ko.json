@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Ctrl 키를 누르고 있을 때만 가장자리에서 전환합니다",
  "Drag a computer to where its screen sits: above, left, right or below this one": "컴퓨터를 화면이 있는 위치(이 컴퓨터의 위, 왼쪽, 오른쪽, 아래)로 끌어 놓으세요",
  "Drag to where its screen sits": "화면이 있는 위치로 끌어 놓기",
- "Drag the screen to change its position": "화면을 끌어 위치를 변경하세요"
+ "Drag the screen to change its position": "화면을 끌어 위치를 변경하세요",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Bluetooth 설정에서 기기가 연결됨으로 표시되는지 확인하세요. NotLogi는 계속 기다립니다.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "표시등이 빠르게 깜박일 때까지 Easy-Switch 버튼을 3초간 누른 다음 Bluetooth 설정에서 기기를 선택하세요.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Logi Options+가 실행 중이면 종료하세요. 기기를 점유하고 있습니다.",
+ "No receiver plugged in": "연결된 수신기 없음",
+ "NotLogi needs Input Monitoring to see your devices.": "기기를 인식하려면 NotLogi에 입력 모니터링 권한이 필요합니다.",
+ "Open Bluetooth settings again": "Bluetooth 설정 다시 열기",
+ "Pair your device in Bluetooth settings": "Bluetooth 설정에서 기기를 페어링하세요",
+ "Paired but not showing up?": "페어링했는데 보이지 않나요?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "페어링하려면 Bolt 또는 Unifying 수신기를 연결하세요",
+ "Waiting for it to connect…": "연결을 기다리는 중…"
 }

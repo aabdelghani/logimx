@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Kanten byter bara medan en Ctrl-tangent hålls nedtryckt",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Dra en dator dit dess skärm står: ovanför, till vänster, till höger om eller nedanför den här",
  "Drag to where its screen sits": "Dra dit skärmen står",
- "Drag the screen to change its position": "Dra skärmen för att ändra dess position"
+ "Drag the screen to change its position": "Dra skärmen för att ändra dess position",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Kontrollera att enheten visas som ansluten i Bluetooth-inställningarna. NotLogi fortsätter att vänta.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Håll in Easy-Switch-knappen i 3 sekunder tills lampan blinkar snabbt och välj den sedan i Bluetooth-inställningarna.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Om Logi Options+ körs, avsluta det: det håller enheten.",
+ "No receiver plugged in": "Ingen mottagare ansluten",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi behöver Övervakning av inmatning för att se dina enheter.",
+ "Open Bluetooth settings again": "Öppna Bluetooth-inställningar igen",
+ "Pair your device in Bluetooth settings": "Parkoppla enheten i Bluetooth-inställningarna",
+ "Paired but not showing up?": "Parkopplad men syns inte?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Anslut en Bolt- eller Unifying-mottagare för att parkoppla med den",
+ "Waiting for it to connect…": "Väntar på anslutning…"
 }

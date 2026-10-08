@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "De rand wisselt alleen terwijl een Ctrl-toets wordt ingedrukt",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Sleep een computer naar waar zijn scherm staat: boven, links, rechts of onder deze",
  "Drag to where its screen sits": "Sleep naar waar het scherm staat",
- "Drag the screen to change its position": "Sleep het scherm om de positie te wijzigen"
+ "Drag the screen to change its position": "Sleep het scherm om de positie te wijzigen",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Controleer of het apparaat als verbonden wordt getoond in de Bluetooth-instellingen. NotLogi blijft wachten.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Houd de Easy-Switch-knop 3 seconden ingedrukt tot het lampje snel knippert en kies het apparaat dan in de Bluetooth-instellingen.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Als Logi Options+ actief is, sluit het af: het houdt het apparaat bezet.",
+ "No receiver plugged in": "Geen ontvanger aangesloten",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi heeft Invoermonitoring nodig om je apparaten te zien.",
+ "Open Bluetooth settings again": "Bluetooth-instellingen opnieuw openen",
+ "Pair your device in Bluetooth settings": "Koppel je apparaat in de Bluetooth-instellingen",
+ "Paired but not showing up?": "Gekoppeld maar niet zichtbaar?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Sluit een Bolt- of Unifying-ontvanger aan om ermee te koppelen",
+ "Waiting for it to connect…": "Wachten op verbinding…"
 }

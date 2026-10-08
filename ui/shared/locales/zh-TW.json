@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "只有按住 Ctrl 鍵時，邊緣才會切換",
  "Drag a computer to where its screen sits: above, left, right or below this one": "將電腦拖到其螢幕所在的位置：此電腦的上方、左側、右側或下方",
  "Drag to where its screen sits": "拖到其螢幕所在的位置",
- "Drag the screen to change its position": "拖曳螢幕以變更其位置"
+ "Drag the screen to change its position": "拖曳螢幕以變更其位置",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "請確認裝置在 Bluetooth 設定中顯示為已連線。NotLogi 會繼續等待。",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "按住 Easy-Switch 按鈕 3 秒，直到指示燈快速閃爍，然後在 Bluetooth 設定中選擇該裝置。",
+ "If Logi Options+ is running, quit it: it holds the device.": "如果 Logi Options+ 正在執行，請結束它：它會佔用裝置。",
+ "No receiver plugged in": "未插入接收器",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi 需要輸入監控權限才能看到你的裝置。",
+ "Open Bluetooth settings again": "再次開啟 Bluetooth 設定",
+ "Pair your device in Bluetooth settings": "請在 Bluetooth 設定中配對裝置",
+ "Paired but not showing up?": "已配對但沒有出現？",
+ "Plug in a Bolt or Unifying receiver to pair with it": "插入 Bolt 或 Unifying 接收器即可與其配對",
+ "Waiting for it to connect…": "正在等待連線…"
 }

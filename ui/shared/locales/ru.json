@@ -1034,5 +1034,15 @@
  "The edge only switches while a Ctrl key is held": "Край переключает компьютер, только пока удерживается клавиша Ctrl",
  "Drag a computer to where its screen sits: above, left, right or below this one": "Перетащите компьютер туда, где стоит его экран: над этим, слева, справа или под ним",
  "Drag to where its screen sits": "Перетащите туда, где стоит его экран",
- "Drag the screen to change its position": "Перетащите экран, чтобы изменить его положение"
+ "Drag the screen to change its position": "Перетащите экран, чтобы изменить его положение",
+ "Check that the device shows as connected in Bluetooth settings. NotLogi keeps waiting.": "Проверьте, что устройство отображается как подключённое в настройках Bluetooth. NotLogi продолжает ждать.",
+ "Hold its Easy-Switch button for 3 seconds until the light blinks fast, then choose it in Bluetooth settings.": "Удерживайте кнопку Easy-Switch 3 секунды, пока индикатор не начнёт быстро мигать, затем выберите устройство в настройках Bluetooth.",
+ "If Logi Options+ is running, quit it: it holds the device.": "Если запущен Logi Options+, закройте его: он занимает устройство.",
+ "No receiver plugged in": "Приёмник не подключён",
+ "NotLogi needs Input Monitoring to see your devices.": "NotLogi нужен Мониторинг ввода, чтобы видеть ваши устройства.",
+ "Open Bluetooth settings again": "Снова открыть настройки Bluetooth",
+ "Pair your device in Bluetooth settings": "Подключите устройство в настройках Bluetooth",
+ "Paired but not showing up?": "Сопряжено, но не появляется?",
+ "Plug in a Bolt or Unifying receiver to pair with it": "Подключите приёмник Bolt или Unifying, чтобы выполнить сопряжение с ним",
+ "Waiting for it to connect…": "Ожидание подключения…"
 }
