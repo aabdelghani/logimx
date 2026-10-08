@@ -9,25 +9,26 @@
   "main": "main.js",
   "scripts": {
     "start": "electron . --class=NotLogi",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "dist:appimage": "electron-builder --linux AppImage --publish never",
     "dist:dir": "electron-builder --linux dir --publish never",
     "dist:win": "node build/prep.js && electron-builder --win nsis --x64 --publish never",
     "dist:mac": "node build/prep.js && electron-builder --mac --arm64 --x64 --publish never",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "check": "npm test && npm run lint"
+    "check": "npm test && npm run lint",
+    "postinstall": "node scripts/install-electron.mjs"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.5.2"
+    "@fortawesome/fontawesome-free": "^7.3.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "acorn": "^8.19.0",
     "acorn-walk": "^8.3.5",
-    "electron": "^33.0.0",
-    "electron-builder": "^24.13.3",
-    "eslint": "^9.39.5",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.12.0",
     "globals": "^17.13.0"
   },
   "build": {
@@ -57,8 +58,10 @@
       "icon": "assets/icon.png",
       "synopsis": "Unofficial mouse & keyboard tools for Linux",
       "desktop": {
-        "StartupWMClass": "NotLogi",
-        "Keywords": "mouse;keyboard;MX;Bolt;"
+        "entry": {
+          "StartupWMClass": "NotLogi",
+          "Keywords": "mouse;keyboard;MX;Bolt;"
+        }
       },
       "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extraResources": [
@@ -95,7 +98,6 @@
         }
       ],
       "icon": "build/icon.ico",
-      "publisherName": "Ahmed Abdelghany",
       "legalTrademarks": "NotLogi is not affiliated with Logitech.",
       "extraResources": [
         {
@@ -106,7 +108,10 @@
           "from": "../agent/build/logimxctl.exe",
           "to": "agent/logimxctl.exe"
         }
-      ]
+      ],
+      "signtoolOptions": {
+        "publisherName": "Ahmed Abdelghany"
+      }
     },
     "nsis": {
       "oneClick": false,
@@ -152,7 +157,7 @@
       "darkModeSupport": true,
       "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extendInfo": {
-        "LSMinimumSystemVersion": "11.0",
+        "LSMinimumSystemVersion": "12.0",
         "NSHumanReadableCopyright": "Copyright (C) 2026 Ahmed Abdelghany. GPL-3.0-or-later. NotLogi is not affiliated with Logitech."
       },
       "extraResources": [

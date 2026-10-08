@@ -27,7 +27,7 @@ packaging/      .deb build.
 
 ## Requirements
 
-On Windows and macOS: Windows 10 or 11 (x64), or macOS 11 or newer. Nothing else.
+On Windows and macOS: Windows 10 or 11 (x64), or macOS 12 or newer. Nothing else.
 
 On Linux:
 
