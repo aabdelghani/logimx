@@ -57,7 +57,8 @@ sudo cp udev/60-logimx.rules /etc/udev/rules.d/ && sudo udevadm control --reload
 
 Packages: `packaging/deb/build.sh` for the .deb, `cd ui && npm run dist:appimage` for the AppImage.
 
-Tests for the app: `cd ui && npm test` (shared logic, ring geometry and the MVVM layer rules).
+Checks: `scripts/check.sh` runs the app's tests and lint, the agent's build and tests (`ctest --test-dir agent/build`)
+and the formatting of changed agent lines; see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 Windows (from Windows, or cross-compiled from Linux with [llvm-mingw](https://github.com/mstorsjo/llvm-mingw)):
 

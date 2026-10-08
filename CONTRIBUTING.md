@@ -19,8 +19,35 @@ So that this stays possible, by submitting a contribution you agree that:
 You keep the copyright in your contribution. Add a `Signed-off-by: Your Name <you@example.com>`
 line to your commits (`git commit -s`) to confirm the above.
 
+## Reporting
+
+- **A bug**: in NotLogi, About, Report a problem fills in the details; or use the bug report template.
+- **Your device**: the device report template, for "my MX ... works / does not".
+- **A wish**: Make a wish on the home screen, or the wish template.
+- **A security problem**: privately, as described in [SECURITY.md](SECURITY.md).
+
 ## Before opening a pull request
 
-- `cd ui && npm test` passes (shared logic, ring geometry and the rules between the app's layers;
-  see docs/ARCHITECTURE.md).
-- The app still starts and the page you changed looks right.
+Run every check with one command:
+
+```
+scripts/check.sh
+```
+
+It runs:
+
+- the app's tests (`cd ui && npm test`: shared logic, ring geometry, pairing, Flow's signing and
+  edges, and the rules between the app's layers, see docs/ARCHITECTURE.md);
+- the app's lint (`cd ui && npm run lint`, ESLint);
+- the agent's build and tests (`ctest --test-dir agent/build`: HID++ against a scripted device, the
+  settings file, the scroll smoothing);
+- the agent's formatting of the lines you changed (`agent/scripts/format.sh --check`; run
+  `agent/scripts/format.sh` to fix them). The existing code keeps its hand-made layout.
+
+`agent/scripts/tidy.sh` runs clang-tidy over the agent for a deeper look; it is slow, so it is not
+part of the check.
+
+Also make sure the app still starts and the page you changed looks right, and add a line to the
+Unreleased section of [CHANGELOG.md](CHANGELOG.md).
+
+Building and the command line are described in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
