@@ -1253,6 +1253,7 @@ json Daemon::rpc(const std::string& method, const json& p) {
     if (method == "expect_device") {
         long long ms = std::max(500LL, std::min(15000LL, static_cast<long long>(p.value("ms", 5000.0))));
         expectUntil_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + ms;
+        INFO("expecting a new device for %lld ms", ms);
         return true;
     }
     if (method == "set_display") {

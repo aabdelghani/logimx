@@ -150,7 +150,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     const hit = store.applyEvent(event, data);
     if (hit) {
       if (event === 'device' || event === 'device_added') { if (!S.dev) S.dev = data.id; unhideIfBack(store.device(data.id)); changed(); pairCheck(); }
-      else if (event === 'device_removed') { if (S.dev === data.id && S.page !== 'home') go('home'); changed(); }
+      else if (event === 'device_removed') { if (S.dev === data.id && S.page !== 'home') { const pairing = S.dlg === 'pair'; go('home'); if (pairing) S.dlg = 'pair'; } changed(); }   // a device leaving does not close Pair a device
       else if (event === 'battery' || event === 'general') changed();
       else if (event === 'profile') { if (S.dev === data.id && S.page !== 'home') changed(); }
       else if (event === 'backlight') { if (S.page === 'backlight') changed(); }
