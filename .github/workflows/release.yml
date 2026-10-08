@@ -41,7 +41,7 @@ jobs:
           ARCH=x86_64 /tmp/appimagetool -u "gh-releases-zsync|aabdelghani|notlogi|latest|NotLogi-*-x86_64.AppImage.zsync" squashfs-root "$f"
           rm -rf squashfs-root
           "./$f" --appimage-updateinformation
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: linux
           path: |
@@ -83,7 +83,7 @@ jobs:
         run: cd ui && npm ci --no-audit --no-fund
       - name: Installer
         run: cd ui && npm run dist:win
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: windows
           path: ui/dist/*-Setup-*.exe
@@ -113,7 +113,7 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: cd ui && npm run dist:mac
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: macos
           path: |
