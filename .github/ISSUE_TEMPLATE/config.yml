@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issue
+    url: https://github.com/aabdelghani/notlogi/security/advisories/new
+    about: Please report security problems privately.
+  - name: How to install and use NotLogi
+    url: https://github.com/aabdelghani/notlogi#readme
+    about: Install steps and what each feature does.
