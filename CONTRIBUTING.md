@@ -12,7 +12,7 @@ without publishing their source; that is what keeps the project's development go
 So that this stays possible, by submitting a contribution you agree that:
 
 1. your contribution is licensed to everyone under GPL-3.0-or-later, like the rest of NotLogi; and
-2. you also grant Ahmed Abdelghany a perpetual, worldwide, non-exclusive, royalty-free license to use,
+2. you also grant aabdelghani a perpetual, worldwide, non-exclusive, royalty-free license to use,
    change and relicense your contribution, including under commercial licenses; and
 3. the contribution is your own work, or you have the right to submit it under these terms.
 

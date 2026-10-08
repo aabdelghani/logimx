@@ -4,7 +4,7 @@
   "version": "0.12.1",
   "description": "NotLogi: unofficial mouse & keyboard tools for Linux, Windows and macOS",
   "homepage": "https://github.com/aabdelghani/notlogi",
-  "author": "Ahmed Abdelghany",
+  "author": "aabdelghani",
   "license": "GPL-3.0-or-later",
   "main": "main.js",
   "scripts": {
@@ -33,6 +33,7 @@
   },
   "build": {
     "appId": "io.github.aabdelghani.logimx",
+    "copyright": "Copyright (C) 2026 aabdelghani",
     "productName": "NotLogi",
     "directories": {
       "output": "dist",
@@ -110,7 +111,7 @@
         }
       ],
       "signtoolOptions": {
-        "publisherName": "Ahmed Abdelghany"
+        "publisherName": "aabdelghani"
       }
     },
     "nsis": {
@@ -158,7 +159,7 @@
       "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extendInfo": {
         "LSMinimumSystemVersion": "12.0",
-        "NSHumanReadableCopyright": "Copyright (C) 2026 Ahmed Abdelghany. GPL-3.0-or-later. NotLogi is not affiliated with Logitech."
+        "NSHumanReadableCopyright": "Copyright (C) 2026 aabdelghani. GPL-3.0-or-later. NotLogi is not affiliated with Logitech."
       },
       "extraResources": [
         {
