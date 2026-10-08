@@ -170,13 +170,10 @@ export const commands = {
     changed(); return;
   },
   'ring-up': async (it, e, d, key) => { const i = (S.ringPath || [])[0]; S.ringPath = []; S.ringAnim = { kind: 'out', from: i }; if (S.picker && S.picker.section === 'ring') { S.picker.cid = i; S.picker.label = RING_DIRS[i]; S.picker.current = (ringSlots()[i] || {}).action || null; } changed(); return; },
-  'ring-app-drop': async (it, e, d, key) => { const r = ringState(); delete r.apps[ringApp()]; S.ringPath = []; await saveRing({ apps: r.apps }); if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; toast(t('Uses the global ring')); changed(); return; },
   'ring-travel': async (it, e, d, key) => { await saveRing({ travel: Number(it.value) }); return; },
   'ring-free': async (it, e, d, key) => { await saveRing({ free_pointer: !it.on }); changed(); return; },
   'ring-profile': async (it, e, d, key) => { S.ringPath = []; await saveRing({ active: Number(key) }); S.menu = null; if (S.picker && S.picker.section === 'ring') S.picker.current = (ringSlots()[S.picker.cid] || {}).action || null; changed(); return; },
   'ring-profile-add': async (it, e, d, key) => { S.menu = null; prompt(t('New ring profile'), [{ key: 'name', label: t('Name'), placeholder: t('Work, Editing, Gaming…') }], async v => { const r = ringState(); const name = (v.name || '').trim() || `Profile ${r.profiles.length + 1}`; r.profiles.push({ name, slots: [] }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(t('Profile "{name}" added', { name })); changed(); }, t('Create')); return; },
-  'ring-profile-copy': async (it, e, d, key) => { const r = ringState(); const src = r.profiles[r.active]; r.profiles.push({ name: src.name + ' copy', slots: JSON.parse(JSON.stringify(src.slots)) }); await saveRing({ profiles: r.profiles, active: r.profiles.length - 1 }); toast(t('Profile duplicated')); changed(); return; },
-  'ring-profile-rename': async (it, e, d, key) => { const r = ringState(); prompt(t('Rename ring profile'), [{ key: 'name', label: t('Name'), value: r.profiles[r.active].name }], async v => { const name = (v.name || '').trim(); if (!name) return changed(); const n = ringState(); n.profiles[n.active].name = name; await saveRing({ profiles: n.profiles }); changed(); }, t('Rename')); return; },
   'ring-profile-delete': async (it, e, d, key) => {
     S.menu = null; const r = ringState(); if (r.profiles.length < 2) return; const gone = r.profiles.splice(r.active, 1)[0];
     for (const [ak, av] of Object.entries(r.apps)) if (av && av.profile === gone.id) delete r.apps[ak];

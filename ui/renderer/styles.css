@@ -37,18 +37,13 @@ i.fa-solid, i.fa-brands { font-size: 13px; }
 /* ------------------------------------------------------------- shell */
 .window { flex: 1; display: flex; min-width: 0; background: var(--win); }
 aside.side { width: 250px; flex: none; background: var(--side); border-right: 0; display: flex; flex-direction: column; }
-.brand { height: 47px; display: flex; align-items: center; padding: 0 12px; font-weight: 700; font-size: 16px; gap: 8px; }
-.brand .mark { width: 22px; height: 22px; border-radius: 6px; background: #2dd4bf; color: #052e2b; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
 nav.nav { padding: 4px 8px; display: flex; flex-direction: column; gap: 2px; overflow: auto; }
-.nav-head { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 10px 4px; font-size: 13px; font-weight: 700; color: var(--dim); }
-.nav-head span:last-child { font-weight: 400; }
+
 .nav-item { border: 0; text-align: left; font: 400 15px var(--font); color: var(--fg); padding: 8px 10px; border-radius: 6px; display: flex; align-items: center; gap: 10px; background: transparent; }
 .nav-item:hover { background: var(--btnh); }
 .nav-item.active { background: var(--btn); }
 .nav-item i { width: 16px; text-align: center; font-size: 13px; color: var(--dim); }
-.side-foot { margin-top: auto; padding: 12px 16px; font-size: 13px; color: var(--dim); border-top: 1px solid var(--brd); display: flex; align-items: center; gap: 8px; }
-.side-foot i { font-size: 8px; color: var(--ok); }
-.side-foot.off i { color: var(--err); }
 
 main.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--win); }
 header.hb { height: 47px; flex: none; display: flex; align-items: center; justify-content: center; position: relative; border-bottom: 1px solid var(--brd); background: var(--hb); -webkit-app-region: drag; }
@@ -209,7 +204,7 @@ select.sel { background: var(--win); border: 1px solid var(--brd); border-radius
 /* --------------------------------------------------------- dialogs */
 .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
 .dlg { width: 560px; max-height: 88vh; background: var(--win); border-radius: 14px; box-shadow: 0 0 0 1px var(--brd), 0 20px 50px rgba(0,0,0,.4); display: flex; flex-direction: column; overflow: hidden; }
-.dlg.wide { width: 640px; }
+
 .dlg-head { height: 47px; flex: none; display: flex; align-items: center; justify-content: center; position: relative; border-bottom: 1px solid var(--brd); background: var(--hb); font-weight: 700; font-size: 16px; }
 .dlg-head .close { position: absolute; right: 8px; top: 50%; margin-top: -16px; }
 .dlg-body { flex: 1; overflow: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -273,15 +268,6 @@ code.cmd { display: block; margin-top: 6px; font: 13px ui-monospace, monospace; 
 .mark-ok { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; background: var(--ok); flex: none; }
 .mark-n { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: var(--btn); flex: none; }
 
-/* action ring page */
-.ring-preview { display: flex; align-items: center; gap: 28px; padding: 18px 20px; }
-.ring-disc { position: relative; width: 200px; height: 200px; flex: none; }
-.ring-chip { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 0; background: var(--fg); color: var(--hb, var(--bg, #fff)); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .1s, box-shadow .1s; }
-.ring-chip:hover { transform: scale(1.12); box-shadow: 0 0 0 2px var(--accbg); }
-.ring-chip.empty { background: transparent; border: 2px dashed var(--brd); color: var(--dim); }
-.ring-hub { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: var(--btn); display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 12px; }
-.ring-side { flex: 1; min-width: 0; }
-.ring-side .sub { margin-top: 6px; line-height: 1.45; }
 .drop.blank { color: var(--dim); }
 
 /* problem report preview */
@@ -332,7 +318,7 @@ textarea.text:focus { outline: 2px solid var(--accbg); outline-offset: -1px; }
 .hotspot:hover circle.ring { r: 48; }
 .hotspot:hover circle.core { r: 29; }
 .key-photo:hover rect { transform: scale(1.06); transform-box: fill-box; transform-origin: center; transition: transform .14s, fill .12s, stroke .12s; }
-.ring-chip { transition: transform .16s cubic-bezier(.2,.9,.3,1.3), box-shadow .14s; }
+
 .card { transition: box-shadow .18s; }
 .drop:hover { background: var(--btn); color: var(--fg); }
 .drop .chev { transition: transform .16s; }
@@ -341,10 +327,7 @@ textarea.text:focus { outline: 2px solid var(--accbg); outline-offset: -1px; }
 /* ---------------------------------------------------------------- home */
 .hbtn.accent { background: var(--accbg); color: #fff; font-weight: 600; }
 .hbtn.accent:hover { filter: brightness(1.08); background: var(--accbg); }
-.home-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 4px 2px 2px; }
-.home-hero .hello { font-size: 28px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 4px; }
-.home-hero .now { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+
 .dev-card { position: relative; display: flex; flex-direction: column; border: 1px solid var(--brd); border-radius: 16px; background: var(--card); overflow: hidden; cursor: pointer; text-align: left; color: var(--fg); font: inherit; padding: 0; transition: transform .18s cubic-bezier(.2,.7,.2,1), box-shadow .18s, border-color .18s; }
 .dev-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,.14); border-color: color-mix(in srgb, var(--accbg) 45%, var(--brd)); }
 .dev-photo { height: 170px; display: flex; align-items: center; justify-content: center; background: transparent; }
@@ -353,56 +336,30 @@ textarea.text:focus { outline: 2px solid var(--accbg); outline-offset: -1px; }
 .dev-card:hover .dev-photo img { transform: scale(1.04) translateY(-2px); }
 .dev-photo > i { font-size: 54px; color: var(--dim); }
 .dev-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
-.dev-top { display: flex; align-items: center; gap: 12px; }
-.dev-top > .grow { flex: 1; min-width: 0; }
-.dev-name { font-size: 18px; font-weight: 700; }
-.dev-sub { font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+
 .dev-state { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .dev-state.ok { color: var(--ok); } .dev-state.warn { color: var(--warn); } .dev-state.err { color: var(--err); }
 .dev-state.charging i { animation: bolt-pulse 1.4s ease-in-out infinite; }
-.dev-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--dim); }
-.dev-meta i { margin-right: 6px; }
-.dev-links { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px; }
-.dev-links .pill { font-weight: 600; }
+
 .dev-card.add { align-items: center; justify-content: center; gap: 6px; min-height: 150px; border-style: dashed; background: transparent; color: var(--dim); }
 .dev-card.add > i { font-size: 26px; width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--btn); color: var(--fg); margin-bottom: 6px; transition: transform .2s cubic-bezier(.2,.9,.3,1.3), background .18s, color .18s; }
 .dev-card.add:hover > i { transform: rotate(90deg) scale(1.08); background: var(--accbg); color: #fff; }
-.dev-card.add .dev-name { color: var(--fg); }
-.bat-ring { position: relative; width: 58px; height: 58px; flex: none; }
-.bat-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.bat-ring circle { fill: none; stroke-width: 6; stroke-linecap: round; }
-.bat-ring .trk { stroke: var(--trk); }
-.bat-ring .val { stroke: var(--ok); transition: stroke-dasharray .6s cubic-bezier(.2,.7,.2,1); }
-.bat-ring.warn .val { stroke: var(--warn); } .bat-ring.err .val { stroke: var(--err); }
-.bat-ring .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
-.bat-ring .pct small { font-size: 11px; font-weight: 600; margin-left: 1px; color: var(--dim); }
-.bat-ring .bolt { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px var(--card); animation: bolt-pulse 1.4s ease-in-out infinite; }
+
 @keyframes bolt-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 @keyframes ring-fill { from { stroke-dasharray: 0 999; } }
-.page.enter .bat-ring .val { animation: ring-fill .9s cubic-bezier(.2,.7,.2,1) .2s both; }
-.page.enter .home-grid > *, .page.enter .home-strip > * { animation: rise .36s cubic-bezier(.2,.7,.2,1) both; }
-.page.enter .home-grid > :nth-child(2) { animation-delay: 70ms; } .page.enter .home-grid > :nth-child(3) { animation-delay: 140ms; } .page.enter .home-grid > :nth-child(n+4) { animation-delay: 210ms; }
+
+.page.enter .home-strip > * { animation: rise .36s cubic-bezier(.2,.7,.2,1) both; }
 .page.enter .home-strip > :nth-child(2) { animation-delay: 70ms; } .page.enter .home-strip > :nth-child(3) { animation-delay: 140ms; } .page.enter .home-strip > :nth-child(n+4) { animation-delay: 210ms; }
-@media (prefers-reduced-motion: reduce) { .dev-state.charging i, .bat-ring .bolt { animation: none; } }
+@media (prefers-reduced-motion: reduce) {.dev-state.charging i { animation: none; } }
 
 /* ---------------------------------------------------------------- landing and device view
    No sidebar: Home is a landing page across the whole window, and a device opens with itself on
-   the left and its settings on the right, under a row of tabs. */
-header.hb .left .brand { height: auto; padding: 0 6px; }
+   the left and its settings on the right { height: auto; padding: 0 6px; }
 .hbtn.on { background: var(--accbg); color: #fff; }
 .content.landing > .page { max-width: 1100px; }
 .agent-line { flex: none; padding: 10px 24px 12px; font-size: 13px; color: var(--dim); display: flex; align-items: center; justify-content: center; gap: 8px; }
 .agent-line i { font-size: 8px; color: var(--ok); } .agent-line.off i { color: var(--err); }
-.devview { flex: 1; min-height: 0; display: grid; grid-template-columns: 340px 1fr; }
-.dev-panel { border-right: 1px solid var(--brd); background: var(--side); padding: 22px 22px 18px; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
-.dev-hero { display: flex; align-items: center; justify-content: center; min-height: 170px; padding: 6px 0 4px; background: transparent; border-radius: 14px; }
-.dev-panel.mouse .dev-hero .photo-card { width: 82%; }
-.dev-panel.kbd .dev-hero img { width: 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,.25)); }
-.dev-hero > i.none { font-size: 64px; color: var(--dim); }
-.dev-others { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 1px solid var(--brd); }
-.dev-others .other { border: 0; background: var(--card); color: var(--fg); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; font: 600 14px var(--font); box-shadow: 0 0 0 1px var(--brd); transition: transform .14s, box-shadow .14s; }
-.dev-others .other:hover { transform: translateX(3px); box-shadow: 0 0 0 1px var(--accbg); }
-.dev-others .other .ok { color: var(--ok); } .dev-others .other .warn { color: var(--warn); } .dev-others .other .err { color: var(--err); }
+
 .dev-config { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .dev-config > .content { flex: 1; }
 .tabs { display: flex; gap: 2px; padding: 8px 20px 0; border-bottom: 1px solid var(--brd); background: var(--hb); overflow-x: auto; flex: none; }
@@ -412,20 +369,16 @@ header.hb .left .brand { height: auto; padding: 0 6px; }
 .tab::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accbg); transform: scaleX(0); transition: transform .2s cubic-bezier(.2,.7,.2,1); }
 .tab.on::after { transform: scaleX(1); }
 .tab i { font-size: 12px; }
-@media (max-width: 980px) { .devview { grid-template-columns: 280px 1fr; } }
 /* the title bar is not a separate band: it takes the window's own colour and has no line under
    it, and in the device view it is folded into the two columns */
 header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .content.landing { padding-top: 6px; }
-.panel-top { display: flex; align-items: center; gap: 10px; height: 36px; margin: -12px -8px 0; -webkit-app-region: drag; }
-.panel-top .hbtn { -webkit-app-region: no-drag; background: transparent; }
-.panel-top .hbtn:hover { background: var(--btn); }
-.panel-title { font-size: 13px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+
 .cfg-top { display: flex; align-items: flex-end; gap: 12px; padding: 0 8px 0 20px; border-bottom: 1px solid var(--brd); flex: none; -webkit-app-region: drag; }
 .cfg-top .tabs { flex: 1; min-width: 0; border-bottom: 0; background: transparent; padding: 10px 0 0; }
 .cfg-top .tab, .cfg-top .right { -webkit-app-region: no-drag; }
 .cfg-top .right { display: flex; align-items: center; gap: 8px; height: 52px; }
-.dev-panel { padding-top: 18px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
 }
@@ -436,34 +389,29 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dev-card { border: 0; background: transparent; box-shadow: none; }
 .dev-card:hover { transform: none; box-shadow: none; border-color: transparent; }
 .dev-card:hover .dev-photo img { transform: scale(1.05) translateY(-4px); }
-.dev-card:hover .dev-name { color: var(--accbg); }
-.dev-name { transition: color .15s; }
+
 .dev-photo { height: 210px; }
 .dev-photo img { max-height: 190px; }
 .dev-card.mouse .dev-photo img { max-height: 196px; }
 .dev-body { padding: 10px 6px 4px; }
 
-/* Home: devices centred, each one its photo, battery and state */
-.home-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 440px)); justify-content: center; gap: 40px; }
-.home-hero { justify-content: center; text-align: center; }
+/* Home: devices centred, each one its photo { grid-template-columns: repeat(auto-fit, minmax(300px, 440px)); justify-content: center; gap: 40px; }
+
 .dev-body.centered { align-items: center; text-align: center; gap: 10px; }
 .dev-body.centered .dev-state { justify-content: center; }
 .dev-link { margin-left: 4px; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; background: var(--btn); color: var(--dim); }
 .dev-link.bt { background: #0a7cff; color: #fff; }
-/* Home: greeting at the top left, the devices in the middle of what is left, 30% larger */
-.home-hero { justify-content: flex-start; text-align: left; }
+/* Home: greeting at the top left, the devices in the middle of what is left { justify-content: flex-start; text-align: left; }
 .content.landing { display: flex; flex-direction: column; }
 .content.landing > .page { flex: 1; width: 100%; }
-.content.landing .home-grid { flex: 1; align-content: center; align-items: center; grid-template-columns: repeat(auto-fit, minmax(390px, 572px)); gap: 52px; padding-bottom: 40px; }
+
 .content.landing .dev-photo { height: 273px; }
 .content.landing .dev-photo img { max-height: 247px; }
 .content.landing .dev-card.mouse .dev-photo img { max-height: 255px; }
-.content.landing .bat-ring { width: 75px; height: 75px; }
-.content.landing .bat-ring .pct { font-size: 20.5px; }
-.content.landing .bat-ring .pct small { font-size: 14px; }
+
 .content.landing .dev-state { font-size: 18px; gap: 10px; }
 .content.landing .dev-link { width: 29px; height: 29px; font-size: 15px; }
-.content.landing .bat-ring .bolt { width: 26px; height: 26px; font-size: 14px; }
+
 /* every device in one row across the whole window, each in a column of its own like Options+ (a
    keyboard's wider, for its photo): at least 260 px for a mouse, 520 px for a keyboard; when they
    cannot all fit the row scrolls sideways, a card at a time, with the arrows or the arrow keys */
@@ -532,8 +480,8 @@ header.hb { height: 64px; }
 .content.landing .dev-state { font-size: 16px; }
 .content.landing .dev-state > i.fa-solid:not(.dev-bolt) { font-size: 18px; }
 /* window buttons without a backing: just the icon, a soft background only under the pointer */
-header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent), .flow-wiz .fw-close, .flow-wiz .fw-min { background: transparent; }
-header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover, .flow-wiz .fw-close:hover, .flow-wiz .fw-min:hover { background: var(--btn); }
+header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent) { background: transparent; }
+header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover { background: var(--btn); }
 header.hb .right .hbtn.on, .cfg-top .right .hbtn.on { background: transparent; color: var(--accbg); }
 header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .hbtn.accent { text-transform: uppercase; letter-spacing: .04em; }
@@ -709,7 +657,7 @@ header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 /* leaving the key panel: the page list, the device name and the battery fade back in while the
    panel slides away, rather than popping in after it has gone */
 .devview2.drawer-open .dnav nav, .devview2.drawer-open .cfg-name, .devview2.drawer-open .dnav-bat { transition: opacity .2s ease-in; }
-.devview2.drawer-open.drawer-closing .dnav nav, .devview2.drawer-open.drawer-closing .cfg-name, .devview2.drawer-open.drawer-closing .dnav-bat { opacity: 1; transition: opacity .17s cubic-bezier(0, 0, .2, 1); }
+
 .dnav.nav-back nav, .dnav.nav-back .dnav-bat { animation: none; }
 /* page list items are only as wide as their icon and word, so the highlight hugs them */
 .dnav nav { align-items: flex-start; }
@@ -767,8 +715,7 @@ button.chk.on { background: var(--accbg); border-color: var(--accbg); color: #ff
 .dnav-item.soon { opacity: .45; cursor: default; }
 .dnav-item.soon:hover { background: transparent; }
 .soon-tag { margin-left: 4px; padding: 2px 7px; border-radius: 999px; background: var(--btn); color: var(--dim); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
-.hbtn.soon-btn { background: transparent; color: var(--fg); opacity: .45; cursor: default; display: inline-flex; align-items: center; gap: 8px; }
-.hbtn.soon-btn:hover { background: transparent; }
+
 /* mouse photo: a ring on each button, its name and current action beside it; the edited one filled */
 .ms-photo { position: relative; max-width: 520px; margin: 0 auto; }
 .hotspot.ms circle.ring { fill: color-mix(in srgb, var(--accbg) 14%, transparent); stroke: var(--accbg); stroke-width: 5; }
@@ -810,8 +757,7 @@ button.chk.on { background: var(--accbg); border-color: var(--accbg); color: #ff
 .drawer .act.ring-cfg:hover { filter: brightness(1.08); background: var(--accbg); }
 .drawer .act.ring-cfg::before { content: ""; position: absolute; left: -18px; top: -6px; width: 12px; height: 24px; border-left: 2px solid var(--accbg); border-bottom: 2px solid var(--accbg); border-bottom-left-radius: 8px; }
 .new-tag { margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: var(--accbg); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; vertical-align: 2px; }
-/* the ring slot being edited in the side panel */
-.ring-chip.selected { background: var(--accbg) !important; color: #fff !important; border-color: var(--accbg) !important; transform: scale(1.15); box-shadow: 0 6px 16px color-mix(in srgb, var(--accbg) 45%, transparent); }
+
 .row.editing { background: color-mix(in srgb, var(--accbg) 12%, transparent); border-radius: 10px; }
 .row.editing .num { background: var(--accbg); color: #fff; }
 /* button rings on the mouse photo: always at their large, tinted size so each one reads clearly
@@ -834,13 +780,8 @@ button.chk.on { background: var(--accbg); border-color: var(--accbg); color: #ff
 .rs-lab.on { background: var(--accbg); color: #fff; }
 .rs-hub { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: var(--btn); color: var(--dim); display: flex; align-items: center; justify-content: center; font-size: 21px; }
 .rs-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-/* ring profile picker in the action panel head */
-.prof-dd { position: relative; margin-left: auto; -webkit-app-region: no-drag; }
-.prof-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--btn); border-radius: 999px; padding: 6px 12px; font-weight: 600; }
-.prof-btn .fa-layer-group { color: var(--accbg); }
-.prof-btn .fa-chevron-down { font-size: 10px; opacity: .6; }
-.prof-menu { right: 0; top: 40px; width: 230px; }
-.prof-menu button.danger { color: var(--err); }
+/
+
 /* dragging an action onto the ring */
 .drawer [draggable="true"] { cursor: grab; }
 .drawer [draggable="true"]:active { cursor: grabbing; }
@@ -853,13 +794,13 @@ body.dragging-act .rs-chip { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* larger icons on the in-app ring: the ring page and the smaller preview */
 .rs-chip { width: 82px; height: 82px; margin: -41px 0 0 -41px; font-size: 36px; }
 .rs-hub { width: 60px; height: 60px; margin: -30px 0 0 -30px; font-size: 28px; }
-.ring-chip { font-size: 20px; }
+
 /* ring page slots: moderate circles, the icon itself made large (a general button rule kept it small) */
 .rs-chip { width: 66px; height: 66px; margin: -33px 0 0 -33px; display: flex; align-items: center; justify-content: center; }
 .rs-chip i { font-size: 28px !important; }
 .rs-hub { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
 .rs-hub i { font-size: 22px !important; }
-.ring-chip i { font-size: 18px !important; }
+
 .drawer .ring-behaviour { margin-top: 14px; }
 /* sections unfold with motion only when opened, not on every refresh of the panel */
 .acc-body { animation: none; }
@@ -875,7 +816,7 @@ body.dragging-act .rs-chip { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* the top bar's buttons, a size up */
 header.hb .right .hbtn.icon, .cfg-top .right .hbtn.icon { width: 40px; height: 40px; }
 header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 19px; }
-header.hb .right .hbtn.accent, .cfg-top .right .hbtn.soon-btn { font-size: 15px; padding: 9px 16px; }
+header.hb .right .hbtn.accent { font-size: 15px; padding: 9px 16px; }
 header.hb .right .hbtn.accent i { font-size: 15px; }
 /* empty ring slots: the dashed border sits inside the circle, so an empty slot is the same size and
    centre as a filled one, and its highlight lines up */
@@ -883,30 +824,15 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .rs-chip.empty.selected, .rs-chip.empty.drop { border: 2px solid var(--accbg); }
 .rs-chip.empty.selected { background: var(--accbg); color: #fff; border: 2px solid var(--accbg); transform: scale(1.15); box-shadow: 0 8px 22px color-mix(in srgb, var(--accbg) 45%, transparent); }
 
-/* Flow page: the arrangement preview, nodes and status dot */
-.flow-arrange { display: flex; justify-content: center; padding: 10px 0; }
-.flow-grid { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto auto; gap: 10px; align-items: center; justify-items: center; min-width: 360px; }
-.flow-grid .fg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.flow-grid .up { grid-column: 2; grid-row: 1; } .flow-grid .down { grid-column: 2; grid-row: 3; }
-.flow-grid .left { grid-column: 1; grid-row: 2; justify-content: flex-end; } .flow-grid .right { grid-column: 3; grid-row: 2; justify-content: flex-start; }
-.flow-grid .flow-node.me { grid-column: 2; grid-row: 2; }
-.flow-node { padding: 14px 18px; border-radius: 12px; border: 1px solid var(--brd); background: var(--card); font-weight: 600; font-size: 14px; white-space: nowrap; text-align: center; }
-.flow-node.me { background: var(--accbg); color: #fff; border-color: var(--accbg); box-shadow: 0 6px 16px color-mix(in srgb, var(--accbg) 30%, transparent); }
-.flow-node.peer { border-style: dashed; color: var(--dim); }
+/* Flow page: the arrangement preview { display: flex; justify-content: center; padding: 10px 0; }
+
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 7px; vertical-align: 1px; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
-.flow-ip { font-family: ui-monospace, monospace; letter-spacing: .02em; }
 
-/* Flow, inside a device: the invitation shown until Flow is set up */
-.flow-intro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; min-height: 60vh; padding: 24px; animation: kb-fade .35s ease both; }
-.flow-intro .flow-art { display: flex; align-items: center; gap: 26px; color: var(--dim); margin-bottom: 6px; }
-.flow-intro .flow-art > i { font-size: 60px; width: auto; }
-.flow-intro .flow-arrow { position: relative; width: 70px; height: 2px; background: linear-gradient(90deg, transparent, var(--accbg), transparent); }
-.flow-intro .flow-arrow i { position: absolute; top: -10px; left: 0; font-size: 20px; width: auto; color: var(--accbg); animation: flow-move 2.2s ease-in-out infinite; }
+/* Flow { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; min-height: 60vh; padding: 24px; animation: kb-fade .35s ease both; }
+
 @keyframes flow-move { 0% { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } 100% { left: 58px; opacity: 0; } }
-.flow-intro .t { font-size: 28px; font-weight: 700; }
-.flow-intro .s { font-size: 15px; color: var(--dim); max-width: 460px; line-height: 1.5; }
-.btn.lg { padding: 10px 22px; font-size: 16px; border-radius: 10px; }
+
 /* device view: a wider left margin, so the back arrow, the name and the menu sit further in */
 .dnav { padding-left: 30px; }
 .devview2 { grid-template-columns: 246px 1fr; }
@@ -1080,8 +1006,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .rs-dots:hover { opacity: 1; transform: scale(1.12); background: var(--accbg); color: #fff; }
 .rs-chip.empty .rs-dots { top: -8px; right: -8px; }
 .rs-menu { position: absolute; z-index: 5; translate: 34px -10px; min-width: 170px; }
-.rs-hub.folder-hub { background: var(--accbg); color: #fff; width: 64px; height: 64px; margin: -32px 0 0 -32px; }
-.rs-hub.folder-hub i { font-size: 26px !important; color: #fff; }
+
 .devview2 .cfg-back .folder-name { opacity: 1 !important; pointer-events: auto; font: 700 20px var(--font); color: var(--fg); background: transparent; border: 2px solid transparent; border-radius: 8px; padding: 2px 8px; width: auto; max-width: 340px; outline: none; cursor: text; -webkit-app-region: no-drag; }
 /* the folder's name is never clipped by the folded side column, and its pencil sits right after it */
 .devview2 .dnav:has(.folder-name) { overflow: visible; }
@@ -1096,7 +1021,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 @keyframes rs-hub-glide { from { left: calc(50% + var(--fx, 0%)); top: calc(50% + var(--fy, 0%)); } to { left: 50%; top: 50%; } }
 @keyframes rs-pop-in { from { opacity: 0; scale: calc(var(--sc, 1) * .35); } to { opacity: 1; scale: var(--sc, 1); } }
 @keyframes rs-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.rs-disc.anim-in .folder-hub { animation: rs-hub-glide .5s cubic-bezier(.65, 0, .35, 1) both; }
+
 .rs-disc.anim-in .rs-chip:not(.parent) { animation: rs-pop-in .32s cubic-bezier(.2, .9, .3, 1.3) backwards; animation-delay: calc(.08s + var(--k, 0) * 50ms); }
 .rs-disc.anim-in .rs-lab { animation: rs-fade-in .25s ease-out backwards; animation-delay: calc(.16s + var(--k, 0) * 50ms); }
 .rs-disc.anim-in::before { animation: rs-fade-in .4s ease-out .3s both; }
@@ -1110,9 +1035,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* the folder's name slides in beside the back arrow */
 @keyframes rs-name-in { from { opacity: 0; translate: -14px 0; } to { opacity: 1; translate: 0 0; } }
 .devview2 .cfg-back .folder-name.enter { animation: rs-name-in .35s ease-out .15s backwards; }   /* only on the way into a folder, not on every redraw */
-@media (prefers-reduced-motion: reduce) { .rs-disc.anim-in .rs-chip, .rs-disc.anim-in .rs-lab, .rs-disc.anim-in .folder-hub, .rs-disc.anim-in::before, .rs-disc.anim-out .rs-chip, .rs-disc.anim-out .rs-lab, .rs-disc.anim-out .rs-hub, .devview2 .cfg-back .folder-name { animation: none; } }
-/* the animations only hold their first frame while waiting: once done a button is drawn as itself again,
-   so its ⋯ badge isn't left as it was mid-animation */
+@media (prefers-reduced-motion: reduce) {.rs-disc.anim-in .rs-chip, .rs-disc.anim-in .rs-lab, .rs-disc.anim-in::before, .rs-disc.anim-out .rs-chip, .rs-disc.anim-out .rs-lab, .rs-disc.anim-out .rs-hub, .devview2 .cfg-back .folder-name { animation: none; } }
 /* the box hugs the name and grows with it, never squeezed by the column, up to its limit; then … */
 .devview2 .cfg-back .folder-name { field-sizing: content; min-width: 4ch; flex: none; max-width: 340px; text-overflow: ellipsis; }
 /* it looks editable at rest: a faint field with a dashed edge; hover firms it up, typing lights it */
@@ -1133,9 +1056,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* a folder's actions are as big as the inner ring's buttons, as on the real ring, so 20° apart they don't touch */
 .rs-disc.in-folder .rs-chip:not(.parent) { --sc: .78; scale: var(--sc); }
 
-/* Flow: connecting another computer, a sheet over the whole window rising from the bottom */
-.flow-wiz { position: fixed; inset: 0; z-index: 950; background: var(--win); display: flex; align-items: center; justify-content: center; padding: 32px; overflow: auto; }
-.flow-wiz.in { animation: sheet-up .5s cubic-bezier(.2,.9,.25,1) both; }
+/* Flow: connecting another computer { position: fixed; inset: 0; z-index: 950; background: var(--win); display: flex; align-items: center; justify-content: center; padding: 32px; overflow: auto; }
+
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 .fw-body { width: min(900px, 100%); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px; }
 .fw-art { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 8px; }
@@ -1153,10 +1075,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fw-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .fw-steps li { white-space: nowrap; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--brd); font-size: 14px; }
 .fw-steps b { width: 24px; height: 24px; border-radius: 50%; background: var(--accbg); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; flex: none; }
-.flow-wiz.in .fw-steps li { animation: rise .45s ease both; }
-.flow-wiz.in .fw-steps li:nth-child(1) { animation-delay: .25s; }
-.flow-wiz.in .fw-steps li:nth-child(2) { animation-delay: .35s; }
-.flow-wiz.in .fw-steps li:nth-child(3) { animation-delay: .45s; }
+
 .fw-title { font-size: 22px; font-weight: 700; margin-top: 10px; }
 .fw-sub { color: var(--dim); max-width: 520px; }
 .fw-btns { display: flex; gap: 10px; margin-top: 8px; }
@@ -1167,30 +1086,11 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fw-bar span { position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--accbg); border-radius: 2px; animation: indet 1.4s ease-in-out infinite; }
 .fw-art.searching .fw-pc.other { animation: fw-pulse 1.6s ease-in-out infinite; }
 @keyframes fw-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 0%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accbg) 22%, transparent); } }
-.flow-wiz .fw-close, .flow-wiz .fw-min { position: fixed; top: 14px; right: 16px; z-index: 1; }
 
 .fw-pc.other.on { border-style: solid; border-color: var(--ok); }
 .fw-pc.other.on i { color: var(--ok); }
-/* Flow's settings: the computers in a row, as the screens sit */
-.fl-row { display: flex; justify-content: center; gap: 18px; padding: 18px 8px; flex-wrap: wrap; }
-.fl-pc { position: relative; width: 170px; padding: 18px 12px 14px; border-radius: 14px; border: 1px dashed var(--brd); background: var(--card); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-.fl-pc.me { border: 1px solid var(--accbg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accbg) 16%, transparent); }
-.fl-pc.on { border-style: solid; }
-.fl-pc .os { font-size: 30px; color: var(--dim); }
-.fl-pc.me .os { color: var(--accbg); }
-.fl-pc .n { font-weight: 700; overflow-wrap: anywhere; }
-.fl-pc .st { font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
-.fl-pc .acts { display: flex; gap: 4px; margin-top: 4px; }
-
-.fl-grid { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: ". up ." "left me right" ". down ."; gap: 10px; align-items: center; justify-items: center; padding: 18px 8px; }
-.fl-grid .fg-up { grid-area: up; } .fl-grid .fg-left { grid-area: left; justify-self: end; } .fl-grid .fg-me { grid-area: me; }
-.fl-grid .fg-right { grid-area: right; justify-self: start; } .fl-grid .fg-down { grid-area: down; }
-.fl-pc .acts .hbtn.on { background: var(--accbg); color: #fff; opacity: 1; }
-
-/* Flow's page: the computers as screens, the switch and cog at the top right, Add computer below */
 /* the whole page area: switch and cog pinned top right, ADD COMPUTER pinned at the bottom, the screens centred between */
 .fl-page { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 70px 24px 150px; box-sizing: border-box; overflow: auto; }
-/* the Flow switch and the settings cog at the top right of the page area, Add computer at its bottom */
 /* the page itself is the Flow page's anchor, full height, so it looks the same while it slides in (the slide's
    transform makes the page the anchor) and after; the window's top bar stays where it is */
 .dev-config:has(.fl-page) .content > .page { position: relative; max-width: none; margin: -24px -28px -40px; height: calc(100% + 64px); }
@@ -1219,7 +1119,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fl-more .hbtn { background: transparent; }
 .fl-more .hbtn:hover { background: var(--btn); }
 .fl-menu { right: 0; top: 30px; width: 220px; text-align: left; }
-.fl-menu .mline { font-size: 13px; color: var(--dim); padding: 2px 10px 6px; }
+
 .fl-menu button.danger { color: var(--err); }
 .fl-choice { width: 100%; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer; gap: 12px; }
 .fl-choice .radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--trk); flex: none; box-sizing: border-box; }

@@ -2,12 +2,11 @@
 // commands; plus the moves between pages (the panel sliding in, the keyboard gliding).
 import { isMouse } from '../../shared/profiles.mjs';
 import { toolName } from '../../shared/actions.mjs';
-import { batClass, pctText } from '../../shared/battery.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, flowPanel, flowWizard, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
-export function link(ctx) { ({ MOUSE_PHOTOS, PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, batteryRing, batteryState, bindBarHover, dev, devicePages, devicePhotoSrc, dialogClosed, drawerUp, easyView, flowPanel, flowWizard, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, mousePhoto, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder } = ctx); }
+let PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, bindBarHover, dev, devicePages, dialogClosed, drawerUp, easyView, flowPanel, flowWizard, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder;
+export function link(ctx) { ({ PAGES, S, VERSION, appIcon, armRecorder, assignTyped, backlightPanel, bindBarHover, dev, devicePages, dialogClosed, drawerUp, easyView, flowPanel, flowWizard, esc, fmtOut, gestureDrag, go, greeting, homeFit, icons, navBattery, navPages, onAction, openPicker, pageAbout, pageAppDetail, pageApps, pageBacklight, pageBackup, pageButtons, pageDeviceSettings, pageEasy, pageFlow, pageGestures, pageGuard, pageHaptics, pageHome, pageInfo, pageKeys, pageNotif, pagePointer, pageRing, pageSettings, profileBar, recorderActive, renderAddPanel, renderAppList, renderBacklightPanel, renderConfirm, renderEasyPanel, renderEmpty, renderOnboard, renderPair, renderPicker, renderPickerList, renderPointerPanel, renderPrompt, renderReport, renderWish, ringDrag, ringFolder, ringProfileBar, ringState, ringTop, root, saveFolderName, setChord, setField, sidePanelClosed, stopRecorder } = ctx); }
 
 // ============================================================ render
 // Animations run when something new appears, not on every refresh: the page when it is
@@ -255,23 +254,6 @@ function renderWindow() {
 }
 // The device itself, on the left of its settings: photo (the mouse with its numbered buttons),
 // battery, state, link and profile, and a way across to the other devices.
-function devicePanel(d) {
-  const b = d.battery, st = batteryState(b), src = devicePhotoSrc(d);
-  const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? t('host {n}', { n: hosts.current + 1 }) : '';
-  const link = (d.transport === 'bolt' ? t('Bolt receiver') : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || t('Connected')) + (host ? ` · ${host}` : '');
-  const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : t('All applications');
-  const photo = isMouse(d) && MOUSE_PHOTOS[d.id] ? `<div class="photo-card">${mousePhoto(d)}</div>` : src ? `<img src="${esc(src)}" alt="">` : `<i class="fa-solid ${isMouse(d) ? 'fa-computer-mouse' : 'fa-keyboard'} none"></i>`;
-  const others = S.devices.filter(x => x.id !== d.id);
-  return `<aside class="dev-panel ${isMouse(d) ? 'mouse' : 'kbd'}">
-    <div class="panel-top"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button><span class="panel-title">${esc(d.name)}</span></div>
-    <div class="dev-hero">${photo}</div>
-    <div class="dev-top"><div class="grow"><div class="dev-name">${esc(d.name)}</div><div class="dev-sub"><i class="${d.transport === 'bluetooth' ? 'fa-brands fa-bluetooth-b' : 'fa-solid fa-wifi'}"></i>${esc(link)}</div></div>${batteryRing(b)}</div>
-    <div class="dev-state ${st.cls}"><i class="fa-solid ${st.icon}"></i>${esc(st.label)}</div>
-    <div class="dev-meta"><span><i class="fa-solid fa-layer-group"></i>${esc(profName)}</span>${d.firmware ? `<span><i class="fa-solid fa-microchip"></i>${esc(d.firmware)}</span>` : ''}</div>
-    ${isMouse(d) && MOUSE_PHOTOS[d.id] ? `<div class="hint">${t('Click a number to change what that button does.')}</div>` : ''}
-    ${others.length ? `<div class="dev-others"><div class="sec-title"><span>${t('Other devices')}</span></div>${others.map(x => `<button class="other" data-act="home-open" data-key="${esc(x.id)}"><i class="fa-solid ${isMouse(x) ? 'fa-computer-mouse' : 'fa-keyboard'}"></i><span class="grow">${esc(x.name)}</span>${x.battery ? `<span class="${batClass(x.battery)}">${pctText(x.battery)}${x.battery.charging ? ' <i class="fa-solid fa-bolt"></i>' : ''}</span>` : ''}</button>`).join('')}</div>` : ''}
-  </aside>`;
-}
 const THEMES = [['light', t('Light'), 'linear-gradient(135deg,#fff 50%,#3584e4 50%)'], ['dark', t('Dark'), 'linear-gradient(135deg,#222 50%,#3584e4 50%)'], ['ubuntu', 'Ubuntu', 'linear-gradient(135deg,#fafafa 50%,#e95420 50%)'], ['ubuntu-dark', t('Ubuntu dark'), 'linear-gradient(135deg,#2c2c2c 50%,#e95420 50%)']];
 const themeMenu = () => `<div class="menu" data-menu><div class="mhead">${t('Appearance')}</div>${THEMES.map(([k, l, s]) => `<button data-act="theme" data-key="${k}"><span class="swatch" style="background:${s}"></span><span>${l}</span>${S.theme === k ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('')}</div>`;
 
@@ -399,4 +381,4 @@ function bind() {
   }, 20);
 }
 
-export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, devicePanel, THEMES, themeMenu, renderPage, renderDialog, bind, schedule };
+export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, THEMES, themeMenu, renderPage, renderDialog, bind, schedule };

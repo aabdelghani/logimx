@@ -36,10 +36,6 @@ function scrollHome(dir) {
 const panelOpen = () => !!root.querySelector('.devview2.panel-open');
 
 export const provide = { fx: {
-  focus, markPicked, markAddPick, panelOpen, scrollHome,
-  // the side panel slides out, then `after` runs and the window is redrawn
-  closeDrawer: after => V.closeDrawer(after),
-  // the profile bar and the picker's app list redrawn on their own (the rest of the page stays)
-  refreshBar: () => V.refreshBar(), refreshAppList: () => V.renderAppList(),
-  stopRecorder: () => V.stopRecorder(),
-} };
+  focus, markPicked, markAddPick, panelOpen, scrollHome, // the side panel slides out, then `after` runs and the window is redrawn
+  closeDrawer: after => V.closeDrawer(after), // the profile bar and the picker's app list redrawn on their own (the rest of the page stays)
+  refreshBar: () => V.refreshBar(), refreshAppList: () => V.renderAppList(), stopRecorder: () => V.stopRecorder() } };

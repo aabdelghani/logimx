@@ -99,20 +99,6 @@ function ringSlotMenu(sl, i, x, y, inFolder) {
 }
 
 // the ring's profiles, from the panel head: switch, add one, or remove the one in use
-function ringProfileMenu() {
-  const rs = ringState(), cur = rs.profiles[rs.active];
-  const k = ringApp();
-  if (k) {
-    const ar = appRing(rs, k), name = ringAppName(k);
-    const item = (key, label, on, icon) => `<button data-act="ring-app-use" data-key="${esc(key)}"><i class="fa-solid ${icon}"></i>${esc(label)}${on ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`;
-    const list = item('', t('Same as global'), !ar, 'fa-globe') + (ar && ar.legacy ? item('#own', t('Its own ring'), true, 'fa-circle-notch') : '') + rs.profiles.map(pr => item(pr.id, t(pr.name), ar && !ar.legacy && rs.profiles[ar.i].id === pr.id, 'fa-layer-group')).join('');   // i18n: data
-    const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">${t('Ring for {name}', { name: esc(name) })}</div>${list}<div class="sep"></div><button data-act="ring-app-new"><i class="fa-solid fa-plus"></i>${t('New blank profile')}</button></div>` : '';
-    return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="${t('The ring {name} uses', { name: esc(name) })}"><i class="fa-solid ${ar ? 'fa-layer-group' : 'fa-globe'}"></i><span>${esc(ar ? (ar.legacy ? t('Own ring') : t(rs.profiles[ar.i].name)) : t('Same as global'))}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;   // i18n: data
-  }
-  const list = rs.profiles.map((pr, i) => `<button data-act="ring-profile" data-key="${i}"><i class="fa-solid fa-layer-group"></i>${esc(t(pr.name))}${i === rs.active ? '<i class="fa-solid fa-check chk"></i>' : ''}</button>`).join('');   // i18n: data
-  const menu = S.menu === 'ringprof' ? `<div class="menu prof-menu"><div class="mhead">${t('Ring profiles')}</div>${list}<div class="sep"></div><button data-act="ring-profile-add"><i class="fa-solid fa-plus"></i>${t('New profile')}</button>${rs.profiles.length > 1 ? `<button data-act="ring-profile-delete" class="danger"><i class="fa-solid fa-trash"></i>${t('Remove "{name}"', { name: esc(t(cur.name)) })}</button>` : ''}</div>` : '';   // i18n: data
-  return `<div class="prof-dd"><button class="hbtn prof-btn" data-act="menu-ringprof" title="${t('Ring profile')}"><i class="fa-solid fa-layer-group"></i><span>${esc(t(cur.name))}</span><i class="fa-solid fa-chevron-down"></i></button>${menu}</div>`;   // i18n: data
-}
 // how the ring behaves, shown at the foot of the ring's action panel
 function ringBehaviour() {
   const rs = ringState();
@@ -129,4 +115,4 @@ function pageRing() {
   return `<div class="ring-page">${ringStage()}<div class="rs-bar"><span></span><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>${t('Try it')}</button></div>${panel ? '' : ringBehaviour()}</div>`;
 }
 
-export const provide = { ringProfileBar, ringStage, RING_IN, RING_OUT, ringParentRing, ringFolderRow, ringSlotMenu, ringProfileMenu, ringBehaviour, pageRing };
+export const provide = { ringProfileBar, ringStage, RING_IN, RING_OUT, ringParentRing, ringFolderRow, ringSlotMenu, ringBehaviour, pageRing };

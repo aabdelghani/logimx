@@ -20,10 +20,9 @@ export const commands = {
   'bl-level': async (it, e, d, key) => { await setSetting(d, ['backlight', 'mode'], 'manual'); await setSetting(d, ['backlight', 'level'], Number(key)); changed(); return; },
   'step': async (it, e, d, key) => { const st = (d.state || {}).backlight || {}, s = (d.config.settings || {}).backlight || {}; const v = Math.max(Number(it.data.lo), Math.min(Number(it.data.hi), (s[key] ?? st[key] ?? 0) + Number(it.data.d))); await setSetting(d, ['backlight', key], v); changed(); return; },
   'thumb-speed': async (it, e, d, key) => { const tw = assignment(d, 'thumbwheel'); let a = typeof tw === 'string' ? Object.assign({}, S.presets.all[tw], { preset: tw }) : Object.assign({}, tw || S.presets.all.hscroll); a.gain = Number(it.value) * 1.6; await setAssign(d, 'thumbwheel', '', a); return; },
-  'assign-thumb': async (it, e, d, key) => { await setAssign(d, 'thumbwheel', '', key); changed(); return; },
   'host': async (it, e, d, key) => { await call('change_host', { id: d.id, host: Number(key) }); toast(t('{name}: switching to host {n}', { name: d.name, n: Number(key) + 1 })); return; },
   'rename-host': async (it, e, d, key) => { const h = d.state.hosts.names[Number(key)]; prompt(t('Rename host'), [{ key: 'name', label: t('Name shown on the device'), value: h.name }], async v => { merge(await call('set_host_name', { id: d.id, host: Number(key), name: v.name.trim() })); changed(); }, t('Rename')); return; },
   'sync-device': async (it, e, d, key) => { const dd = S.devices.find(x => x.id === key); try { merge(await call('sync_from_device', { id: key })); toast(t('{name}: settings read from device', { name: dd.name })); } catch (x) { merge(await call('device', { id: key })); } changed(); return; },
 };
 
-export const provide = {};
+export const provide = {  };

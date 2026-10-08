@@ -39,7 +39,6 @@ export const commands = {
   'flow-menu': async (it, e, d, key) => { S.menu = S.menu === 'flow:' + key ? null : 'flow:' + key; changed(); return; },
   'flow-settings': async (it, e, d, key) => { S.flowPanel = !S.flowPanel; S.menu = null; changed(); return; },
   'flow-panel-close': async (it, e, d, key) => { S.flowPanel = false; changed(); return; },
-  'flow-channels': async (it, e, d, key) => { S.menu = null; S.flowPanel = true; changed(); return; },
   'flow-switch-mode': async (it, e, d, key) => { await setFlow({ switch: key }); return; },
   // Flow's settings: add a computer (the same sheet), switches, which side a computer is on, remove it
   'flow-add': async (it, e, d, key) => { S.flowWizard = 'setup'; changed(); return; },

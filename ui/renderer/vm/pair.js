@@ -63,7 +63,6 @@ export const commands = {
     if (S.pair.step === 3) { if (S.pair.bt) api.host.btClose(); S.dlg = null; changed(); return; }
     return;
   },
-  'pair-confirm': async (it, e, d, key) => { try { await call('pair_confirm', { address: key }); S.pair.step = 3; S.pair.done = t('Pairing… the device joins when it confirms'); } catch (x) { S.pair.error = x.message; } changed(); return; },
   'pair-cancel': async (it, e, d, key) => { sysStop(); call('pair_cancel').catch(() => {}); if (S.pair && S.pair.bt) api.host.btClose(); S.dlg = null; changed(); return; },
   'pair-bt-again': async (it, e, d, key) => { api.host.openBluetooth(); return; },
 };

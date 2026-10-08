@@ -236,7 +236,6 @@ function thumbSettings(d) {
     row(t('Scroll direction'), twInvert ? t('Inverted') : t('Standard'), sw(twInvert, 'data-act="setting" data-path="thumbwheel.invert"'))));
 }
 
-const WHEEL_ACTIONS = [['hscroll', t('Horizontal scroll')], ['vscroll', t('Vertical scroll')], ['zoom_wheel', t('Zoom')], ['volume_wheel', t('Volume')], ['tabs_wheel', t('Switch tabs')], ['workspaces_wheel', t('Workspaces')], ['brightness_wheel', t('Brightness')]];
 function renderPointerPanel(d) {
   return `<div class="drawer-wrap"><div class="dlg drawer bl-panel" data-stop>
     <div class="dlg-head"><span class="dh-key">${t('Modify settings')}</span><span class="dh-sub">${esc(PT_NAMES[S.ptSel] || t('Point & scroll'))}</span></div>
@@ -244,4 +243,4 @@ function renderPointerPanel(d) {
   </div></div>`;
 }
 
-export const provide = { MOUSE_PHOTOS, MOUSE_BOTTOMS, buttonRows, mousePhoto, PHYS, pageButtons, gestureStage, pageGestures, WAVES, pageHaptics, PT_NAMES, ptSummary, thumbInfo, pointPhoto, pagePointer, pointerSettings, thumbSettings, WHEEL_ACTIONS, renderPointerPanel };
+export const provide = { MOUSE_PHOTOS, MOUSE_BOTTOMS, buttonRows, mousePhoto, PHYS, pageButtons, gestureStage, pageGestures, WAVES, pageHaptics, PT_NAMES, ptSummary, thumbInfo, pointPhoto, pagePointer, pointerSettings, thumbSettings, renderPointerPanel };

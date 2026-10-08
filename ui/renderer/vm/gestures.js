@@ -34,7 +34,6 @@ function gestureObject(d, cid) {
 export const commands = {
   'gesture-preset': async (it, e, d, key) => { await setAssign(d, 'buttons', gestureControl(d), key); changed(); return; },
   'gest-mode': async (it, e, d, key) => { const cid = gestureControl(d), g = gestureObject(d, cid); g.continuous = key === 'continuous'; if (g.continuous && !g.step) g.step = 40; g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); changed(); return; },
-  'gest-enable': async (it, e, d, key) => { const cid = gestureControl(d); const on = !it.on; if (on) { const g = gestureObject(d, cid); g.type = 'gesture'; await setAssign(d, 'buttons', cid, g); } else await setAssign(d, 'buttons', cid, 'native'); changed(); return; },
   'gest-button': async (it, e, d, key) => { S.holdCid = Object.assign({}, S.holdCid, { [d.id]: Number(it.value) }); changed(); return; },
   'hold-mode': async (it, e, d, key) => {
     // one button, one job: taking the ring keeps the gestures aside so they come back as they were

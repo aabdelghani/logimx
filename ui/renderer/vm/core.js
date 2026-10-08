@@ -30,8 +30,6 @@ const META = () => IS_WIN() ? 'Win' : IS_MAC() ? 'Cmd' : 'Super';
 const ALT = () => IS_MAC() ? 'Option' : 'Alt';
 const keyName = k => Act.keyName(k, OS());
 const agentNeedsBuild = () => !S.connected && !!S.agentInfo && !S.agentInfo.binary && !!S.agentInfo.canBuild;
-const CID = { middle: 82, back: 83, forward: 86, gesture: 195, mode: 196 };
-
 // ------------------------------------------------------------- nav
 const PAGES = {
   buttons: [t('Buttons'), 'fa-computer-mouse'], gestures: [t('Gestures & action ring'), 'fa-hand-pointer'], pointer: [t('Point & scroll'), 'fa-arrow-pointer'], thumb: [t('Thumb wheel'), 'fa-arrows-left-right'],
@@ -43,7 +41,6 @@ const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat(
 // gestures, and the MX Master 4's haptics, folded into Settings) are reached from these
 const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy'];
 const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about', 'flow'];   // Flow opens without a device too
-const generalPages = () => S.devices.some(isMouse) ? generalPagesAll.filter(p => p !== 'ring') : generalPagesAll;
 function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; changed(); }
 
 
@@ -104,4 +101,4 @@ function setField(f, v) {
   if (S.dlg === 'prompt') { const x = S.prompt.fields.find(x => x.key === f); if (x) x.value = v; }
   return null;
 }
-export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, CID, PAGES, devicePages, navPages, generalPagesAll, generalPages, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS, pageGuard, dialogClosed, sidePanelClosed, takeCue, setField };
+export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, PAGES, devicePages, navPages, generalPagesAll, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS, pageGuard, dialogClosed, sidePanelClosed, takeCue, setField };

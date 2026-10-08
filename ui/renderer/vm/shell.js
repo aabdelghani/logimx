@@ -84,7 +84,6 @@ export const commands = {
   'es-pick': async (it, e, d, key) => { const i = Number(it.data.cid); if (!S.blClosed && S.esSel === i) { fx.closeDrawer(() => { S.blClosed = true; }); return; } S.esSel = i; S.blClosed = false; changed(); return; },
   'pt-pick': async (it, e, d, key) => { const k = it.data.cid; if (!S.blClosed && S.ptSel === k) { fx.closeDrawer(() => { S.blClosed = true; }); return; } S.ptSel = k; S.blClosed = false; changed(); return; },
   'dir-pick': async (it, e, d, key) => { S.dir = key; const cid = gestureControl(d); openPicker({ drawer: S.page === 'gestures', dev: d, section: 'gesture', cid, label: SLOTS[key][0], slot: SLOTS[key][1] }); return; },
-  'goinfo': async (it, e, d, key) => { go('info', S.dev); return; },
   'back-apps': async (it, e, d, key) => { S.appDetail = null; changed(); return; },
   'win-close': async (it, e, d, key) => { api.host.windowAction('close'); return; },
   'win-min': async (it, e, d, key) => { api.host.windowAction('minimize'); return; },
