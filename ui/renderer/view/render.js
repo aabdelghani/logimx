@@ -46,7 +46,7 @@ function render() {
   const pageChanged = pageKey !== lastPageKey; lastPageKey = pageKey;
   // coming back to the panel from a prompt over it is not a new opening
   const dlgOpened = !!S.dlg && S.dlg !== lastDlg && !(S.dlg === 'picker' && lastDlg === 'prompt'); lastDlg = S.dlg;
-  let html = '';
+  let html;
   if (S.mode === 'onboard') html = renderOnboard();
   else if (!S.devices.length && S.page !== 'flow' && S.page !== 'ring') html = renderEmpty();   // Flow and the action ring stay reachable while the devices are on another computer
   else html = renderWindow();

@@ -12,7 +12,7 @@ function renderPicker() {
   const curKey = typeof cur === 'string' ? cur : (cur && cur.preset);
   const foot = `<div class="dlg-foot">${p.section === 'ring' ? `<button class="btn flat danger" data-act="pick-default"><i class="fa-solid fa-trash"></i>${t('Clear slot')}</button>` : `<button class="btn flat" data-act="pick-default" title="${t('Back to what this control does out of the box')}"><i class="fa-solid fa-rotate-left"></i>${t('Reset to default')}</button><button class="btn flat danger" data-act="pick-disable">${p.section === 'gesture' ? t('Do nothing') : p.section === 'keys' ? t('Disable key') : p.section === 'thumbwheel' ? t('Disable wheel') : t('Disable button')}</button>`}<div class="r"><button class="btn" data-act="close-dlg">${t('Cancel')}</button><button class="btn primary" data-act="pick-assign">${t('Assign')}</button></div></div>`;
   if (p.drawer) return renderPickerDrawer(foot.replace(/<div class="r">[\s\S]*<\/div><\/div>$/, '</div>'));
-  let body = '';
+  let body;
   if (p.cat === 'key') {
     body = `<div class="recbox" data-act="rec-start"><i class="fa-solid fa-keyboard big-ic"></i><div class="t">${p.recording ? t('Press the keys to record') : t('Click here, then press the keys')}</div><div class="keys">${(p.chord || []).length ? p.chord.map(k => `<span>${esc(keyName(k))}</span>`).join('') : '<span style="opacity:.5">…</span>'}</div><div class="hint">${t('Release to finish. Esc cancels.')}</div>${p.recording ? '' : `<button class="btn primary" data-act="rec-start">${t('Start recording')}</button>`}</div>
       <div class="hint">${t('Or type it:')} <input class="text" data-field="typed" placeholder="ctrl+alt+shift+z" style="width:200px;margin-left:8px" value="${esc(p.typed || '')}"></div>`;

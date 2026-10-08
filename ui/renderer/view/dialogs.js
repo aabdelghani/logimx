@@ -43,7 +43,7 @@ function sysWaitBody(p) {
 function renderPair() {
   const p = S.pair;
   const steps = [[1, t('Connection')], [2, t('Discover')], [3, t('Done')]].map(([n, l]) => `<button class="${n < p.step ? 'done' : n === p.step ? 'cur' : ''}"><span class="bar"></span><span class="t">${l}</span></button>`).join('');
-  let body = '';
+  let body;
   // with no receiver plugged in the receiver choice is greyed out and Bluetooth is chosen
   if (p.step === 1) body = `<button class="choice ${p.via !== 'bt' ? 'on' : ''}" data-act="pair-via" data-key="bolt" ${hasReceiver() ? '' : `disabled title="${t('Plug in a Bolt or Unifying receiver to pair with it')}"`}><span class="ic"><i class="fa-brands fa-usb"></i></span><div class="grow"><div>${t('Bolt receiver')}</div><div class="sub">${hasReceiver() ? esc(S.status.receivers) : t('No receiver plugged in')}</div></div></button>
     <button class="choice ${p.via === 'bt' ? 'on' : ''}" data-act="pair-via" data-key="bt"><span class="ic"><i class="fa-brands fa-bluetooth-b"></i></span><div class="grow"><div>Bluetooth</div><div class="sub">${IS_LINUX() ? t('Found and connected right here') : t('Via the system Bluetooth settings')}</div></div></button><div class="hint">${t('Unifying receivers are supported for existing pairings only.')}</div>`;
@@ -116,7 +116,7 @@ function onboardPermissions() {
 function renderOnboard() {
   const o = S.ob;
   const steps = [[1, t('Permissions'), IS_LINUX() ? t('udev rule and uinput') : IS_MAC() ? t('Accessibility, Input Monitoring') : t('Background agent')], [2, t('Devices'), t('Choose what to manage')], [3, t('Preset'), IS_LINUX() ? t('GNOME, macOS or Windows-like') : t('Gestures and the thumb wheel')]].map(([n, l, s]) => `<button class="ob-step ${n === o.step ? 'cur' : n < o.step ? 'done' : ''}" data-act="ob-step" data-key="${n}"><span class="n">${n < o.step ? '✓' : n}</span><div><div class="t">${l}</div><div class="s">${s}</div></div></button>`).join('');
-  let body = '';
+  let body;
   if (o.step === 1 && !IS_LINUX()) body = onboardPermissions();
   else if (o.step === 1) {
     const agentOk = S.connected, devOk = S.devices.length > 0;

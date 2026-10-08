@@ -293,7 +293,7 @@ export const commands = {
     const p = S.picker; const dd = S.devices.find(x => x.id === p.dev) || d;
     if (p.section === 'ring') { const slots = ringSlots(); slots[p.cid] = null; await saveRingSlots(slots); S.dlg = null; toast(t('Slot {n} cleared', { n: p.cid + 1 })); changed(); return; }
     const defs = ((await api.quiet('defaults', { id: dd.id })).profiles || {}).default || {};
-    let a = 'native';
+    let a;
     if (p.section === 'thumbwheel') a = defs.thumbwheel || 'native';
     else if (p.section === 'gesture') a = 'nothing';
     else a = (defs[p.section] || {})[String(p.cid)] || 'native';
