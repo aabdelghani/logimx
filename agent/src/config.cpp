@@ -148,7 +148,14 @@ std::string Config::backup(const std::string& note) {
     std::time_t t = std::time(nullptr);
     char stamp[32];
     std::strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", std::localtime(&t));
+    // two backups in the same second (Reset every device makes one per device) each keep their own file
     std::string file = dir + "/config-" + stamp + ".json";
+    // (named so they sort after the first: the newest are kept and listed first)
+    for (int n = 2; std::filesystem::exists(platform::fsPath(file), ec); ++n) {
+        char seq[16];
+        std::snprintf(seq, sizeof(seq), "_%02d", n);
+        file = dir + "/config-" + stamp + seq + ".json";
+    }
     { std::ofstream out(platform::fsPath(file), std::ios::binary); out << in.rdbuf(); }
     json idx = json::object();
     { std::ifstream f(platform::fsPath(dir + "/index.json")); if (f) { try { idx = json::parse(f); } catch (...) {} } }

@@ -47,7 +47,7 @@ class Smoother {
     void setMomentum(bool on) { std::lock_guard<std::mutex> lk(m_); momentum_ = on; if (!on) cy_ = cx_ = 0; }
     void setRatchet(bool on) { std::lock_guard<std::mutex> lk(m_); ratchet_ = on; }
 
-  private:
+    // one axis of the smoothing (public for the tests): what the wheel asked for, played a frame at a time
     struct Axis {
         double target = 0, pos = 0;   // what was asked for and what was played, in units
         double gain = 0, maxStep = 0;   // share of what is left played a frame, and its cap
@@ -57,6 +57,8 @@ class Smoother {
         void push(double d, double tms);
         double step();
     };
+
+  private:
     void run();
     Injector& inj_;
     std::mutex m_;

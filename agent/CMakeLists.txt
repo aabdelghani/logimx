@@ -116,6 +116,17 @@ if(MINGW)
   target_link_options(logimxctl PRIVATE -static)
 endif()
 
+# Tests (doctest, run with ctest): the HID++ transport and devices against a scripted device, the
+# settings file, and the scroll smoothing. Not built when cross-compiling, where they could not run.
+include(CTest)
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+  add_executable(agent_tests tests/main.cpp tests/hidpp_test.cpp tests/device_test.cpp tests/config_test.cpp tests/smoother_test.cpp)
+  target_include_directories(agent_tests PRIVATE tests)
+  target_link_libraries(agent_tests PRIVATE oo_core)
+  target_compile_options(agent_tests PRIVATE ${WARN})
+  add_test(NAME agent_tests COMMAND agent_tests)
+endif()
+
 install(TARGETS logimx-agent logimxctl RUNTIME DESTINATION bin)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   install(FILES ${CMAKE_SOURCE_DIR}/../udev/60-logimx.rules DESTINATION /usr/lib/udev/rules.d OPTIONAL)

@@ -45,6 +45,8 @@ class Transport {
   public:
     using Callback = std::function<void(const Notification&)>;
     Transport(std::string path, Callback cb, double timeoutSec = 1.5);
+    // over a device already open (the tests' scripted device)
+    Transport(std::unique_ptr<HidDevice> hid, Callback cb, double timeoutSec = 1.5);
     ~Transport();
     Transport(const Transport&) = delete;
 

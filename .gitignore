@@ -8,3 +8,4 @@ dist/
 ui/dist/
 ui/build/license.txt
 ui/build/license_en.txt
+.cache/

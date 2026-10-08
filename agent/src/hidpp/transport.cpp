@@ -17,6 +17,12 @@ Transport::Transport(std::string path, Callback cb, double timeoutSec)
     thread_ = std::thread([this] { reader(); });
 }
 
+Transport::Transport(std::unique_ptr<HidDevice> hid, Callback cb, double timeoutSec)
+    : path_("(open device)"), hid_(std::move(hid)), timeout_(timeoutSec), cb_(std::move(cb)) {
+    info_ = hid_->info();
+    thread_ = std::thread([this] { reader(); });
+}
+
 void Transport::setCallback(Callback cb) {
     std::lock_guard<std::mutex> lk(cbMutex_);
     cb_ = std::move(cb);
