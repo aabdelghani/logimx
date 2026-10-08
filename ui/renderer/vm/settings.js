@@ -42,7 +42,6 @@ export const commands = {
   'ui': async (it, e, d, key) => { const v = !it.on; S.ui = await api.host.uiSettings({ [key]: v }) || Object.assign(S.ui, { [key]: v }); changed(); return; },
   // the window's size: 'auto' or a fixed factor
   'ui-scale': async (it, e, d, key) => { const v = it.data.val === 'auto' ? 'auto' : Number(it.data.val); S.ui = await api.host.uiSettings({ scale: v }) || Object.assign(S.ui, { scale: v }); changed(); return; },
-  'fwupd': async (it, e, d, key) => { toast(t('Are you serious now ?')); setTimeout(() => toast(t('You must be a Windows user !')), 2200); return; },
   'check-updates': async (it, e, d, key) => { const r = await api.host.checkUpdates(); if (!r.ok) return toast(t('Update check failed: {error}', { error: r.error }), true); const cur = VERSION; const has = r.latest && newer(r.latest, cur); toast(has ? t('Version {v} is available', { v: r.latest }) : t('You are on the latest version ({v})', { v: cur })); if (has && r.url) api.host.openExternal(r.url); return; },
   'export': async (it, e, d, key) => { const cfg = await call('export_config'); const p = await api.host.saveJson('logimx-settings.json', cfg); if (p) toast(t('Saved {path}', { path: p })); S.menu = null; return; },
   'import': async (it, e, d, key) => { const cfg = await api.host.openJson(); if (!cfg) return; await call('import_config', { config: cfg }); toast(t('Settings imported')); S.menu = null; refresh(); return; },
