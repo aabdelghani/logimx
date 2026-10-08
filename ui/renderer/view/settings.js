@@ -45,7 +45,6 @@ const morePages = () => [
   ['notif', 'fa-bell', t('Notifications'), t('On-screen overlays, low battery, devices connecting')],
   ['backup', 'fa-cloud-arrow-down', t('Backup & sync'), t('Back up, restore, export and import settings')],
   ['apps', 'fa-layer-group', t('Profiles'), t('Settings for each application')],
-  ['flow', 'fa-diagram-project', t('Flow'), t('Use your mouse and keyboard on more than one computer')],
 ].concat(S.devices.some(isMouse) ? [] : [['ring', 'fa-circle-notch', t('Action ring'), t('Eight actions around the pointer')]],
   [['about', 'fa-circle-info', t('About NotLogi'), t('Version, links, diagnostics')]]);
 
