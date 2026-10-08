@@ -152,13 +152,17 @@
       ],
       "icon": "build/icon.icns",
       "category": "public.app-category.utilities",
-      "identity": null,
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true,
       "darkModeSupport": true,
       "artifactName": "NotLogi-${version}-${arch}.${ext}",
       "extendInfo": {
         "LSMinimumSystemVersion": "12.0",
+        "NSAccessibilityUsageDescription": "NotLogi presses keys and buttons for you when you use a button or key you have assigned.",
+        "NSInputMonitoringUsageDescription": "NotLogi talks to your Logitech devices over Bluetooth to set up their buttons and keys.",
         "NSHumanReadableCopyright": "Copyright (C) 2026 aabdelghani. GPL-3.0-or-later. NotLogi is not affiliated with Logitech."
       },
       "extraResources": [

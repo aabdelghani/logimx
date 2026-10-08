@@ -38,8 +38,8 @@ Download from the [latest release](https://github.com/aabdelghani/notlogi/releas
 - **Any Linux**: make the AppImage executable and run it.
 - **Windows 10 and 11** (beta): run the setup. If SmartScreen asks, choose **More info**, then
   **Run anyway**.
-- **macOS 12 or newer** (beta): open the .dmg and drag NotLogi to Applications. The first time,
-  right-click it and choose **Open**, then allow **Accessibility** and **Input Monitoring** when asked.
+- **macOS 12 or newer** (beta): open the .dmg and drag NotLogi to Applications (signed and
+  notarized, so it opens like any app), then allow **Accessibility** and **Input Monitoring** when asked.
 
 Quit Logi Options+, Solaar or logiops while NotLogi runs: they drive the same buttons.
 
