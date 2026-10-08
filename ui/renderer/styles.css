@@ -58,7 +58,7 @@ header.hb .left { position: absolute; left: 8px; top: 0; bottom: 0; display: fle
 .hbtn { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 6px; border: 0; background: var(--btn); color: var(--fg); font-size: 13px; display: flex; align-items: center; gap: 6px; }
 .hbtn:hover { background: var(--btnh); }
 .hbtn.icon { padding: 0; width: 28px; justify-content: center; }
-.hbtn.close { width: 32px; height: 32px; min-width: 32px; padding: 0; justify-content: center; border-radius: 50%; font-size: 14px; }   /* the × in the middle of its circle */
+.hbtn.close, .hbtn.winmin { width: 32px; height: 32px; min-width: 32px; padding: 0; justify-content: center; border-radius: 50%; font-size: 14px; }   /* the × in the middle of its circle */
 .hbtn .ok { color: var(--ok); } .hbtn .warn { color: var(--warn); } .hbtn .err { color: var(--err); }
 .menu { position: absolute; right: 0; top: 34px; z-index: 10; width: 210px; background: var(--hb); border-radius: 12px; box-shadow: 0 0 0 1px var(--brd), 0 8px 24px rgba(0,0,0,.3); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
 .menu .mhead { padding: 6px 10px 4px; font-size: 12px; font-weight: 700; color: var(--dim); }
@@ -532,8 +532,8 @@ header.hb { height: 64px; }
 .content.landing .dev-state { font-size: 16px; }
 .content.landing .dev-state > i.fa-solid:not(.dev-bolt) { font-size: 18px; }
 /* window buttons without a backing: just the icon, a soft background only under the pointer */
-header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent), .flow-wiz .fw-close { background: transparent; }
-header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover, .flow-wiz .fw-close:hover { background: var(--btn); }
+header.hb .right .hbtn:not(.accent), .cfg-top .right .hbtn:not(.accent), .flow-wiz .fw-close, .flow-wiz .fw-min { background: transparent; }
+header.hb .right .hbtn:not(.accent):hover, .cfg-top .right .hbtn:not(.accent):hover, .flow-wiz .fw-close:hover, .flow-wiz .fw-min:hover { background: var(--btn); }
 header.hb .right .hbtn.on, .cfg-top .right .hbtn.on { background: transparent; color: var(--accbg); }
 header.hb .right .hbtn i, .cfg-top .right .hbtn i { font-size: 15px; }
 .hbtn.accent { text-transform: uppercase; letter-spacing: .04em; }
@@ -1167,7 +1167,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .fw-bar span { position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--accbg); border-radius: 2px; animation: indet 1.4s ease-in-out infinite; }
 .fw-art.searching .fw-pc.other { animation: fw-pulse 1.6s ease-in-out infinite; }
 @keyframes fw-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accbg) 0%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accbg) 22%, transparent); } }
-.flow-wiz .fw-close { position: fixed; top: 14px; right: 16px; z-index: 1; }
+.flow-wiz .fw-close, .flow-wiz .fw-min { position: fixed; top: 14px; right: 16px; z-index: 1; }
 
 .fw-pc.other.on { border-style: solid; border-color: var(--ok); }
 .fw-pc.other.on i { color: var(--ok); }

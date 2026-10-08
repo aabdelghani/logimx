@@ -85,7 +85,7 @@ function flowWizard(step, opening) {
       <div class="fw-sub">${t('Follow the above 3 steps on other computers to connect to them via Flow.')}</div>
       <div class="fw-btns"><button class="btn" data-act="flow-wiz-cancel">${t('Cancel')}</button><button class="btn primary" data-act="flow-wiz-go">${t('Continue')}</button></div>`;
   // the window's close button stays where it is (placed over the real one when drawn, see render)
-  return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true"><button class="hbtn close fw-close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button><div class="fw-body step-${step}" ${opening ? '' : 'data-step-in'}>${body}</div></div>`;
+  return `<div class="flow-wiz ${opening ? 'in' : ''}" role="dialog" aria-modal="true"><button class="hbtn winmin fw-min" data-act="win-min" title="${t('Minimize window')}"><i class="fa-solid fa-minus"></i></button><button class="hbtn close fw-close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button><div class="fw-body step-${step}" ${opening ? '' : 'data-step-in'}>${body}</div></div>`;
 }
 // the Flow page, as Options+ lays it out: the setup sheet until a computer is paired (see render), then
 // the computers drawn as screens where they sit, each with a ⋯ menu; the Flow switch and a settings cog

@@ -66,6 +66,9 @@ function render() {
   // the Flow sheet's close button sits exactly over the window's own, which the sheet covers
   const fwClose = root.querySelector('.fw-close'), winClose = fwClose && root.querySelector('.hbtn.close:not(.fw-close)');
   if (winClose) { const r = winClose.getBoundingClientRect(); fwClose.style.top = r.top + 'px'; fwClose.style.right = (window.innerWidth - r.right) + 'px'; }
+  // and its minimize button over the window's own
+  const fwMin = root.querySelector('.fw-min'), winMin = fwMin && root.querySelector('.hbtn.winmin:not(.fw-min)');
+  if (winMin) { const r = winMin.getBoundingClientRect(); fwMin.style.top = r.top + 'px'; fwMin.style.right = (window.innerWidth - r.right) + 'px'; }
   if (pageChanged) { const pg = root.querySelector('.content > .page'); if (pg) { pg.classList.add('enter'); pg.querySelectorAll('.fkeys .fkey').forEach((k, i) => k.style.setProperty('--k', i)); } }
   if (dlgOpened) { const sc = root.querySelector(S.dlg === 'picker' ? '.scrim, .drawer-wrap' : '.scrim'); if (sc) sc.classList.add('enter'); }
   // the page list slides in when a device is opened, not when moving between its pages
@@ -214,17 +217,17 @@ function renderWindow() {
   // a keyboard's own view keeps the corner to one action: add an application profile
   const controls = mode === 'device' ? `<div class="right">
           ${S.page === 'gestures' && S.cfgFrom && S.cfgKind === 'ring' ? ringProfileBar() : profileBar()}
-          <button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
+          <button class="hbtn winmin" data-act="win-min" title="${t('Minimize window')}"><i class="fa-solid fa-minus"></i></button><button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
         </div>` : `<div class="right">
           ${mode === 'home' ? `<button class="hbtn accent" data-act="pair" title="${t('Pair a new device with a receiver or Bluetooth')}"><i class="fa-solid fa-plus"></i>${t('Add device')}</button>` : ''}
           <button class="hbtn icon ${S.page === 'settings' ? 'on' : ''}" data-act="page" data-page="settings" title="${t('Settings')}"><i class="fa-solid fa-gear"></i></button>
           <div style="position:relative"><button class="hbtn icon" data-act="menu-theme" title="${t('Theme')}"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div>
-          <button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
+          <button class="hbtn winmin" data-act="win-min" title="${t('Minimize window')}"><i class="fa-solid fa-minus"></i></button><button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
   let body;
   if (ringSolo) {
     const drawer = drawerUp();
-    body = `<div class="devview2 ring-solo ${drawer ? 'drawer-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${folderNameField() || `<span class="cfg-name">${t('Action ring')}</span>`}</div></aside><section class="dev-config solo"><div class="cfg-top"><div class="right">${ringProfileBar()}<button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button></div></div><div class="content"><div class="page">${pageRing()}</div></div></section>${drawer ? renderPicker() : ''}</div>`;
+    body = `<div class="devview2 ring-solo ${drawer ? 'drawer-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${folderNameField() || `<span class="cfg-name">${t('Action ring')}</span>`}</div></aside><section class="dev-config solo"><div class="cfg-top"><div class="right">${ringProfileBar()}<button class="hbtn winmin" data-act="win-min" title="${t('Minimize window')}"><i class="fa-solid fa-minus"></i></button><button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button></div></div><div class="content"><div class="page">${pageRing()}</div></div></section>${drawer ? renderPicker() : ''}</div>`;
   } else if (mode === 'device') {
     // the device's pages listed down the left (the first is open by default) with Settings at the
     // foot; the page itself on the right under the window buttons

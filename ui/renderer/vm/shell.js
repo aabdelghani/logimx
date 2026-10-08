@@ -87,6 +87,7 @@ export const commands = {
   'goinfo': async (it, e, d, key) => { go('info', S.dev); return; },
   'back-apps': async (it, e, d, key) => { S.appDetail = null; changed(); return; },
   'win-close': async (it, e, d, key) => { api.host.windowAction('close'); return; },
+  'win-min': async (it, e, d, key) => { api.host.windowAction('minimize'); return; },
   'quit': async (it, e, d, key) => { api.host.windowAction('quit'); return; },
   'menu-theme': async (it, e, d, key) => { S.menu = S.menu === 'theme' ? null : 'theme'; changed(); return; },
   'menu-ringprof': async (it, e, d, key) => { S.menu = S.menu === 'ringprof' ? null : 'ringprof'; changed(); return; },
