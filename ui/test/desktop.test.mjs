@@ -11,8 +11,12 @@ const UI = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'), ROOT =
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const WM_CLASS = read('ui/main/env.js').match(/const WM_CLASS = '([^']+)'/)[1];
 
-test('the window class is the app name', () => {
-  assert.equal(read('ui/main.js').match(/app\.setName\('([^']+)'\)/)[1], WM_CLASS);
+test('the window class is the app name in lower case, as Electron sets it', () => {
+  // Electron 38 and later give the window the app's name in lower case, whatever --class says
+  const electron = Number(JSON.parse(read('ui/package.json')).devDependencies.electron.replace(/^\D*/, '').split('.')[0]);
+  assert.ok(electron >= 38, `the lower-case class holds from Electron 38 (this is ${electron})`);
+  assert.equal(read('ui/main.js').match(/app\.setName\('([^']+)'\)/)[1].toLowerCase(), WM_CLASS);
+  assert.equal(WM_CLASS, WM_CLASS.toLowerCase(), 'the class is all lower case');
 });
 
 test('every way of starting the app gives the window that class', () => {

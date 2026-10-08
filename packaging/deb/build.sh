@@ -48,7 +48,7 @@ Icon=logimx
 Terminal=false
 Categories=Settings;HardwareSettings;
 Keywords=mouse;keyboard;MX;Bolt;
-StartupWMClass=NotLogi
+StartupWMClass=notlogi
 StartupNotify=true
 DESK
 
