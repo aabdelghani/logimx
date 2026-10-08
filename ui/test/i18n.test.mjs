@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'fs';
 import path from 'path';
 import { catalogue } from '../scripts/i18n-extract.mjs';
-import { t, setLanguage, pick, LANGS } from '../shared/i18n.mjs';
+import { t, setLanguage, pick, LANGS, rtl } from '../shared/i18n.mjs';
 
 const LOC = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'shared', 'locales');
 
@@ -17,6 +17,18 @@ test('t() fills placeholders and falls back to English', () => {
   setLanguage('en', {});
 });
 
+test('Arabic reads right to left in place: its translations are isolated as right-to-left text', () => {
+  setLanguage('ar', { 'Back': 'رجوع', 'Version {v} is available': 'الإصدار {v} متاح' });
+  assert.equal(rtl(), true);
+  assert.equal(t('Back'), '\u2067رجوع\u2069');
+  assert.equal(t('Version {v} is available', { v: '1.2.3' }), '\u2067الإصدار 1.2.3 متاح\u2069');
+  assert.equal(t('Not translated'), 'Not translated', 'English left as it is');
+  setLanguage('de', { 'Back': 'Zurück' });
+  assert.equal(rtl(), false);
+  assert.equal(t('Back'), 'Zurück', 'left-to-right languages untouched');
+  setLanguage('en', {});
+});
+
 test('system locales fall under the languages offered', () => {
   assert.equal(pick('de-AT'), 'de');
   assert.equal(pick('pt'), 'pt-BR');
@@ -24,8 +36,9 @@ test('system locales fall under the languages offered', () => {
   assert.equal(pick('zh-HK'), 'zh-TW');
   assert.equal(pick('zh'), 'zh-CN');
   assert.equal(pick('nn-NO'), 'nb');
-  assert.equal(pick('ar-EG'), 'en');
-  assert.equal(LANGS.length, 19);
+  assert.equal(pick('ar-EG'), 'ar');
+  assert.equal(pick('he-IL'), 'en');
+  assert.equal(LANGS.length, 20);
 });
 
 test('every t() gives its English text as a literal', () => {

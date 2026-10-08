@@ -4,7 +4,7 @@
   --fg: rgba(0,0,0,.85); --dim: rgba(0,0,0,.55); --brd: rgba(0,0,0,.12);
   --acc: #0461be; --accbg: #3584e4; --ok: #1b8553; --warn: #9c6800; --warnbg: #f8e45c; --err: #c30000;
   --btn: rgba(0,0,0,.08); --btnh: rgba(0,0,0,.13); --knob: #fff; --trk: rgba(0,0,0,.18); --panel: #000; --desk: #3d5a80;
-  --font: Cantarell, "Adwaita Sans", "Noto Sans", Inter, system-ui, sans-serif;
+  --font: Cantarell, "Adwaita Sans", "Noto Sans", "Noto Sans Arabic", Inter, system-ui, sans-serif;
 }
 [data-theme="dark"] {
   --win: #222226; --view: #1d1d20; --hb: #2e2e32; --side: #2e2e32; --card: #363639;
@@ -1258,3 +1258,5 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .pair-help .ph-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--dim); }
 .pair-help .ph-row.warn { color: var(--fg); }
 .pair-help .ph-row.warn > i { color: var(--warn, #d97706); }
+/* Arabic: its letters join, so no extra spacing between them (labels in capitals get some) */
+:lang(ar) * { letter-spacing: 0 !important; }

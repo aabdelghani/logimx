@@ -1,12 +1,14 @@
-// The app's languages, the ones Options+ offers. The English text is the key: t('Scroll speed')
+// The app's languages: the ones Options+ offers, and Arabic. The English text is the key: t('Scroll speed')
 // gives that text in the language in use, or the English when it has no translation yet. A name in
 // braces is filled in from vars: t('{n} devices', { n }).
 export const LANGS = [
   ['en', 'English'], ['da', 'Dansk'], ['de', 'Deutsch'], ['el', 'Ελληνικά'], ['es', 'Español'], ['fi', 'Suomi'],
   ['fr', 'Français'], ['it', 'Italiano'], ['ja', '日本語'], ['ko', '한국어'], ['nb', 'Norsk bokmål'], ['nl', 'Nederlands'],
   ['pl', 'Polski'], ['pt-BR', 'Português (Brasil)'], ['pt-PT', 'Português (Portugal)'], ['ru', 'Русский'], ['sv', 'Svenska'],
-  ['zh-CN', '简体中文'], ['zh-TW', '繁體中文'],
+  ['zh-CN', '简体中文'], ['zh-TW', '繁體中文'], ['ar', 'العربية'],
 ];
+// languages written right to left: their text runs right to left, the window's layout stays as it is
+const RTL = new Set(['ar']);
 let dict = {}, lang = 'en';
 // a window gets its language from the main process as it loads (its preload offers window.i18n)
 try { const r = globalThis.i18n && globalThis.i18n.load(); if (r) { dict = r.dict || {}; lang = r.lang || 'en'; } } catch (e) {}
@@ -16,9 +18,13 @@ if (typeof document !== 'undefined') document.documentElement.lang = lang;
 export function setLanguage(code, d) { lang = code || 'en'; dict = d || {}; }
 export const language = () => lang;
 export function t(s, vars) {
-  const out = dict[s] || s;
-  return vars ? out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : out;
+  const tr = dict[s], out = tr || s;
+  const text = vars ? out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : out;
+  // a right-to-left translation is isolated as right-to-left text (U+2067 … U+2069): it reads right to
+  // left, English names in it included, while it sits where the layout puts it
+  return tr && RTL.has(lang) ? '\u2067' + text + '\u2069' : text;
 }
+export const rtl = () => RTL.has(lang);
 // English text kept as data (saved in the settings, or a table's names) and translated only where it
 // is shown with t(label): en() marks it so it is translated too, and gives it back unchanged
 export const en = s => s;

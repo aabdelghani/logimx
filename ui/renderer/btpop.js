@@ -3,7 +3,8 @@
 (() => {
   // the language the main process chose (preload: window.i18n)
   const I18N = (window.i18n && window.i18n.load()) || { dict: {} };
-  const t = (s, v) => { const o = I18N.dict[s] || s; return v ? o.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : o; };
+  document.documentElement.lang = I18N.lang || 'en';
+  const t = (s, v) => { const o = I18N.dict[s] || s, x = v ? o.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : o; return I18N.dict[s] && I18N.lang === 'ar' ? '\u2067' + x + '\u2069' : x; };   // Arabic reads right to left in place
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let dev = null;

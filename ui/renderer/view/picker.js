@@ -66,7 +66,7 @@ function drawerSection(p, k) {
       return `<div class="acts">${sugg.map(i => actRow(p, i) + (i.key === 'ring:brightness' ? briSetupRow() : '')).join('')}${ks}${ring ? ringSoonRows() : ''}</div>${p.cat === 'key' ? recBox(p) : ''}`;
     }
     const r = mouse ? null : RECOMMEND[p.cid];
-    const own = r ? r[0] : p.section === 'thumbwheel' ? t('Horizontal scroll') : (p.ctl && p.ctl.label) || p.label || t('Default');
+    const own = r ? r[0] : p.section === 'thumbwheel' ? t('Horizontal scroll') : t((p.ctl && p.ctl.label) || p.label || 'Default');   // i18n: data
     // a button's own function comes first; the gesture button and the MX Master 4's haptic panel have
     // none worth choosing (left to the mouse they do nothing here), so their list starts with what they can do
     const rows = p.section === 'buttons' && (p.cid === 195 || p.cid === 416) ? [] : [Object.assign(presetItem('native'), { label: own, meta: t('Default') })];

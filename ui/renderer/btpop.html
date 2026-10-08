@@ -8,7 +8,7 @@
     :root, [data-theme="light"] { --bg: #ffffff; --fg: #1b1c1f; --dim: rgba(0,0,0,.6); --brd: rgba(0,0,0,.1); --btn: rgba(0,0,0,.07); --btn-h: rgba(0,0,0,.12); --acc: #3584e4; --acc-fg: #fff; --err: #c01c28; }
     [data-theme="dark"] { --bg: #2b2c31; --fg: #fff; --dim: rgba(255,255,255,.65); --brd: rgba(255,255,255,.12); --btn: rgba(255,255,255,.1); --btn-h: rgba(255,255,255,.16); --acc: #3584e4; --acc-fg: #fff; --err: #ff7b72; }
     html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
-    body { font: 500 15px system-ui, Cantarell, "Ubuntu", "Noto Sans", sans-serif; color: var(--fg); user-select: none; -webkit-user-select: none; }
+    body { font: 500 15px system-ui, Cantarell, "Ubuntu", "Noto Sans", "Noto Sans Arabic", sans-serif; color: var(--fg); user-select: none; -webkit-user-select: none; }
     .card { position: absolute; inset: 10px; background: var(--bg); border: 1px solid var(--brd); border-radius: 16px; box-shadow: 0 12px 34px rgba(0,0,0,.32); display: flex; gap: 18px; padding: 20px 22px; box-sizing: border-box; animation: in .22s cubic-bezier(.2,.9,.3,1.2) both; }
     @keyframes in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
     .photo { flex: none; width: 112px; display: flex; align-items: center; justify-content: center; }
@@ -34,7 +34,8 @@
     .spin { animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .card, .spin { animation: none; } }
-  </style>
+      :lang(ar) * { letter-spacing: 0 !important; }   /* Arabic letters join */
+</style>
 </head>
 <body>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="title" aria-describedby="text">

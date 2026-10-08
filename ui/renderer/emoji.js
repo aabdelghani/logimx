@@ -2,7 +2,8 @@
 (() => {
   // the language the main process chose (preload: window.i18n)
   const I18N = (window.i18n && window.i18n.load()) || { dict: {} };
-  const t = (s, v) => { const o = I18N.dict[s] || s; return v ? o.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : o; };
+  document.documentElement.lang = I18N.lang || 'en';
+  const t = (s, v) => { const o = I18N.dict[s] || s, x = v ? o.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : o; return I18N.dict[s] && I18N.lang === 'ar' ? '\u2067' + x + '\u2069' : x; };   // Arabic reads right to left in place
   const $ = s => document.querySelector(s);
   const TITLES = { recent: t('Recently used'), smileys: t('Smileys & people'), animals: t('Animals & nature'), food: t('Food & drink'), activity: t('Activities'), travel: t('Travel & places'), objects: t('Objects'), symbols: t('Symbols'), flags: t('Flags') };
   const cats = [{ key: 'recent', icon: 'fa-clock-rotate-left', items: [] }].concat(window.EMOJI);
