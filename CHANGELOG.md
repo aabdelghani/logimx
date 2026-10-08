@@ -5,6 +5,13 @@ Every release of NotLogi (formerly LogiMX), newest first. Downloads are on each 
 
 ## Unreleased
 
+## [0.12.2](https://github.com/aabdelghani/notlogi/releases/tag/v0.12.2) - 2026-10-09
+
+- macOS: releases are signed with a Developer ID and notarized. Permissions granted (Accessibility, Input Monitoring) now survive updates: signed ad hoc, every release was a new app to macOS and the switches left on for the previous one no longer applied (#14). The app opens without right-click > Open. Updating from an earlier release: remove NotLogi from Accessibility with − and add it again with +, once.
+- macOS: one banner per missing permission, saying what to do when the switch is already on; Input Monitoring is only asked for while no device is reachable; the window looks again every few seconds, so a banner goes as soon as the permission is granted.
+- Home screen and Flow page: the layout was broken by five CSS comments left open; fixed.
+- Action ring: centred on the pointer itself on macOS and Windows (a little above it), and the pointer read from the agent on macOS.
+- macOS: the menu bar icon is 18 points like the system's own; Stop for Logi Options+ unloads its launchd job, so it stays stopped.
 - Add device over the system's Bluetooth (macOS, Windows): the dialog waits for the device and opens its page when it connects; the receiver choice is greyed out when no receiver is plugged in.
 - Repository: changelog, security policy, issue and pull request templates, code of conduct, agent tests, lint and formatting.
 
