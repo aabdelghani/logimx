@@ -382,12 +382,14 @@ function bind() {
 // macOS: a banner for each permission that is missing. Accessibility is needed to press keys and
 // buttons; Input Monitoring to reach devices over Bluetooth, so it is only asked for while no
 // device is reachable (a receiver needs no permission). Each release is a new app to macOS when it
-// is signed ad hoc, so a switch left on for the previous one no longer counts: hence the off-and-on.
+// is signed ad hoc, so a switch left on for the previous one no longer counts; toggling it does not
+// rebind it to the new build either (macOS keeps the old signature requirement on the row), only
+// removing and re-adding the app does.
 function permissionBanners() {
   const ax = S.ax, imMissing = S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted' && !S.devices.some(d => d.online !== false);
   let out = '';
-  if (ax && ax.needed && !ax.trusted) out += `<div class="banner"><i class="fa-solid fa-universal-access"></i><span>${t('<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Switch it off and on again: after an update macOS does not recognise the app until then.')}</span><button class="bact" data-act="ax-open">${t('Open settings')}</button></div>`;
-  if (imMissing) out += `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Switch it off and on again.')}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>`;
+  if (ax && ax.needed && !ax.trusted) out += `<div class="banner"><i class="fa-solid fa-universal-access"></i><span>${t('<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.')}</span><button class="bact" data-act="ax-open">${t('Open settings')}</button></div>`;
+  if (imMissing) out += `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.')}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>`;
   return out;
 }
 export const provide = { permissionBanners, render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, THEMES, themeMenu, renderPage, renderDialog, bind, schedule };
