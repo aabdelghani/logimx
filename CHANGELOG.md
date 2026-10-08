@@ -5,6 +5,8 @@ Every release of NotLogi (formerly LogiMX), newest first. Downloads are on each 
 
 ## Unreleased
 
+## [0.12.3](https://github.com/aabdelghani/notlogi/releases/tag/v0.12.3) - 2026-10-09
+
 - Double-click: a button preset that double-clicks the left button on one press (#15).
 - Backlight: a Stay on while plugged in switch, which keeps the light two hours after the last key, the most the keyboard allows (#15).
 
