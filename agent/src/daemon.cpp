@@ -1069,7 +1069,7 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
         if (path[1] == "mode") return oneOf({"auto", "manual", "temporary"});
         if (path[1] == "level") return clampInt(0, std::max(0, st.value("backlight", json::object()).value("num_levels", 8) - 1));
         if (path[1] == "duration_hands_out" || path[1] == "duration_hands_in") return clampInt(1, 600);
-        if (path[1] == "duration_powered") return clampInt(1, 3600);
+        if (path[1] == "duration_powered") return clampInt(1, 7200);   // the firmware's most is two hours
     }
     throw std::runtime_error("unknown setting " + k + (path.size() > 1 ? "." + path[1] : ""));
 }

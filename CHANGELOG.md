@@ -5,6 +5,9 @@ Every release of NotLogi (formerly LogiMX), newest first. Downloads are on each 
 
 ## Unreleased
 
+- Double-click: a button preset that double-clicks the left button on one press (#15).
+- Backlight: a Stay on while plugged in switch, which keeps the light two hours after the last key, the most the keyboard allows (#15).
+
 ## [0.12.2](https://github.com/aabdelghani/notlogi/releases/tag/v0.12.2) - 2026-10-09
 
 - macOS: releases are signed with a Developer ID and notarized. Permissions granted (Accessibility, Input Monitoring) now survive updates: signed ad hoc, every release was a new app to macOS and the switches left on for the previous one no longer applied (#14). The app opens without right-click > Open. Updating from an earlier release: remove NotLogi from Accessibility with − and add it again with +, once.

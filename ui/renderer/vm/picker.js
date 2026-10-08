@@ -19,7 +19,7 @@ const PICKER_CATS = [['all', t('All'), 'fa-list'], ['key', t('Keystroke'), 'fa-k
 const CAT_OF = { media: ['volume_up', 'volume_down', 'mute', 'mic_mute', 'play_pause', 'next_track', 'prev_track', 'brightness_up', 'brightness_down'],
   window: ['close_window', 'maximize', 'minimize', 'tile_left', 'tile_right', 'show_desktop', 'app_switcher', 'screenshot', 'screenshot_area', 'lock', 'terminal', 'calculator', 'emoji_picker', 'action_ring', 'emoji', 'context_menu', 'copy', 'paste', 'undo', 'redo', 'zoom_in', 'zoom_out', 'tab_next', 'tab_prev'],
   ws: ['overview', 'workspace_next', 'workspace_prev'],
-  device: ['native', 'nothing', 'middle_click', 'back', 'forward', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'dpi_cycle', 'smartshift_toggle', 'open_home', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel'] };
+  device: ['native', 'nothing', 'middle_click', 'double_click', 'back', 'forward', 'easy_switch_1', 'easy_switch_2', 'easy_switch_3', 'dpi_cycle', 'smartshift_toggle', 'open_home', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel'] };
 const CAT_LABEL = { media: t('Media'), window: t('Window'), ws: t('Shell'), device: t('Device') };
 function pickerItems(p) {
   const all = S.presets.all;
@@ -86,7 +86,7 @@ const appLabel = set => set.name === 'browser' ? t('For browsers') : t('For {app
 // an item of the list: a preset, or one of the ready-made keystrokes above (their labels are kept
 // in English, as stored in the config, and shown translated)
 const recItem = k => k.startsWith('app:') ? { key: k, icon: (APP_ACTIONS[k.slice(4)].type === 'adapter' ? 'fa-arrows-up-down' : 'fa-keyboard'), label: t(APP_ACTIONS[k.slice(4)].label) } : presetItem(k); // i18n: data
-const MOUSE_GROUP = ['middle_click', 'back', 'forward', 'dpi_cycle', 'smartshift_toggle', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'action_ring'];
+const MOUSE_GROUP = ['middle_click', 'double_click', 'back', 'forward', 'dpi_cycle', 'smartshift_toggle', 'gesture_navigation', 'gesture_windows', 'gesture_volume', 'gesture_pan', 'action_ring'];
 const WHEEL_GROUP = ['hscroll', 'vscroll', 'zoom_wheel', 'volume_wheel', 'tabs_wheel', 'workspaces_wheel', 'brightness_wheel', 'nothing'];
 const K = (code, label) => ({ code: 'KEY_' + code, label: label || code });
 const keyRange = (a, f) => a.split(' ').map(c => K(c, f ? f(c) : c));

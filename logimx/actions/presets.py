@@ -23,6 +23,7 @@ PRESETS: dict[str, dict] = {
     "native":            {"label": "Default (device)", "icon": "device", "type": "native"},
     "nothing":           {"label": "Do nothing", "icon": "block", "type": "nothing"},
     "middle_click":      {"label": "Middle click", "icon": "mouse", "type": "button", "button": "BTN_MIDDLE"},
+    "double_click":      {"label": "Double-click", "icon": "mouse", "type": "button", "button": "BTN_LEFT", "count": 2},
     "back":              {"label": "Back", "icon": "arrow-left", "type": "button", "button": "BTN_SIDE"},
     "forward":           {"label": "Forward", "icon": "arrow-right", "type": "button", "button": "BTN_EXTRA"},
     "overview":          {"label": "Activities / Overview", "icon": "grid", "type": "keystroke", "keys": ["KEY_LEFTMETA"]},

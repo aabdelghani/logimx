@@ -10,7 +10,7 @@ export function link(ctx) { ({ S, api, assignment, call, changed, merge, prompt,
 export const commands = {
   'dpi': async (it, e, d, key) => { await setSetting(d, ['dpi'], Number(it.value)); return; },
   'pspeed': async (it, e, d, key) => { await setSetting(d, ['pointer_speed'], Number((Number(it.value) / 50 - 1).toFixed(2))); return; },
-  'setting': async (it, e, d, key) => { const on = !it.on; const path = it.data.path.split('.'); let v = it.data.on ? (on ? it.data.on : it.data.off) : on; if (v === 'true') v = true; else if (v === 'false') v = false; await setSetting(d, path, v); changed(); return; },
+  'setting': async (it, e, d, key) => { const on = !it.on; const path = it.data.path.split('.'); let v = it.data.on ? (on ? it.data.on : it.data.off) : on; if (v === 'true') v = true; else if (v === 'false') v = false; else if (/^\d+$/.test(v)) v = Number(v); await setSetting(d, path, v); changed(); return; },
   'setting-val': async (it, e, d, key) => { await setSetting(d, it.data.path.split('.'), it.data.val); changed(); return; },
   'setting-range': async (it, e, d, key) => { await setSetting(d, it.data.path.split('.'), Number(it.value)); return; },
   'haptic-level': async (it, e, d, key) => { await setSetting(d, ['haptic', 'level'], Number(it.value)); api.quiet('haptic_play', { id: d.id, waveform: 4 }).catch(() => {}); return; },
