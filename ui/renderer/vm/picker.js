@@ -6,8 +6,8 @@ import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 import { en, inEnglish, t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast, ringEditorOn;
-export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, recording, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, sec, setAssign, toast, ringEditorOn } = ctx); }
+let ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, setAssign, toast, ringEditorOn;
+export function link(ctx) { ({ ALT, META, S, SLOTS, actionIcon, api, assignment, call, changed, dev, deviceProfiles, fx, gestureCapable, gestureControl, gestureObject, go, keyName, merge, presetLabel, prompt, ringSelectAdd, ringSlots, ringTidyFolders, saveRingSlots, setAssign, toast, ringEditorOn } = ctx); }
 
 // the screen state this view model owns: the action picker open (null: none)
 export const state = {

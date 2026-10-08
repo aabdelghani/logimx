@@ -3,8 +3,8 @@
 // scroll), keep the add panel's button in step.
 
 // from the rest of the window, filled in by link()
-let card, root;
-export function link(ctx) { ({ card, root } = ctx); }
+let root;
+export function link(ctx) { ({ root } = ctx); }
 let V;   // the view functions passed through below
 export function linkViews(ctx) { V = ctx; }
 

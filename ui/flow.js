@@ -316,7 +316,6 @@ async function switchTo(peer, edge, pos) {
 // screens of different sizes, the edge of the main screen can be inside the desktop's outline)
 let atEdge = null, edgeSince = 0, loggedEdge = 0;
 const screens = () => screen.getAllDisplays().map(d => d.bounds);
-const nearEdge = (pt, margin) => L.nearEdge(pt, margin, screens());
 const edgeOf = pt => L.edgeOf(pt, screens());
 // the pointer's place: on Linux and macOS from the agent, as Electron's own reading goes stale (Linux:
 // over other programs' windows; macOS: while the mouse is on another computer); elsewhere Electron's

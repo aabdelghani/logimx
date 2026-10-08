@@ -149,7 +149,6 @@ async function showRing(deviceId, raw) {
   state.uiSettings = state.uiSettings || loadUi();
   ringDevice = typeof deviceId === 'string' ? deviceId : null;
   const rs = (state.general || {}).ring || {};   // kept fresh by refreshGeneral, no round trip here
-  const prof = Array.isArray(rs.profiles) && rs.profiles.length ? rs.profiles[Math.max(0, Math.min(rs.profiles.length - 1, rs.active || 0))] : null;
   const pick = ringFor(rs);
   ringSlots = pick.slots;
   ringRawMode = !!raw;

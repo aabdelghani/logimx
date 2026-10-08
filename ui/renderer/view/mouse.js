@@ -3,8 +3,8 @@ import { isNative } from '../../shared/profiles.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw;
-export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, ringState, row, sec, sw } = ctx); }
+let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, row, sec, sw;
+export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, row, sec, sw } = ctx); }
 
 // ----------------------------------------------------------- photos
 // One photo per mouse model, keyed by device id like the keyboards. A spot is a control id (or
@@ -111,10 +111,6 @@ function pageGestures(d) {
   const holdRows = `<div class="row"><div class="grow"><div class="lbl">${t('When held')}</div><div class="sub">${mode === 'ring' ? t('Opens the action ring; gestures are off') : mode === 'gestures' ? t('Swipes run gestures; the action ring is off') : t('The button does what the mouse does by itself')}</div></div><span class="seg">${seg('gestures', t('Gestures'))}${seg('ring', t('Action ring'))}${seg('off', t('Off'))}</span></div>` +
     `<div class="row"><div class="grow"><div class="lbl">${t('Button')}</div><div class="sub">${t('Each button that can be held has its own choice')}</div></div><select class="sel" data-act="gest-button">${gestureCapable(d).map(c => { const ca = assignment(d, 'buttons', c.cid); const ct = (typeof ca === 'string' ? (S.presets.all[ca] || {}) : (ca || {})).type; return `<option value="${c.cid}" ${c.cid === cid ? 'selected' : ''}>${esc(c.label)}${isRingAction(ca) ? ' · ' + t('action ring') : ct === 'gesture' ? ' · ' + t('gestures') : ''}</option>`; }).join('')}</select></div>`;
   if (mode === 'ring') {
-    const rs = ringState();
-    const pchips = rs.profiles.map((p, i) => `<button class="pill ${i === rs.active ? 'on' : ''}" data-act="ring-profile" data-key="${i}">${esc(p.name)}</button>`).join('') + `<button class="pill" data-act="ring-profile-add" title="${t('New profile')}"><i class="fa-solid fa-plus"></i>${t('New')}</button>`;
-    const free = row(t('Keep the pointer visible and free'), rs.free_pointer ? t('The pointer moves anywhere; the action under it is chosen') : t('The pointer hides and the mouse steers the ring'), sw(rs.free_pointer, 'data-act="ring-free"'));
-    const feel = rs.free_pointer ? '' : `<div class="row"><span class="grow lbl">${t('Travel before it picks')}</span>${range('data-act="ring-travel" data-out="rtravel"', rs.travel, 10, 80, 5)}<span class="val" data-out="rtravel" style="width:24px;text-align:right">${rs.travel}</span></div>`;
     return `<div class="ring-page">${ringStage()}<div class="rs-bar"><span></span><button class="btn" data-act="ring-test"><i class="fa-solid fa-play"></i>${t('Try it')}</button></div></div>`;
   }
   if (mode === 'off') return sec(t('Gesture button'), card(holdRows)) + `<div class="hint" style="margin-top:12px">${t('Pick Gestures or Action ring to give the button something to do while it is held.')}</div>`;

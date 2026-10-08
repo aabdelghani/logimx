@@ -4,7 +4,6 @@
 const { app, nativeTheme, systemPreferences, shell } = require('electron');
 const path = require('path');
 const os = require('os');
-const fs = require('fs');
 const { execFile, spawn } = require('child_process');
 
 const IS_WIN = process.platform === 'win32';

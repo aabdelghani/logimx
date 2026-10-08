@@ -1,5 +1,5 @@
 // View: dragging an action from the panel onto a gesture direction or a ring slot.
-import { RING_NEXT_PROFILE, RING_BRIGHTNESS, RING_DIRS } from '../../shared/ring.mjs';
+import { RING_NEXT_PROFILE, RING_BRIGHTNESS } from '../../shared/ring.mjs';
 
 // from the rest of the window, filled in by link()
 let S, dropOnGesture, dropOnRing, root;

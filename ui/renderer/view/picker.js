@@ -1,11 +1,10 @@
 // View: the action picker, as a dialog or as the panel beside a device.
-import { PRESET_ICON, ICON } from '../../shared/actions.mjs';
 import { RING_BRIGHTNESS } from '../../shared/ring.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, PICKER_FOLD, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, appLabel, appSet, brightnessStatus, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, ringBehaviour, root, row, sec, sectionsFor, takeUnfolded;
-export function link(ctx) { ({ GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, PICKER_FOLD, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, appLabel, appSet, brightnessStatus, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, ringBehaviour, root, row, sec, sectionsFor, takeUnfolded } = ctx); }
+let GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, PICKER_FOLD, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, appLabel, appSet, brightnessStatus, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, ringBehaviour, root, sec, sectionsFor, takeUnfolded;
+export function link(ctx) { ({ GESTURE_RECOMMEND, IS_LINUX, IS_MAC, IS_WIN, KEY_GROUP_NAMES, MOUSE_RECOMMEND, OPTS_CARD, PICKER_CATS, PICKER_FOLD, RECOMMEND, RING_DRAG, RING_RECOMMEND, RING_WHEEL, S, allowedFor, appLabel, appSet, brightnessStatus, curOf, drawerItems, easyLabel, esc, groupsFor, isRingAction, keyCur, keyGroups, keyName, onAction, pickerItems, presetItem, recItem, ringBehaviour, root, sec, sectionsFor, takeUnfolded } = ctx); }
 
 function renderPicker() {
   const p = S.picker;

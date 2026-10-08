@@ -23,7 +23,7 @@ const BT_WATCH_ON_MS = 10000, BT_WATCH_OFF_MS = 20000, BT_RENOTIFY_MS = 10 * 600
 const btNotified = new Map();     // address -> when we last told the user
 const btFound = new Map();        // address -> { address, name, kind }, what the dialog lists
 let btScan = null, btPairing = null, btPairOpen = false;
-const stripAnsi = t => t.replace(/\x1b\[[0-9;]*m/g, '');
+const stripAnsi = t => t.replace(/\x1b\[[0-9;]*m/g, '');   // eslint-disable-line no-control-regex -- terminal colour codes
 const isLogiName = n => /^(MX[ -]|Logi|Logitech|Signature|Lift|ERGO|Pebble|POP |[KM]\d{3}\b)/i.test(n || '');
 const btEmit = data => { notify('bt-event', data); if (btPopWin && !btPopWin.isDestroyed()) btPopWin.webContents.send('bt-event', data); };
 function btInfo(addr) {

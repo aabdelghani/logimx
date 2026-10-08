@@ -224,7 +224,6 @@ function renderWindow() {
     const drawer = drawerUp();
     body = `<div class="devview2 ring-solo ${drawer ? 'drawer-open' : ''}"><aside class="dnav"><div class="cfg-back"><button class="hbtn icon" data-act="go-home" title="${t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>${folderNameField() || `<span class="cfg-name">${t('Action ring')}</span>`}</div></aside><section class="dev-config solo"><div class="cfg-top"><div class="right">${ringProfileBar()}<button class="hbtn close" data-act="win-close" title="${t('Close to tray')}"><i class="fa-solid fa-xmark"></i></button></div></div><div class="content"><div class="page">${pageRing()}</div></div></section>${drawer ? renderPicker() : ''}</div>`;
   } else if (mode === 'device') {
-    const tabs = devicePages(d).map(p => `<button class="tab ${S.page === p || (p === 'buttons' && S.page === 'thumb') ? 'on' : ''}" data-act="home-page" data-key="${esc(d.id)}" data-page="${p}"><i class="fa-solid ${PAGES[p][1]}"></i>${PAGES[p][0]}</button>`).join('');
     // the device's pages listed down the left (the first is open by default) with Settings at the
     // foot; the page itself on the right under the window buttons
     // Easy-Switch is not ready yet: listed, dimmed, marked Soon, and not clickable

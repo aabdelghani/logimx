@@ -1,6 +1,6 @@
 // View: Home, the devices side by side, and the window with no device yet.
 import { isMouse } from '../../shared/profiles.mjs';
-import { batIcon, known, isLow } from '../../shared/battery.mjs';
+import { batIcon, known } from '../../shared/battery.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
@@ -9,18 +9,11 @@ export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homeDevice
 
 function greeting() { const h = new Date().getHours(); return h < 5 ? t('Good night') : h < 12 ? t('Good morning') : h < 18 ? t('Good afternoon') : t('Good evening'); }
 function pageHome() {
-  const devs = S.devices;
-  const charging = devs.filter(d => d.battery && d.battery.charging).length;
-  const low = devs.filter(d => isLow(d.battery));
-  const n = devs.length, names = low.length ? low.map(d => d.name).reduce((a, b) => t('{a} and {b}', { a, b })) : '';
-  const summary = [n === 1 ? t('{n} device connected', { n }) : t('{n} devices connected', { n })]
-    .concat(charging ? [t('{n} charging', { n: charging })] : [], low.length ? [low.length === 1 ? t('{names} needs charging', { names }) : t('{names} need charging', { names })] : [], !charging && !low.length && devs.length ? [t('batteries fine')] : []).join(' · ');
   const cards = homeDevices().map(d => {
     const off = isOffline(d);
     const b = d.battery, st = batteryState(b), src = homePhotoSrc(d);
     const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? t('host {n}', { n: hosts.current + 1 }) : '';
     const link = (d.transport === 'bolt' ? t('Bolt receiver') : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || t('Connected')) + (host ? ` · ${host}` : '');
-    const profName = d.profile && d.profile !== 'default' ? (((d.config || {}).profiles || {})[d.profile] || {}).name || d.profile : t('All applications');
     // photo, battery and state only: the name is in the tooltip, the link is an icon
     const linkIcon = d.transport === 'bluetooth' ? '<i class="fa-brands fa-bluetooth-b"></i>' : '<i class="fa-solid fa-wifi"></i>';
     return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? t('Not connected') : esc(link)}">

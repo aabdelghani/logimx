@@ -6,8 +6,8 @@ import * as Act from '../../shared/actions.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let S, changed, fx, sec;
-export function link(ctx) { ({ S, changed, fx, sec } = ctx); }
+let S, changed, fx;
+export function link(ctx) { ({ S, changed, fx } = ctx); }
 
 const dev = () => S.devices.find(d => d.id === S.dev) || null;
 const profileOf = Prof.profileOf;

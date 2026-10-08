@@ -6,16 +6,9 @@
 //               data-act name → a command on plain data); they never touch the page
 //   Views       view/*.js: draw the page from the view models and turn input into commands
 // This file builds the Model, links the modules together and starts the window.
-import * as Ring from '../shared/ring.mjs';
-import * as Act from '../shared/actions.mjs';
-import { batIcon, batClass } from '../shared/battery.mjs';
-import * as Prof from '../shared/profiles.mjs';
-import { isMouse, isNative } from '../shared/profiles.mjs';
-const { ICON, PRESET_ICON, MODS, codeToKey, toolName } = Act;
 import { createApi } from './model/api.js';
 import { createStore } from './model/store.js';
 import { t } from '../shared/i18n.mjs';
-const { RING_DIRS, RING_NEXT_PROFILE, RING_BRIGHTNESS, eight, isFolderSlot, newRingId } = Ring;
 import * as htmlView from './view/html.js';
 import * as fxView from './view/fx.js';
 import * as coreVM from './vm/core.js';
@@ -98,7 +91,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, flowRefresh, generalPagesAll, go, onAction, onRecordEvent, recording, pairCheck, render, ringEditorOn, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, generalPagesAll, go, onAction, onRecordEvent, recording, pairCheck, render, ringEditorOn, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && ringEditorOn() && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
