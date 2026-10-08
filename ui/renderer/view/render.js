@@ -207,9 +207,7 @@ function renderWindow() {
   const left = mode === 'home'
     ? `<span class="hello">${greeting()}</span>`
     : `<button class="hbtn icon" data-act="${S.appDetail ? 'back-apps' : 'go-home'}" title="${S.appDetail ? t('Back') : t('Home')}"><i class="fa-solid fa-arrow-left"></i></button>`;
-  // macOS: without Input Monitoring the agent cannot open the devices, which then never show up
-  const imMissing = S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted';
-  const imBanner = imMissing && mode === 'home' ? `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.', { what: (S.ax || { trusted: true }).trusted ? t('Input Monitoring') : t('Accessibility') })}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>` : '';
+  const imBanner = mode === 'home' ? permissionBanners() : '';
   // a newer release, found at startup: on Home, with Update (its release page) and a way to put it away
   const updateBanner = mode === 'home' && S.update ? `<div class="banner update"><i class="fa-solid fa-circle-arrow-up"></i><span>${t('Version {v} is available', { v: esc(S.update.latest) })}</span><button class="bact" data-act="update-open">${t('Update')}</button><button class="x" data-act="update-later" title="${t('Not now')}"><i class="fa-solid fa-xmark"></i></button></div>` : '';
   const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? t('Starting the agent…') : t('<strong>The agent is not running.</strong> Settings cannot reach the devices.')}</span>${S.agentBusy ? '' : `<button class="bact" data-act="start-agent">${t('Start')}</button>`}</div>` : '';
@@ -381,4 +379,15 @@ function bind() {
   }, 20);
 }
 
-export const provide = { render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, THEMES, themeMenu, renderPage, renderDialog, bind, schedule };
+// macOS: a banner for each permission that is missing. Accessibility is needed to press keys and
+// buttons; Input Monitoring to reach devices over Bluetooth, so it is only asked for while no
+// device is reachable (a receiver needs no permission). Each release is a new app to macOS when it
+// is signed ad hoc, so a switch left on for the previous one no longer counts: hence the off-and-on.
+function permissionBanners() {
+  const ax = S.ax, imMissing = S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted' && !S.devices.some(d => d.online !== false);
+  let out = '';
+  if (ax && ax.needed && !ax.trusted) out += `<div class="banner"><i class="fa-solid fa-universal-access"></i><span>${t('<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Switch it off and on again: after an update macOS does not recognise the app until then.')}</span><button class="bact" data-act="ax-open">${t('Open settings')}</button></div>`;
+  if (imMissing) out += `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Switch it off and on again.')}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>`;
+  return out;
+}
+export const provide = { permissionBanners, render, glideFrom, closeDrawer, keyTips, alignToNav, renderWindow, THEMES, themeMenu, renderPage, renderDialog, bind, schedule };

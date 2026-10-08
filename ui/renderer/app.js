@@ -162,6 +162,12 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     S.appInfo = (await api.host.appInfo()) || {};
     updateCheckAtStart();   // in the background: a newer release shows on Home
     if (IS_MAC()) S.ax = await api.host.accessibility(false);
+    // while a permission is missing, look again every few seconds: the banner goes as soon as it is granted
+    if (IS_MAC()) setInterval(async () => {
+      const im = S.status.input_monitoring, need = (S.ax && !S.ax.trusted) || (im && im !== 'granted');
+      if (!need) return;
+      try { const ax = await api.host.accessibility(false), st = await call('status'); const before = JSON.stringify([S.ax && S.ax.trusted, im]); S.ax = ax; if (st && st.input_monitoring) S.status.input_monitoring = st.input_monitoring; if (JSON.stringify([ax.trusted, S.status.input_monitoring]) !== before) changed(); } catch (e) {}
+    }, 4000);
     if (!IS_LINUX() && S.ob.preset === 'gnome') S.ob.preset = IS_WIN() ? 'win' : 'mac';   // the first-run guide starts on this OS's own preset
     try { S.agentInfo = await api.host.agentInfo(); } catch (e) {}
     let onboarded = false; try { onboarded = localStorage.getItem('onboarded') === '1'; } catch (e) {}

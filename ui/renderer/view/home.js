@@ -4,8 +4,8 @@ import { batIcon, known } from '../../shared/battery.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, root, themeMenu;
-export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, root, themeMenu } = ctx); }
+let S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, permissionBanners, root, themeMenu;
+export function link(ctx) { ({ S, agentNeedsBuild, batteryState, esc, homeDevices, homePhotoSrc, isOffline, permissionBanners, root, themeMenu } = ctx); }
 
 function greeting() { const h = new Date().getHours(); return h < 5 ? t('Good night') : h < 12 ? t('Good morning') : h < 18 ? t('Good afternoon') : t('Good evening'); }
 function pageHome() {
@@ -50,7 +50,7 @@ function renderEmpty() {
   const flowBtn = S.flow && (S.flow.peers || []).length ? `<button class="hbtn icon" data-act="page" data-page="flow" title="${t('Flow')}"><i class="fa-solid fa-diagram-project"></i></button>` : '';
   return `<div class="window"><main class="main empty-wrap">
     <header class="hb"><span class="title">NotLogi</span><div class="right">${flowBtn}<div style="position:relative"><button class="hbtn icon" data-act="menu-theme"><i class="fa-solid fa-circle-half-stroke"></i></button>${S.menu === 'theme' ? themeMenu() : ''}</div><button class="hbtn winmin" data-act="win-min" title="${t('Minimize window')}"><i class="fa-solid fa-minus"></i></button><button class="hbtn close" data-act="win-close"><i class="fa-solid fa-xmark"></i></button></div></header>
-    ${S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted' ? `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.', { what: (S.ax || { trusted: true }).trusted ? t('Input Monitoring') : t('Accessibility') })}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>` : ''}
+    ${permissionBanners()}
     ${c ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span>${t('<strong>{name} is running.</strong> Two programs diverting the same buttons will fight over the device.', { name: esc(c.name) })}</span><button class="bact" data-act="stop-tool" data-tool="${esc(c.name)}">${t('Stop {name}', { name: esc(c.name) })}</button></div>` : ''}
     <div class="empty"><div class="ring"><i class="${booting || S.agentBusy ? 'fa-solid fa-spinner fa-spin' : S.connected ? 'fa-brands fa-usb' : 'fa-solid fa-power-off'}"></i></div>
       <div class="t">${booting ? t('Looking for devices…') : S.connected ? t('No devices found') : S.agentBusy ? esc(S.buildStep || t('Starting the agent…')) : t('Agent not running')}</div>
