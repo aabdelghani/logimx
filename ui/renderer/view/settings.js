@@ -38,7 +38,6 @@ function pageSettings(generalTitle = t('General')) {
       // the languages Options+ offers, each named in itself; System follows the desktop's
       `<div class="row"><span class="grow lbl">${t('Language')}</span><select class="sel" data-act="lang-select"><option value="system" ${(S.ui || {}).language ? '' : 'selected'}>${t('System language')}</option>${LANGS.map(([k, l]) => `<option value="${k}" ${(S.ui || {}).language === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` +
       `<div class="row"><div class="grow"><div class="lbl">${t('Check for updates')}</div><div class="sub">${t('Looks at the GitHub release feed')}</div></div><button class="btn sm" data-act="check-updates">${t('Check now')}</button>${sw(u.updates !== false, 'data-act="ui" data-key="updates"')}</div>`)) +
-    sec(t('Privacy'), card(row(t('Telemetry'), t('Off. NotLogi never sends data anywhere.'), `<span class="val">${t('Not available')}</span>`))) +
     // the window's other pages, each a row that opens it
     sec(t('More'), card(morePages().map(([p, i, l, sub]) => `<div class="row click" data-act="page" data-page="${p}"><i class="fa-solid ${i}" style="width:20px;text-align:center;color:var(--dim)"></i><div class="grow"><div class="lbl">${l}</div><div class="sub">${sub}</div></div><i class="fa-solid fa-chevron-right" style="color:var(--dim);font-size:12px"></i></div>`).join('')));
 }
