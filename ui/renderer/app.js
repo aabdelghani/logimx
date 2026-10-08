@@ -91,7 +91,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   const ctx = Object.assign({ commands, changed, $, root, api, store, S, VERSION, call, toast, merge, setSetting, setGeneral, setAssign, loadLogs, refresh }, ...MODULES.map(m => m.provide));
   MODULES.forEach(m => m.link(ctx));
   fxView.linkViews(ctx);
-  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, generalPagesAll, go, onAction, onRecordEvent, recording, pairCheck, render, ringEditorOn, ringState, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
+  const { IS_LINUX, IS_MAC, IS_WIN, alignToNav, devicePages, flowEvent, generalPagesAll, go, onAction, onRecordEvent, recording, pairCheck, render, ringEditorOn, ringState, updateCheckAtStart, saveRing, seedProfiles, schedule, homeFit, unhideIfBack } = ctx;
   document.addEventListener('click', () => { if (S.menu) { S.menu = null; changed(); } });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !recording() && ringEditorOn() && (S.ringPath || []).length && S.dlg !== 'prompt' && !/input/i.test((e.target || {}).tagName || '')) { e.stopImmediatePropagation(); onAction('go-home', { dataset: {} }); }
@@ -158,6 +158,7 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
     let storedTheme = null; try { storedTheme = localStorage.getItem('theme'); } catch (e) {}
     if (!storedTheme && S.ui.theme) { S.theme = S.ui.theme; try { localStorage.setItem('theme', S.ui.theme); } catch (e) {} }
     S.appInfo = (await api.host.appInfo()) || {};
+    updateCheckAtStart();   // in the background: a newer release shows on Home
     if (IS_MAC()) S.ax = await api.host.accessibility(false);
     if (!IS_LINUX() && S.ob.preset === 'gnome') S.ob.preset = IS_WIN() ? 'win' : 'mac';   // the first-run guide starts on this OS's own preset
     try { S.agentInfo = await api.host.agentInfo(); } catch (e) {}

@@ -208,6 +208,8 @@ function renderWindow() {
   // macOS: without Input Monitoring the agent cannot open the devices, which then never show up
   const imMissing = S.connected && S.status.input_monitoring && S.status.input_monitoring !== 'granted';
   const imBanner = imMissing && mode === 'home' ? `<div class="banner"><i class="fa-solid fa-keyboard"></i><span>${t('<strong>NotLogi needs {what}.</strong> macOS lets it reach your devices only once NotLogi is switched on there, in Privacy & Security.', { what: (S.ax || { trusted: true }).trusted ? t('Input Monitoring') : t('Accessibility') })}</span><button class="bact" data-act="im-open">${t('Open settings')}</button></div>` : '';
+  // a newer release, found at startup: on Home, with Update (its release page) and a way to put it away
+  const updateBanner = mode === 'home' && S.update ? `<div class="banner update"><i class="fa-solid fa-circle-arrow-up"></i><span>${t('Version {v} is available', { v: esc(S.update.latest) })}</span><button class="bact" data-act="update-open">${t('Update')}</button><button class="x" data-act="update-later" title="${t('Not now')}"><i class="fa-solid fa-xmark"></i></button></div>` : '';
   const agentDown = !S.connected ? `<div class="banner"><i class="fa-solid fa-plug-circle-xmark"></i><span>${S.agentBusy ? t('Starting the agent…') : t('<strong>The agent is not running.</strong> Settings cannot reach the devices.')}</span>${S.agentBusy ? '' : `<button class="bact" data-act="start-agent">${t('Start')}</button>`}</div>` : '';
   // a keyboard's own view keeps the corner to one action: add an application profile
   const controls = mode === 'device' ? `<div class="right">
@@ -243,6 +245,7 @@ function renderWindow() {
       </header>`}
       ${agentDown}
       ${imBanner}
+      ${updateBanner}
       ${conflict ? `<div class="banner"><i class="fa-solid fa-triangle-exclamation"></i><span>${t('<strong>{name} is running.</strong> Both programs divert the same buttons; only one will win.', { name: esc(toolName(cname)) })}</span><button class="bact" data-act="stop-tool" data-tool="${esc(cname)}">${t('Stop {name}', { name: esc(toolName(cname)) })}</button><button class="x" data-act="dismiss-conflict"><i class="fa-solid fa-xmark"></i></button></div>` : ''}
       ${body}
     </main></div>`;
