@@ -354,7 +354,7 @@ textarea.text:focus { outline: 2px solid var(--accbg); outline-offset: -1px; }
 
 /* ---------------------------------------------------------------- landing and device view
    No sidebar: Home is a landing page across the whole window, and a device opens with itself on
-   the left and its settings on the right { height: auto; padding: 0 6px; }
+   the left and its settings on the right, under a row of tabs. */
 .hbtn.on { background: var(--accbg); color: #fff; }
 .content.landing > .page { max-width: 1100px; }
 .agent-line { flex: none; padding: 10px 24px 12px; font-size: 13px; color: var(--dim); display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -401,7 +401,7 @@ header.hb { background: transparent; border-bottom: 0; height: 52px; }
 .dev-body.centered .dev-state { justify-content: center; }
 .dev-link { margin-left: 4px; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; background: var(--btn); color: var(--dim); }
 .dev-link.bt { background: #0a7cff; color: #fff; }
-/* Home: greeting at the top left, the devices in the middle of what is left { justify-content: flex-start; text-align: left; }
+/* Home: greeting at the top left, the devices in the middle of what is left, 30% larger */
 .content.landing { display: flex; flex-direction: column; }
 .content.landing > .page { flex: 1; width: 100%; }
 
@@ -824,12 +824,12 @@ header.hb .right .hbtn.accent i { font-size: 15px; }
 .rs-chip.empty.selected, .rs-chip.empty.drop { border: 2px solid var(--accbg); }
 .rs-chip.empty.selected { background: var(--accbg); color: #fff; border: 2px solid var(--accbg); transform: scale(1.15); box-shadow: 0 8px 22px color-mix(in srgb, var(--accbg) 45%, transparent); }
 
-/* Flow page: the arrangement preview { display: flex; justify-content: center; padding: 10px 0; }
+/* Flow page: the arrangement preview, nodes and status dot */
 
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 7px; vertical-align: 1px; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
 
-/* Flow { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; min-height: 60vh; padding: 24px; animation: kb-fade .35s ease both; }
+/* Flow, inside a device: the invitation shown until Flow is set up */
 
 @keyframes flow-move { 0% { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } 100% { left: 58px; opacity: 0; } }
 
@@ -1056,7 +1056,7 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 /* a folder's actions are as big as the inner ring's buttons, as on the real ring, so 20° apart they don't touch */
 .rs-disc.in-folder .rs-chip:not(.parent) { --sc: .78; scale: var(--sc); }
 
-/* Flow: connecting another computer { position: fixed; inset: 0; z-index: 950; background: var(--win); display: flex; align-items: center; justify-content: center; padding: 32px; overflow: auto; }
+/* Flow: connecting another computer, a sheet over the whole window rising from the bottom */
 
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 .fw-body { width: min(900px, 100%); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px; }
