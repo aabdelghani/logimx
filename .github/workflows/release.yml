@@ -129,6 +129,18 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: cd ui && npm run dist:mac
+      # electron-builder notarizes and staples the app inside; the disk image itself gets its own
+      # ticket, so Gatekeeper accepts it offline as well
+      - name: Notarize disk images
+        if: ${{ env.CSC_LINK != '' }}
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          for dmg in ui/dist/*.dmg; do
+            xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait
+            xcrun stapler staple "$dmg"
+          done
       - name: Signature and notarization check
         if: ${{ env.CSC_LINK != '' }}
         run: |
