@@ -15,6 +15,7 @@ const net = require('net');
 const crypto = require('crypto');
 const os = require('os');
 const state = require('./main/state');
+const L = require('./main/flow-logic');
 
 const PORT = 24871;
 const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
@@ -87,26 +88,8 @@ function learnChannels() {
   if (changed) { save(c); hello(); }
   return c.channels;
 }
-// the channel a device uses to reach a computer, and where that came from: set by hand on this
-// computer, as that computer reported it, else its name in the device's own list of hosts (a name
-// listed on more than one channel: the one the mouse uses for that computer, else the first)
-function channelInfo(d, peer) {
-  const man = (peer.manual || {})[d.serial];
-  if (typeof man === 'number') return { host: man, from: 'manual' };
-  const ch = (peer.channels || {})[d.serial];
-  if (ch && typeof ch.host === 'number') return { host: ch.host, from: 'reported' };
-  const norm = s => String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9']+/g, ' ').trim();
-  const want = norm(peer.name);
-  const names = (((d.state || {}).hosts || {}).names) || [];
-  const hits = names.filter(h => h.name && (norm(h.name) === want || want.startsWith(norm(h.name)) || norm(h.name).startsWith(want))).map(h => h.index);
-  if (!hits.length) return { host: null, from: null };
-  if (hits.length > 1 && d.kind !== 'mouse') {
-    const mouse = devices().find(x => x.kind === 'mouse' && x.serial !== d.serial);
-    const m = mouse ? channelInfo(mouse, peer).host : null;
-    if (m !== null && hits.includes(m)) return { host: m, from: 'name' };
-  }
-  return { host: hits[0], from: 'name' };
-}
+// the channel a device uses to reach a computer (flow-logic.js), with the devices here for the mouse's choice
+const channelInfo = (d, peer) => L.channelInfo(d, peer, devices());
 const channelFor = (d, peer) => channelInfo(d, peer).host;
 
 // ----------------------------------------------------------------- network
@@ -157,25 +140,13 @@ function sendTo(ip, obj, timeout = 1500) {
     s.on('error', e => done(e));
   });
 }
-// messages between paired computers carry a signature made with their shared key
-const sign = (key, body) => crypto.createHmac('sha256', Buffer.from(key, 'hex')).update(body).digest('hex');
-function sealed(peer, msg) {
-  const body = JSON.stringify(Object.assign({ from: cfg().id, ts: Date.now() }, msg));
-  return { body, sig: sign(peer.key, body) };
-}
-function opened(env) {
-  if (!env || typeof env.body !== 'string') return null;
-  let m; try { m = JSON.parse(env.body); } catch (e) { return null; }
-  const peer = cfg().peers.find(p => p.id === m.from);
-  if (!peer || Math.abs(Date.now() - m.ts) > 60000) return null;
-  const want = sign(peer.key, env.body);
-  if (!env.sig || env.sig.length !== want.length || !crypto.timingSafeEqual(Buffer.from(env.sig), Buffer.from(want))) return null;
-  return { m, peer };
-}
+// messages between paired computers carry a signature made with their shared key (flow-logic.js)
+const sealed = (peer, msg) => L.seal(cfg().id, peer, msg);
+const opened = env => L.open(env, cfg().peers);
 async function onMessage(msg, ip) {
   if (msg && msg.t === 'pair') {
     // only while this computer is searching too, so nothing pairs without both people asking
-    if (!searching || !msg.id || msg.id === cfg().id || !/^[0-9a-f]{64}$/.test(msg.key || '')) return { ok: false };
+    if (!L.pairAllowed(msg, { searching, selfId: cfg().id })) return { ok: false };
     addPeer({ id: msg.id, name: msg.name, os: msg.os, key: msg.key, channels: msg.channels || {} }, 'left');
     const c = cfg();
     return { ok: true, id: c.id, name: computerName(), os: process.platform, channels: c.channels };
@@ -344,26 +315,9 @@ async function switchTo(peer, edge, pos) {
 // the pointer pushed against an edge of its screen that no other screen continues past (with
 // screens of different sizes, the edge of the main screen can be inside the desktop's outline)
 let atEdge = null, edgeSince = 0, loggedEdge = 0;
-// within margin pixels of an outer screen edge (the same edges edgeOf counts)
-function nearEdge(pt, margin) {
-  const all = screen.getAllDisplays().map(d => d.bounds);
-  const b = all.find(r => pt.x >= r.x && pt.x < r.x + r.width && pt.y >= r.y && pt.y < r.y + r.height);
-  if (!b) return true;
-  const beyond = (x, y) => all.some(r => r !== b && x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
-  return (pt.x < b.x + margin && !beyond(b.x - 1, pt.y)) || (pt.x > b.x + b.width - 1 - margin && !beyond(b.x + b.width, pt.y)) ||
-    (pt.y < b.y + margin && !beyond(pt.x, b.y - 1)) || (pt.y > b.y + b.height - 1 - margin && !beyond(pt.x, b.y + b.height));
-}
-function edgeOf(pt) {
-  const all = screen.getAllDisplays().map(d => d.bounds);
-  const b = all.find(r => pt.x >= r.x && pt.x < r.x + r.width && pt.y >= r.y && pt.y < r.y + r.height);
-  if (!b) return null;
-  const beyond = (x, y) => all.some(r => r !== b && x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
-  if (pt.x <= b.x && !beyond(b.x - 1, pt.y)) return 'left';
-  if (pt.x >= b.x + b.width - 1 && !beyond(b.x + b.width, pt.y)) return 'right';
-  if (pt.y <= b.y && !beyond(pt.x, b.y - 1)) return 'up';
-  if (pt.y >= b.y + b.height - 1 && !beyond(pt.x, b.y + b.height)) return 'down';
-  return null;
-}
+const screens = () => screen.getAllDisplays().map(d => d.bounds);
+const nearEdge = (pt, margin) => L.nearEdge(pt, margin, screens());
+const edgeOf = pt => L.edgeOf(pt, screens());
 // the pointer's place: on Linux and macOS from the agent, as Electron's own reading goes stale (Linux:
 // over other programs' windows; macOS: while the mouse is on another computer); elsewhere Electron's
 async function pointer() {
@@ -376,14 +330,16 @@ async function pointer() {
   }
   return screen.getCursorScreenPoint();
 }
-let nearLogged = 0, ticking = false, leftEdge = true, quietUntil = 0, mouseHere = false;
+let nearLogged = 0, ticking = false, mouseHere = false;
 const REARM_PX = 24;
+// after a switch or an arrival, no edge counts until the pointer has moved well inside (flow-logic.js)
+const rearm = new L.Rearm(REARM_PX, 250);
 // where the pointer was just brought in: until a reading lands there, readings are old ones
 let warpTarget = null;
 // devices arriving here: the pointer is still read where it last was (often the edge it left by,
 // facing the computer it came from), so no edge counts until the pointer has moved off it, and
 // none for a quarter second in any case; otherwise the devices bounce straight back
-function arrived() { leftEdge = false; quietUntil = Date.now() + 250; atEdge = null; }
+function arrived() { rearm.arrived(); atEdge = null; }
 async function edgeTick() {
   if (ticking) return;
   ticking = true;
@@ -406,10 +362,7 @@ async function edgeCheck() {
     else warpTarget = null;
   }
   const side = edgeOf(pt);
-  // after a switch or an arrival, the pointer moves well inside (deeper than where it is brought
-  // in) before an edge counts again: a pointer still at the edge, or wobbling a pixel off it, must not
-  // send the devices straight back
-  if (!leftEdge || Date.now() < quietUntil) { if (!nearEdge(pt, REARM_PX)) leftEdge = true; return; }
+  if (!rearm.ready(pt, screens())) return;
   if (!side && Date.now() - nearLogged > 30000) {
     const b = screen.getDisplayNearestPoint(pt).bounds;
     if (pt.x - b.x < 3 || b.x + b.width - pt.x < 4 || pt.y - b.y < 3 || b.y + b.height - pt.y < 4) { nearLogged = Date.now(); log('near an edge, not counted', pt, b); }
@@ -424,7 +377,7 @@ async function edgeCheck() {
     // where along the edge the pointer left, for the other computer to bring it in at the same place
     const b = screen.getDisplayNearestPoint(pt).bounds;
     const pos = side === 'left' || side === 'right' ? (pt.y - b.y) / b.height : (pt.x - b.x) / b.width;
-    atEdge = null; leftEdge = false; switchTo(peer, side, Math.max(0, Math.min(1, pos)));
+    atEdge = null; rearm.fired(); switchTo(peer, side, Math.max(0, Math.min(1, pos)));
   }
   else if (edgeSince !== loggedEdge) { loggedEdge = edgeSince; log('edge', side, 'reached: no computer online on that side', c.peers.map(p => `${p.name} ${p.pos} ${online(p) ? 'online' : 'away'}`)); }
 }
