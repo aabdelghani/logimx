@@ -1,0 +1,41 @@
+name: test
+# every push and pull request: what scripts/check.sh runs, the app's tests and lint, the agent's build and
+# tests (nothing is published)
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: UI dependencies
+        run: cd ui && npm ci --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'   # the tests run in Node, not in Electron
+      - name: Tests
+        run: cd ui && npm test
+      - name: Lint
+        run: cd ui && npm run lint
+
+  agent:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ libx11-dev
+      - name: Build
+        run: cmake -S agent -B agent/build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build agent/build
+      - name: Tests
+        run: ctest --test-dir agent/build --output-on-failure
