@@ -13,7 +13,7 @@ const WM_CLASS = 'NotLogi';
 // files shipped next to the app: repo root in development, resources/ in a package
 const resPath = (...p) => PACKAGED ? path.join(process.resourcesPath, ...p) : path.join(ROOT, '..', ...p);
 // how to launch this very app again (autostart, desktop entry)
-const launchCmd = () => APPIMAGE ? `"${APPIMAGE}"` : PACKAGED ? process.execPath : `${process.execPath} ${ROOT} --no-sandbox --class=LogiMX`;
+const launchCmd = () => APPIMAGE ? `"${APPIMAGE}"` : PACKAGED ? process.execPath : `${process.execPath} ${ROOT} --no-sandbox --class=${WM_CLASS}`;
 
 const SOCKET = plat.agentEndpoint();
 
