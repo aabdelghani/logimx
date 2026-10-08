@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('agent', {
   appIcon: spec => ipcRenderer.invoke('app-icon', spec),
   stopTool: name => ipcRenderer.invoke('stop-tool', name),
   windowAction: a => ipcRenderer.invoke('window-action', a),
+  onWindowState: cb => ipcRenderer.on('window-state', (_e, s) => cb(s)),
   uiSettings: (patch) => ipcRenderer.invoke('ui-settings', patch || null),
   copy: text => ipcRenderer.invoke('copy-text', text),
   appInfo: () => ipcRenderer.invoke('app-info'),

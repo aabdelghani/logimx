@@ -1260,3 +1260,8 @@ body.dragging-act .gs-cell { outline: 2px dashed color-mix(in srgb, var(--accbg)
 .pair-help .ph-row.warn > i { color: var(--warn, #d97706); }
 /* Arabic: its letters join, so no extra spacing between them (labels in capitals get some) */
 :lang(ar) * { letter-spacing: 0 !important; }
+/* Linux: the window is transparent and drawn here with macOS 26's rounded corners (square when it
+   fills the screen); a hairline edge keeps it apart from a window of the same colour behind it */
+html.rounded, html.rounded body { background: transparent; }
+html.rounded #root { border-radius: 16px; overflow: hidden; background: var(--win); position: relative; }
+html.rounded #root::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 14%, transparent); pointer-events: none; z-index: 1000; }

@@ -60,6 +60,8 @@ function applyWindowScale() {
   if (!w.isMaximized() && !w.isFullScreen()) { const [cw, ch] = w.getSize(); w.setSize(scaled(cw * f / old, 1), scaled(ch * f / old, 1)); }
 }
 
+const ROUNDED = process.platform === 'linux';
+
 function createWindow() {
   nativeTheme.themeSource = 'dark';
   const f = windowScale();
@@ -68,7 +70,10 @@ function createWindow() {
     height: scaled(BASE.h, f),
     minWidth: scaled(BASE.minW, f),
     minHeight: scaled(BASE.minH, f),
-    backgroundColor: '#0e1116',
+    // Linux: frameless windows are plain rectangles, so the window is transparent and the page draws
+    // it with rounded corners like macOS's (macOS and Windows 11 round windows themselves)
+    backgroundColor: ROUNDED ? '#00000000' : '#0e1116',
+    transparent: ROUNDED,
     title: 'NotLogi',
     icon: path.join(ROOT, 'assets', 'icon.png'),
     autoHideMenuBar: true,
@@ -88,6 +93,10 @@ function createWindow() {
     if (!app.isQuitting && state.tray && keep) { e.preventDefault(); state.win.hide(); }
   });
   state.win.on('closed', () => { state.win = null; });
+  // the corners are rounded unless the window fills the screen
+  const frame = () => { const w = state.win; if (w && !w.isDestroyed()) w.webContents.send('window-state', { rounded: ROUNDED && !w.isMaximized() && !w.isFullScreen() }); };
+  for (const ev of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen']) state.win.on(ev, frame);
+  state.win.webContents.on('did-finish-load', frame);
   flow.setWindow(state.win);
 }
 

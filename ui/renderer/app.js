@@ -126,6 +126,8 @@ const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mo
   // back from the system's Bluetooth settings: the device may be there already
   window.addEventListener('focus', () => pairCheck());
   api.host.onFlowEvent(m => { if (!m) return; store.applyFlow(m); flowEvent(m); });
+  // Linux draws the window's rounded corners itself (main/window.js); square while it fills the screen
+  api.host.onWindowState(s => document.documentElement.classList.toggle('rounded', !!(s && s.rounded)));
   api.host.onUi(u => { S.ui = u || S.ui; if (S.page === 'settings') changed(); });
   api.host.onBt(m => {
     const p = S.pair, b = p && p.bt;
