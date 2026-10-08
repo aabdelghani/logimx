@@ -20,6 +20,7 @@ test('every way of starting the app gives the window that class', () => {
   assert.match(env, /--class=\$\{WM_CLASS\}/, 'launchCmd starts the app with --class=WM_CLASS');
   assert.doesNotMatch(env, /--class=(?!\$\{WM_CLASS\})/, 'no other --class in launchCmd');
   for (const f of ['run-ui.sh']) for (const m of read(f).matchAll(/--class=(\S+)/g)) assert.equal(m[1], WM_CLASS, `${f} starts the app with --class=${m[1]}`);
+  for (const [name, cmd] of Object.entries(JSON.parse(read('ui/package.json')).scripts)) for (const m of cmd.matchAll(/--class=(\S+)/g)) assert.equal(m[1], WM_CLASS, `npm run ${name} starts the app with --class=${m[1]}`);
 });
 
 test('every launcher entry names that class', () => {

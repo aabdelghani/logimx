@@ -8,7 +8,7 @@
   "license": "GPL-3.0-or-later",
   "main": "main.js",
   "scripts": {
-    "start": "electron . --class=LogiMX",
+    "start": "electron . --class=NotLogi",
     "test": "node --test test/",
     "dist:appimage": "electron-builder --linux AppImage --publish never",
     "dist:dir": "electron-builder --linux dir --publish never",
