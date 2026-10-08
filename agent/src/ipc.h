@@ -47,7 +47,7 @@ class Server {
 
   private:
     void acceptLoop();
-    void serve(std::shared_ptr<Conn> c);
+    void serve(const std::shared_ptr<Conn>& c);
     Handler handler_;
     std::string path_;
     std::unique_ptr<Listener> listener_;
@@ -61,7 +61,7 @@ class Server {
 
 class Client {
   public:
-    explicit Client(std::string path = defaultSocketPath());
+    explicit Client(const std::string& path = defaultSocketPath());
     json call(const std::string& method, const json& params = json::object());
 
   private:

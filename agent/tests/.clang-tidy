@@ -1,0 +1,3 @@
+# doctest's REQUIRE checks an optional before it is used, which clang-tidy cannot see
+InheritParentConfig: true
+Checks: '-bugprone-unchecked-optional-access'

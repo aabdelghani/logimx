@@ -19,12 +19,12 @@ class Recorder {
     using Update = std::function<void(const std::vector<std::string>&)>;
     using Done = std::function<void(const std::vector<std::string>&, bool timeout)>;
     ~Recorder();
-    bool start(Update onUpdate, Done onDone);   // false when X11 is unavailable or the grab fails
+    bool start(const Update& onUpdate, const Done& onDone);   // false when X11 is unavailable or the grab fails
     void cancel();
     bool active() const { return active_.load(); }
 
   private:
-    void loop(Update onUpdate, Done onDone);
+    void loop(const Update& onUpdate, const Done& onDone);
     std::atomic<bool> active_{false}, stop_{false};
     std::thread thread_;
 };

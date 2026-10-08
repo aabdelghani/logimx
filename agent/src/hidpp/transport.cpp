@@ -64,7 +64,7 @@ void Transport::dispatch(const Bytes& d) {
                     return;
                 }
             } else if (b2 == pB2_) {
-                bool match = pMatchSw_ ? (b3 == pB3_) : (b3 == pB3_);
+                bool match = b3 == pB3_;   // HID++ 2.0 (function and software id) and 1.0 (register) alike
                 if (match) {
                     result_.assign(d.begin() + 4, d.end());
                     haveResult_ = true;

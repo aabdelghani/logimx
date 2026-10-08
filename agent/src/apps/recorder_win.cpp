@@ -75,7 +75,7 @@ Recorder::~Recorder() {
     if (thread_.joinable()) thread_.join();
 }
 
-bool Recorder::start(Update onUpdate, Done onDone) {
+bool Recorder::start(const Update& onUpdate, const Done& onDone) {
     cancel();
     if (thread_.joinable()) thread_.join();
     stop_.store(false);
@@ -86,7 +86,7 @@ bool Recorder::start(Update onUpdate, Done onDone) {
 
 void Recorder::cancel() { stop_.store(true); }
 
-void Recorder::loop(Update onUpdate, Done onDone) {
+void Recorder::loop(const Update& onUpdate, const Done& onDone) {
     Session s;
     s.onUpdate = onUpdate;
     gSession = &s;

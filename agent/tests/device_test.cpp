@@ -79,7 +79,7 @@ TEST_CASE("battery: Unified Battery (0x1004) and Battery Status (0x1000)") {
     b = Device::decodeBatteryStatus({0, 0, 1});   // the original MX Keys says 0% while charging
     CHECK_FALSE(b.known);
     CHECK(b.charging);
-    b = Device::decodeBatteryStatus({40, 0, 3});  // full on the charger
+    b = Device::decodeBatteryStatus({40, 0, 3});   // full on the charger
     CHECK(b.percent == 100);
     CHECK(b.level == "full");
     b = Device::decodeBatteryStatus({15, 0, 0});
@@ -134,8 +134,8 @@ TEST_CASE("high-resolution wheel (0x2121): mode bits and capabilities") {
 TEST_CASE("DPI (0x2201): current, default and a stepped range") {
     testdirs::fresh();
     fake::Feature dpi{ADJUSTABLE_DPI, 0, 0, [](uint8_t fn, const Bytes&) -> fake::Reply {
-                          if (fn == 2) return {{0, 0x03, 0xE8, 0x03, 0xE8}};               // 1000, default 1000
-                          return {{0, 0x00, 0xC8, 0xE0, 0x32, 0x1F, 0x40, 0, 0}};           // 200, step 50, 8000
+                          if (fn == 2) return {{0, 0x03, 0xE8, 0x03, 0xE8}};        // 1000, default 1000
+                          return {{0, 0x00, 0xC8, 0xE0, 0x32, 0x1F, 0x40, 0, 0}};   // 200, step 50, 8000
                       }};
     Rig r(mouse({dpi}));
     REQUIRE(r.d->enumerate());

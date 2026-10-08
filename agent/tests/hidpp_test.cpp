@@ -20,7 +20,7 @@ TEST_CASE("a request goes out as a HID++ 2.0 frame and its reply comes back as t
     Bytes r = t.request(0x01, 1, 0x2, {0xAA, 0xBB, 0xCC});
     REQUIRE(d->written.size() == 1);
     const Bytes& f = d->written[0];
-    CHECK(f.size() == kShortLen);          // three parameters fit a short report over USB
+    CHECK(f.size() == kShortLen);   // three parameters fit a short report over USB
     CHECK(f[0] == kShort);
     CHECK(f[1] == 0x01);                   // device index
     CHECK(f[2] == 1);                      // feature index

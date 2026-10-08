@@ -1,0 +1,19 @@
+# Checks for real bugs and needless copies; style-only checks are left out, and so are empty catches
+# (best-effort reads and writes ignore failures on purpose) and one-off string concatenations.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  clang-analyzer-*,
+  performance-*,
+  -performance-avoid-endl,
+  -performance-inefficient-string-concatenation,
+  -bugprone-empty-catch,
+  modernize-use-override,
+  modernize-use-nullptr,
+  misc-redundant-expression,
+  misc-unused-using-decls
+HeaderFilterRegex: 'agent/(src|tests)/'
+WarningsAsErrors: ''

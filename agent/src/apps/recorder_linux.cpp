@@ -40,7 +40,7 @@ Recorder::~Recorder() {
     if (thread_.joinable()) thread_.join();
 }
 
-bool Recorder::start(Update onUpdate, Done onDone) {
+bool Recorder::start(const Update& onUpdate, const Done& onDone) {
     cancel();
     if (thread_.joinable()) thread_.join();
     if (!getenv("DISPLAY")) return false;
@@ -55,7 +55,7 @@ bool Recorder::start(Update onUpdate, Done onDone) {
 
 void Recorder::cancel() { stop_.store(true); }
 
-void Recorder::loop(Update onUpdate, Done onDone) {
+void Recorder::loop(const Update& onUpdate, const Done& onDone) {
     Display* dpy = XOpenDisplay(nullptr);
     if (!dpy) { active_.store(false); onDone({}, false); return; }
     Window root = DefaultRootWindow(dpy);

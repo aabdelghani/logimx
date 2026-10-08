@@ -33,4 +33,4 @@ inline std::string fresh() {
     return dir.string();
 }
 
-}  // namespace testdirs
+}   // namespace testdirs

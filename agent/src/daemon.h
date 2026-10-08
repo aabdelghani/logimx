@@ -51,7 +51,10 @@ class ManagedDevice : public std::enable_shared_from_this<ManagedDevice> {
     std::optional<hidpp::Battery> battery() const { return battery_; }
     // The first battery answer after a link is whatever the firmware stored before it slept,
     // so it is provisional until a later read confirms it. Alerts must not fire on it.
-    void setBattery(std::optional<hidpp::Battery> b, bool confirmed = true) { battery_ = b; batteryConfirmed_ = confirmed; }
+    void setBattery(std::optional<hidpp::Battery> b, bool confirmed = true) {
+        battery_ = std::move(b);
+        batteryConfirmed_ = confirmed;
+    }
     bool batteryConfirmed() const { return batteryConfirmed_; }
     // false while the receiver reports the device's link as down (asleep, switched off, out of range)
     bool online() const { return online_.load(); }

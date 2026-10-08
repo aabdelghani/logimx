@@ -132,7 +132,10 @@ json listApplications() {
             std::string line, name, icon, wmclass, exec;
             bool nodisplay = false, hidden = false, inEntry = false;
             while (std::getline(f, line)) {
-                if (line.rfind("[", 0) == 0) { inEntry = line == "[Desktop Entry]"; continue; }
+                if (line.rfind('[', 0) == 0) {
+                    inEntry = line == "[Desktop Entry]";
+                    continue;
+                }
                 if (!inEntry) continue;
                 if (line.rfind("Name=", 0) == 0 && name.empty()) name = line.substr(5);
                 else if (line.rfind("Icon=", 0) == 0) icon = line.substr(5);

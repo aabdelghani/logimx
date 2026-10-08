@@ -1,0 +1,31 @@
+# The agent's style: 4 spaces, braces on the same line, access labels indented by two, no column
+# limit (lines are broken by hand), short functions, ifs and loops kept on one line. The existing code
+# keeps its hand-made layout: only new and changed lines are formatted (scripts/format.sh).
+BasedOnStyle: Google
+IndentWidth: 4
+AccessModifierOffset: -2
+ColumnLimit: 0
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortLambdasOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+DerivePointerAlignment: false
+PointerAlignment: Left
+SpacesBeforeTrailingComments: 3
+IncludeBlocks: Preserve
+SortIncludes: Never
+ReflowComments: false
+BreakBeforeBraces: Attach
+NamespaceIndentation: None
+FixNamespaceComments: true
+Cpp11BracedListStyle: true
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+AlignConsecutiveAssignments: None
+AlignOperands: DontAlign
+AlignAfterOpenBracket: DontAlign
+ContinuationIndentWidth: 4

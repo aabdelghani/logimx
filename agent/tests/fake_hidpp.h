@@ -22,7 +22,11 @@ using hidpp::Bytes;
 struct Reply {
     Bytes payload;
     int error = 0;
-    static Reply err(int code) { Reply r; r.error = code; return r; }
+    static Reply err(int code) {
+        Reply r;
+        r.error = code;
+        return r;
+    }
 };
 
 struct Feature {
@@ -94,7 +98,7 @@ class Device : public hidpp::HidDevice {
     Reply answer(uint8_t featIdx, uint8_t fn, const Bytes& p) {
         if (featIdx == 0) {
             if (fn == 1) return {{4, 5, p.size() > 2 ? p[2] : uint8_t(0)}};   // ping: protocol 4.5
-            if (fn == 0) {                                                 // getFeature(id)
+            if (fn == 0) {                                                    // getFeature(id)
                 uint16_t id = static_cast<uint16_t>((p[0] << 8) | p[1]);
                 if (id == hidpp::FEATURE_SET) return {{static_cast<uint8_t>(features_.size() + 1), 0, 0}};
                 uint8_t i = indexOf(id);
@@ -139,9 +143,9 @@ inline Feature firmwareFeature(const std::string& prefix3, uint8_t major, uint8_
     return {hidpp::DEVICE_FW, 4, 0, [=](uint8_t fn, const Bytes&) -> Reply {
                 if (fn == 0) return {{1}};
                 if (fn == 1) return {{0, static_cast<uint8_t>(prefix3[0]), static_cast<uint8_t>(prefix3[1]), static_cast<uint8_t>(prefix3[2]), major, minor,
-                                      static_cast<uint8_t>(build >> 8), static_cast<uint8_t>(build)}};
+                    static_cast<uint8_t>(build >> 8), static_cast<uint8_t>(build)}};
                 return {Bytes(serial.begin(), serial.end())};
             }};
 }
 
-}  // namespace fake
+}   // namespace fake

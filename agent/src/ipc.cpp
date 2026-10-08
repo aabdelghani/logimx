@@ -36,7 +36,7 @@ void Server::acceptLoop() {
     }
 }
 
-void Server::serve(std::shared_ptr<Conn> c) {
+void Server::serve(const std::shared_ptr<Conn>& c) {
     std::string buf;
     char tmp[4096];
     while (!stop_) {
@@ -73,7 +73,7 @@ void Server::broadcast(const std::string& event, const json& data) {
     for (auto& c : clients_) c->send(msg);
 }
 
-Client::Client(std::string path) : conn_(connect(path)) {}
+Client::Client(const std::string& path) : conn_(connect(path)) {}
 
 json Client::call(const std::string& method, const json& params) {
     json req = {{"id", ++id_}, {"method", method}, {"params", params}};
