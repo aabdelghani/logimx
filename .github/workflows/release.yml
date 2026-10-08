@@ -28,12 +28,26 @@ jobs:
         run: packaging/deb/build.sh
       - name: AppImage
         run: cd ui && npx electron-builder --linux AppImage --publish never
+      # repacked with the current AppImage runtime (no libfuse2 needed) and update information, so
+      # AppImageUpdate and similar tools can update it from the latest release's .zsync
+      - name: AppImage update information
+        run: |
+          curl -fsSL -o /tmp/appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /tmp/appimagetool
+          cd ui/dist
+          f=$(ls NotLogi-*-x86_64.AppImage)
+          "./$f" --appimage-extract > /dev/null
+          rm "$f"
+          ARCH=x86_64 /tmp/appimagetool -u "gh-releases-zsync|aabdelghani|notlogi|latest|NotLogi-*-x86_64.AppImage.zsync" squashfs-root "$f"
+          rm -rf squashfs-root
+          "./$f" --appimage-updateinformation
       - uses: actions/upload-artifact@v4
         with:
           name: linux
           path: |
             dist/*.deb
             ui/dist/*.AppImage
+            ui/dist/*.AppImage.zsync
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -41,6 +55,7 @@ jobs:
           files: |
             dist/*.deb
             ui/dist/*.AppImage
+            ui/dist/*.AppImage.zsync
 
   windows:
     runs-on: windows-latest

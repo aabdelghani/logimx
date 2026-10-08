@@ -15,6 +15,8 @@
 [![Action ring](https://img.shields.io/badge/action%20ring-yes-2dd4bf.svg)](#action-ring)
 [![Flow](https://img.shields.io/badge/flow-several%20computers-2dd4bf.svg)](#flow)
 
+# NotLogi
+
 NotLogi sets up MX mice and keyboards on Linux, with Windows and macOS in beta. Choose what every
 button and key does, open an **action ring** of your favourite actions around the pointer, and use
 one mouse and keyboard across several computers with **Flow**. It works on GNOME, KDE and other
