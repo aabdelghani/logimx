@@ -22,6 +22,7 @@ import * as profilesView from './view/profiles.js';
 import * as ringView from './view/ring.js';
 import * as homeView from './view/home.js';
 import * as settingsView from './view/settings.js';
+import * as gamingView from './view/gaming.js';
 import * as ringVM from './vm/ring.js';
 import * as flowVM from './vm/flow.js';
 import * as pickerVM from './vm/picker.js';
@@ -35,7 +36,7 @@ import * as deviceVM from './vm/device.js';
 import * as settingsVM from './vm/settings.js';
 import * as pairVM from './vm/pair.js';
 import * as dialogsVM from './vm/dialogs.js';
-const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mouseView, keyboardView, deviceView, profilesView, ringView, homeView, settingsView, ringVM, flowVM, pickerVM, pickerView, dialogsView, dispatchView, profilesVM, shellVM, gesturesVM, deviceVM, settingsVM, pairVM, dialogsVM];
+const MODULES = [htmlView, fxView, coreVM, recorderView, renderView, dndView, mouseView, keyboardView, deviceView, profilesView, ringView, homeView, settingsView, ringVM, flowVM, pickerVM, pickerView, dialogsView, dispatchView, profilesVM, shellVM, gesturesVM, deviceVM, settingsVM, pairVM, dialogsVM, gamingView];
 (() => {
   const $ = s => document.querySelector(s);
   const root = $('#root');

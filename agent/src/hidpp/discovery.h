@@ -8,7 +8,7 @@ namespace hidpp {
 
 inline const std::map<uint16_t, std::string> kReceivers = {
     {0xC548, "Bolt"}, {0xC52B, "Unifying"}, {0xC532, "Unifying"}, {0xC52F, "Nano"}, {0xC534, "Nano"},
-    {0xC539, "Lightspeed"}, {0xC53A, "Lightspeed"}, {0xC53F, "Lightspeed"}, {0xC547, "Lightspeed"}};
+    {0xC539, "Lightspeed"}, {0xC53A, "Lightspeed"}, {0xC53F, "Lightspeed"}, {0xC547, "Lightspeed"}, {0xC54F, "Lightspeed"}};
 
 struct Node {
     std::string path, name;

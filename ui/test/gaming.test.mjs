@@ -1,0 +1,43 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import * as Gaming from '../renderer/view/gaming.js';
+import * as Core from '../renderer/vm/core.js';
+
+// the gaming pages drawn for a PRO X3 SUPERSTRIKE with nothing but its saved settings (no device here)
+const html = { card: b => `<card>${b}</card>`, sec: (t, b, note = '') => `<sec title="${t}" note="${note}">${b}</sec>`,
+  row: (l, s, c) => `<row>${l}|${s}|${c}</row>`, sw: (on, a) => `<sw ${a} ${on ? 'on' : ''}>`, range: (a, v, lo, hi, step) => `<range ${a} value="${v}" min="${lo}" max="${hi}" step="${step}">` };
+const x3 = (settings = {}) => ({ id: '40be', name: 'PRO X3 SUPERSTRIKE', kind: 'mouse', state: {}, controls: [80, 81, 82, 83, 86].map(cid => ({ cid })), config: { settings } });
+Gaming.link(Object.assign({ wheelSettings: () => '<wheel>' }, html));
+
+test('a PRO X3 SUPERSTRIKE is a gaming mouse with G HUB\'s pages, an MX mouse is not', () => {
+  Core.link({ S: { devices: [] }, changed() {}, fx: {} });
+  assert.equal(Core.provide.isGaming(x3()), true);
+  assert.equal(Core.provide.isGaming({ id: 'b042' }), false);
+  assert.deepEqual(Core.provide.devicePages(x3()), ['dpi', 'assignments', 'wheel', 'hits', 'info']);
+  assert.deepEqual(Core.provide.navPages(x3()), ['dpi', 'assignments', 'wheel', 'hits']);
+});
+
+test('Sensitivity: five DPI slots with their values, the active one marked, both report rates', () => {
+  const h = Gaming.provide.pageDpi(x3({ dpi_slots: { 0: 400, 1: 800, 2: 1600 }, dpi_active: 2, report_rate: 4000 }));
+  assert.equal((h.match(/data-path="dpi_slots\.\d"/g) || []).length, 5);
+  assert.match(h, /data-path="dpi_slots\.2" data-out="dpi2" value="1600"/);
+  assert.match(h, /dpi-slot on[^>]*>[^]*?data-val="2"/);           // slot 3 is the one in use
+  assert.match(h, /data-path="report_rate" data-val="4000">4000/);   // wireless, chosen
+  assert.match(h, /data-path="report_rate_wired"/);
+  assert.match(h, /once its report rate feature is mapped/);       // nothing reported by the mouse yet
+});
+
+test('HITS: actuation 1..10, rapid trigger off by default and its sensitivity only when on, haptics 0..5', () => {
+  let h = Gaming.provide.pageHits(x3());
+  assert.match(h, /data-path="hits\.actuation" data-out="hact" value="5" min="1" max="10"/);
+  assert.match(h, /data-path="hits\.rapid_trigger_on" >/);          // the switch, off
+  assert.doesNotMatch(h, /hits\.rapid_trigger"/);                    // no sensitivity slider while off
+  assert.match(h, /data-path="hits\.haptics" data-out="hhap" value="3" min="0" max="5"/);
+  h = Gaming.provide.pageHits(x3({ hits: { rapid_trigger_on: true, rapid_trigger: 4 } }));
+  assert.match(h, /data-path="hits\.rapid_trigger" data-out="hrt" value="4" min="1" max="5"/);
+  assert.match(h, /data-act="hits-reset"/);
+});
+
+test('Scroll wheel is the wheel card Point & scroll shares', () => {
+  assert.equal(Gaming.provide.pageWheel(x3()), '<wheel>');
+});

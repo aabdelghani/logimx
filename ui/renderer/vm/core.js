@@ -34,12 +34,16 @@ const agentNeedsBuild = () => !S.connected && !!S.agentInfo && !S.agentInfo.bina
 const PAGES = {
   buttons: [t('Buttons'), 'fa-computer-mouse'], gestures: [t('Gestures & action ring'), 'fa-hand-pointer'], pointer: [t('Point & scroll'), 'fa-arrow-pointer'], thumb: [t('Thumb wheel'), 'fa-arrows-left-right'],
   haptics: [t('Haptic feedback'), 'fa-wave-square'], easy: [t('Easy-Switch'), 'fa-right-left'], info: [t('Battery & info'), 'fa-battery-three-quarters'], keys: [t('Keys'), 'fa-keyboard'], backlight: [t('Backlight'), 'fa-lightbulb'],
+  dpi: [t('Sensitivity'), 'fa-gauge-high'], assignments: [t('Assignments'), 'fa-computer-mouse'], wheel: [t('Scroll wheel'), 'fa-arrows-up-down'], hits: [t('HITS'), 'fa-bolt'],
   home: [t('Home'), 'fa-house'], apps: [t('Profiles'), 'fa-layer-group'], ring: [t('Action ring'), 'fa-circle-notch'], notif: [t('Notifications'), 'fa-bell'], backup: [t('Backup & sync'), 'fa-cloud-arrow-down'], settings: [t('Settings'), 'fa-sliders'], about: [t('About'), 'fa-circle-info'], flow: [t('Flow'), 'fa-diagram-project'],
 };
-const devicePages = d => isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'info'];   // Flow is set up from the mouse
+// G-series gaming mice (PRO X3 SUPERSTRIKE): G HUB's pages, not Options+'s
+const GAMING = new Set(['40be']);
+const isGaming = d => !!d && GAMING.has(d.id);
+const devicePages = d => isGaming(d) ? ['dpi', 'assignments', 'wheel', 'hits', 'info'] : isMouse(d) ? ['buttons', 'gestures', 'pointer'].concat((d.state || {}).haptic ? ['haptics'] : [], ['easy', 'flow', 'info']) : ['keys', 'backlight', 'easy', 'info'];   // Flow is set up from the mouse
 // what the device's left bar lists; the other device pages (Gestures, opened from a button set to
 // gestures, and the MX Master 4's haptics, folded into Settings) are reached from these
-const navPages = d => isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy'];
+const navPages = d => isGaming(d) ? ['dpi', 'assignments', 'wheel', 'hits'] : isMouse(d) ? ['buttons', 'pointer', 'easy', 'flow'] : ['keys', 'backlight', 'easy'];
 const generalPagesAll = ['apps', 'ring', 'notif', 'backup', 'settings', 'about', 'flow'];   // Flow opens without a device too
 function go(page, devId) { S.ringPath = []; if (devId !== undefined && devId !== S.dev) { S.editProfile = null; S.previewProfile = null; } if (page !== 'gestures') S.cfgFrom = null; S.page = page; if (devId !== undefined) S.dev = devId; S.dlg = null; S.menu = null; S.appDetail = null; changed(); }
 
@@ -101,4 +105,4 @@ function setField(f, v) {
   if (S.dlg === 'prompt') { const x = S.prompt.fields.find(x => x.key === f); if (x) x.value = v; }
   return null;
 }
-export const provide = { dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, PAGES, devicePages, navPages, generalPagesAll, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS, pageGuard, dialogClosed, sidePanelClosed, takeCue, setField };
+export const provide = { isGaming, dev, profileOf, shownProfile, ownAssignment, assignment, overridden, assignIcon, presetLabel, actionIcon, OS, IS_WIN, IS_MAC, IS_LINUX, META, ALT, keyName, agentNeedsBuild, PAGES, devicePages, navPages, generalPagesAll, go, countOverrides, deviceProfiles, isOffline, drawerUp, prompt, appClass, FROW_FALLBACK, keyLayout, KEY_ICONS, pageGuard, dialogClosed, sidePanelClosed, takeCue, setField };

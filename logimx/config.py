@@ -159,7 +159,33 @@ _S_STYLE = {"dictation": "nothing", "emoji": "emoji_picker", "screenshot": "scre
 MX_KEYS_MINI = _keyboard(_MINI_ROW, **_S_STYLE)
 MX_KEYS_MINI_MAC = _keyboard(_MINI_ROW + ["do_not_disturb"], **_S_STYLE)
 
+PRO_X3_SUPERSTRIKE = {
+    "settings": {
+        "dpi": 800,
+        "dpi_slots": {"0": 400, "1": 800, "2": 1600, "3": 3200, "4": 6400},
+        "dpi_enabled": {"0": True, "1": True, "2": True, "3": True, "4": False},
+        "dpi_active": 1,
+        "report_rate": 1000, "report_rate_wired": 1000,
+        "hits": {"actuation": 5, "rapid_trigger_on": False, "rapid_trigger": 3, "haptics": 3},
+        "hires": {"enabled": False, "invert": False},
+    },
+    "profiles": {
+        "default": {
+            "name": "All applications",
+            "buttons": {
+                str(CID["left"]): "native",
+                str(CID["right"]): "native",
+                str(CID["middle"]): "native",
+                str(CID["back"]): "native",
+                str(CID["forward"]): "native",
+            },
+            "thumbwheel": "native",
+        }
+    },
+}
+
 DEFAULTS_BY_PID = {
+    0x40BE: PRO_X3_SUPERSTRIKE,                                         # PRO X3 SUPERSTRIKE (LIGHTSPEED)
     0xB034: MX_MASTER_3S, 0xB035: MX_MASTER_3S, 0xB043: MX_MASTER_3S,   # MX Master 3S (Bolt / business / BT)
     0xB042: MX_MASTER_4, 0xB048: MX_MASTER_4,                           # MX Master 4 / for Business
     0xB037: MX_ANYWHERE_3S,                                             # MX Anywhere 3S (Bolt and Bluetooth)

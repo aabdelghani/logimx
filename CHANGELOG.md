@@ -5,6 +5,7 @@ Every release of NotLogi (formerly LogiMX), newest first. Downloads are on each 
 
 ## Unreleased
 
+- PRO X3 SUPERSTRIKE (LIGHTSPEED): recognised on its receiver, shown with its own picture and buttons, with Sensitivity (DPI slots and report rate), Assignments, Scroll wheel and HITS pages as G HUB lays them out; the active DPI slot reaches the sensor, the HITS and report-rate values are kept until the mouse's features are mapped.
 ## [0.12.3](https://github.com/aabdelghani/notlogi/releases/tag/v0.12.3) - 2026-10-09
 
 - Double-click: a button preset that double-clicks the left button on one press (#15).

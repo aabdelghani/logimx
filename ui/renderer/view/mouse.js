@@ -3,8 +3,8 @@ import { isNative } from '../../shared/profiles.mjs';
 import { t } from '../../shared/i18n.mjs';
 
 // from the rest of the window, filled in by link()
-let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, row, sec, sw;
-export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, row, sec, sw } = ctx); }
+let S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, row, sec, sw, isGaming;
+export function link(ctx) { ({ S, SLOTS, assignment, backlightPanel, card, deviceProfiles, drawerUp, drop, esc, fmtOut, gestureCapable, gestureControl, gestureObject, isRingAction, overridden, presetLabel, range, ringStage, row, sec, sw, isGaming } = ctx); }
 
 // ----------------------------------------------------------- photos
 // One photo per mouse model, keyed by device id like the keyboards. A spot is a control id (or
@@ -15,7 +15,9 @@ const MOUSE_PHOTOS = (() => {
   const m4 = { src: '../assets/devices/b042.png', w: 1021, h: 1594, pt: [['wheel', 771, 303, 'r'], ['thumb', 577, 899, 'l'], ['pointer', 850, 840, 'r']], spots: [[82, 771, 303], [196, 822, 630], [195, 394, 575], [86, 434, 749], [83, 483, 956], ['thumb', 577, 899], [416, 310, 779]] };
   // MX Anywhere 3S: a side view (the side buttons show), drawn at the others' width so the rings match
   const a3 = { src: '../assets/devices/b037.png', w: 1021, h: 1708, pt: [['wheel', 715, 324, 'r'], ['pointer', 816, 768, 'r']], spots: [[82, 726, 274], [196, 767, 580], [86, 224, 701], [83, 286, 1025]] };
-  return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4, b037: a3 };
+  // PRO X3 SUPERSTRIKE: a top view; the markers come from its own layout data, in its 1410x2800 space
+  const x3 = { src: '../assets/devices/40be.png', w: 1410, h: 2800, pt: [['wheel', 705, 554, 'r'], ['pointer', 705, 1900, 'r']], spots: [[80, 328, 681], [81, 1060, 681], [82, 705, 400], [86, 15, 1088], [83, 35, 1508]] };   // the middle button's ring sits up the wheel so its name clears the right click's
+  return { b034: s3, b035: s3, b043: s3, b042: m4, b048: m4, b037: a3, '40be': x3 };
 })();
 // the underside, for Easy-Switch: where the printed 1, 2 and 3 sit above the switch button
 const MOUSE_BOTTOMS = (() => {
@@ -26,7 +28,9 @@ const MOUSE_BOTTOMS = (() => {
   const a3 = { src: '../assets/devices/b037-bottom.png', w: 671, h: 1024, hosts: [[0, 281, 719, 'l'], [1, 334, 697, 'r'], [2, 389, 719, 'r']] };
   return { b034: s3, b035: s3, b043: s3, b042: m4, b037: a3 };
 })();
-const buttonRows = d => PHYS.filter(([cid]) => d.controls.some(c => c.cid === cid));
+// a gaming mouse names its buttons as G HUB does, the two clicks included
+const G_PHYS = [[80, t('Left click')], [81, t('Right click')], [82, t('Middle click')], [83, t('Mouse button 4')], [86, t('Mouse button 5')]];
+const buttonRows = d => (isGaming(d) ? G_PHYS : PHYS).filter(([cid]) => d.controls.some(c => c.cid === cid));
 // The mouse photo: a ring on each button and its name beside it, on the side away from the mouse.
 // A ring opens that button's panel (like a key on the keyboard); the one being edited is filled.
 function mousePhoto(d, plain) {
@@ -38,7 +42,7 @@ function mousePhoto(d, plain) {
   const shown = P.spots.filter(([k]) => k === 'thumb' ? d.controls.length : order.includes(k));
   const spots = shown.map(([k, x, y]) => {
     const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
-    const nm = k === 'thumb' ? t('Thumb wheel') : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || t('Button'));
+    const nm = k === 'thumb' ? t('Thumb wheel') : (((isGaming(d) ? G_PHYS : PHYS).find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || t('Button'));
     return `<g class="hotspot ms ${editing(k) ? 'selected' : ''}" data-section="${k === 'thumb' ? 'thumbwheel' : 'buttons'}" data-cid="${k}" data-name="${esc(nm)}" data-does="${esc(presetLabel(a))}" data-custom="${isNative(a) ? '' : '1'}"><circle class="ring" cx="${x}" cy="${y}" r="40"/></g>`;
   }).join('');
   // names sit in two columns just outside the photo, each joined to its ring by a thin line; on
@@ -51,7 +55,7 @@ function mousePhoto(d, plain) {
   const lines = shown.map(([k, x, y]) => { const left = x < P.w / 2, ly = place[k]; return `<polyline class="ms-line ${editing(k) ? 'on' : ''}" points="${left ? x - 40 : x + 40},${y} ${left ? -20 : P.w + 20},${ly}"/>`; }).join('');
   const labels = shown.map(([k, x]) => {
     const a = k === 'thumb' ? assignment(d, 'thumbwheel') : assignment(d, 'buttons', k);
-    const nm = k === 'thumb' ? t('Thumb wheel') : ((PHYS.find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || t('Button'));
+    const nm = k === 'thumb' ? t('Thumb wheel') : (((isGaming(d) ? G_PHYS : PHYS).find(x => x[0] === k) || [])[1] || (d.controls.find(c => c.cid === k) || {}).label || t('Button'));
     const left = x < P.w / 2;
     const ov = k === 'thumb' ? overridden(d, 'thumbwheel') : overridden(d, 'buttons', k);
     return `<div class="ms-lab ${left ? 'l' : 'r'} ${editing(k) ? 'on' : ''} ${isNative(a) ? '' : 'custom'} ${ov ? 'pv' : ''}" data-ring="${k}" style="top:${(place[k] / P.h * 100).toFixed(2)}%"><span class="k">${esc(nm)}</span><span class="d">${esc(presetLabel(a))}</span></div>`;
@@ -189,24 +193,14 @@ function pagePointer(d) {
   if (MOUSE_PHOTOS[d.id]) return `<div class="photo-card ms-photo">${pointPhoto(d)}</div>`;
   return pointerSettings(d) + thumbSettings(d);
 }
-function pointerSettings(d, only) {
+// the wheel's card: direction, speed, smooth scrolling, momentum, its fine steps, SmartShift (shared by Point & scroll and a gaming mouse's Scroll wheel page)
+function wheelSettings(d) {
   const st = d.state || {}, s = d.config.settings || {};
-  const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000);
-  const [min, max, step] = st.dpi && st.dpi.stepped ? st.dpi.levels : [200, 8000, 50];
-  const speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
   const ss = s.smartshift || {}, hr = s.hires || {};
-  // the wheel ratchets unless set to spin freely; SmartShift (off unless turned on) frees a
-  // ratchet wheel when it is flicked faster than the speed chosen
   const ratchet = (ss.mode || (st.smartshift || {}).mode || 'ratchet') === 'ratchet', ssOn = ratchet && (ss.enabled ?? false);
   const thr = ss.threshold ?? (st.smartshift || {}).threshold ?? 14;
-  const pointer = sec(t('Pointer'), card(
-    `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">${t('DPI')}</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
-    `<div class="row"><span class="grow lbl">${t('Desktop pointer speed')}</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
-  // the wheel's settings: direction, speed, smooth scrolling, its fine steps, and SmartShift (its
-  // sensitivity, and the ratchet force on the MX Master 4, under it while it is on). A speed other
-  // than 1 or smooth scrolling has the agent play the wheel into the desktop itself.
   const wspeed = hr.speed ?? 1;
-  const wheel = sec(t('Scroll wheel'), card(
+  return sec(t('Scroll wheel'), card(
       row(t('Scroll direction'), (hr.invert ?? (st.hires || {}).invert) ? t('Natural: the page follows your finger') : t('Standard'), sw(hr.invert ?? (st.hires || {}).invert ?? false, 'data-act="setting" data-path="hires.invert"')) +
       `<div class="row"><div class="grow"><div class="lbl">${t('Scroll speed')}</div><div class="sub">${t('How far each notch scrolls')}</div></div>${range('data-act="setting-range" data-path="hires.speed" data-out="wsp"', wspeed, 0.25, 3, 0.05)}<span class="val" data-out="wsp" style="width:40px;text-align:right">${fmtOut('wsp', wspeed)}</span></div>` +
       row(t('Smooth scrolling'), t('Each notch glides in over a moment instead of jumping'), sw(!!hr.smooth, 'data-act="setting" data-path="hires.smooth"')) +
@@ -220,6 +214,19 @@ function pointerSettings(d, only) {
       (ratchet ? row(t('SmartShift'), t('Switch from ratchet to free-spin when the wheel is flicked'), sw(ssOn, 'data-act="setting" data-path="smartshift.enabled"')) : '') +
       (ssOn ? `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between;gap:12px"><div><div class="lbl">${t('Free-spin speed')}</div><div class="sub">${t('How fast a flick has to be to free the wheel')}</div></div><span class="val" data-out="sst">${thr}</span></div>${range('data-act="setting-range" data-path="smartshift.threshold" data-out="sst" style="width:100%"', thr, 1, 50, 1)}<div style="display:flex;justify-content:space-between" class="hint"><span>${t('Gentle flick')}</span><span>${t('Hard flick')}</span></div></div>` : '') +
       (ratchet && (st.smartshift || {}).tunable_torque ? `<div class="row"><div class="grow"><div class="lbl">${t('Ratchet force')}</div><div class="sub">${t('How firm each step of the wheel feels')}</div></div>${range('data-act="setting-range" data-path="smartshift.torque" data-out="sstq"', ss.torque ?? (st.smartshift || {}).torque ?? 75, 1, 100, 1)}<span class="val" data-out="sstq" style="width:24px;text-align:right">${ss.torque ?? (st.smartshift || {}).torque ?? 75}</span></div>` : '')));
+}
+function pointerSettings(d, only) {
+  const st = d.state || {}, s = d.config.settings || {};
+  const dpi = s.dpi ?? (st.dpi ? st.dpi.dpi : 1000);
+  const [min, max, step] = st.dpi && st.dpi.stepped ? st.dpi.levels : [200, 8000, 50];
+  const speed = Math.round(((s.pointer_speed ?? 0) + 1) * 50);
+  const pointer = sec(t('Pointer'), card(
+    `<div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between"><span class="lbl">${t('DPI')}</span><span class="val" data-out="dpi">${dpi}</span></div>${range('data-act="dpi" data-out="dpi" style="width:100%"', dpi, min, max, step)}<div style="display:flex;justify-content:space-between" class="hint"><span>${min}</span><span>${max}</span></div></div>` +
+    `<div class="row"><span class="grow lbl">${t('Desktop pointer speed')}</span>${range('data-act="pspeed" data-out="pspeed"', speed, 0, 100, 5)}<span class="val" data-out="pspeed" style="width:32px;text-align:right">${speed}</span></div>`));
+  // the wheel's settings: direction, speed, smooth scrolling, its fine steps, and SmartShift (its
+  // sensitivity, and the ratchet force on the MX Master 4, under it while it is on). A speed other
+  // than 1 or smooth scrolling has the agent play the wheel into the desktop itself.
+  const wheel = wheelSettings(d);
   return only === 'pointer' ? pointer : only === 'wheel' ? wheel : pointer + wheel;
 }
 // the thumb wheel's speed and direction
@@ -243,4 +250,4 @@ function renderPointerPanel(d) {
   </div></div>`;
 }
 
-export const provide = { MOUSE_PHOTOS, MOUSE_BOTTOMS, buttonRows, mousePhoto, PHYS, pageButtons, gestureStage, pageGestures, WAVES, pageHaptics, PT_NAMES, ptSummary, thumbInfo, pointPhoto, pagePointer, pointerSettings, thumbSettings, renderPointerPanel };
+export const provide = { wheelSettings, MOUSE_PHOTOS, MOUSE_BOTTOMS, buttonRows, mousePhoto, PHYS, pageButtons, gestureStage, pageGestures, WAVES, pageHaptics, PT_NAMES, ptSummary, thumbInfo, pointPhoto, pagePointer, pointerSettings, thumbSettings, renderPointerPanel };

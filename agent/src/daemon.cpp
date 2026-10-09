@@ -242,6 +242,15 @@ void ManagedDevice::applySettings(const std::string& only) {
     const json& s = cfg_.value("settings", json::object());
     auto want = [&](const char* k) { return s.contains(k) && (only.empty() || only == k); };
     try {
+        // a gaming mouse: the DPI slot in use is what the sensor gets, and "dpi" keeps that value too
+        if (s.contains("dpi_slots") && s["dpi_slots"].is_object() && (want("dpi_slots") || want("dpi_active"))) {
+            const std::string slot = std::to_string(s.value("dpi_active", 1));
+            if (s["dpi_slots"].contains(slot) && s["dpi_slots"][slot].is_number()) {
+                const int dpi = s["dpi_slots"][slot].get<int>();
+                daemon_.config().setSetting(pid_, {"dpi"}, dpi);
+                if (dev_->has(hidpp::ADJUSTABLE_DPI)) dev_->setDpi(dpi);
+            }
+        }
         if (dev_->has(hidpp::ADJUSTABLE_DPI) && want("dpi")) dev_->setDpi(s["dpi"].get<int>());
         if ((dev_->has(hidpp::SMART_SHIFT) || dev_->has(hidpp::SMART_SHIFT_ENHANCED)) && want("smartshift")) {
             // the wheel's mode (ratchet unless chosen otherwise) and SmartShift, which frees a ratchet
@@ -1044,6 +1053,25 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
     if (k == "fn_swap" || k == "keep_layout") return boolean();
     if (k == "disable_keys" && path.size() == 2) {
         for (auto n : {"caps_lock", "num_lock", "scroll_lock", "insert", "win"}) if (path[1] == n) return boolean();
+    }
+    // a gaming mouse: DPI slots, report rates and the HITS switches (kept until the features are mapped)
+    if (k == "dpi_slots" && path.size() == 2) return clampInt(100, 44000);
+    if (k == "dpi_enabled" && path.size() == 2) return boolean();
+    if (k == "dpi_active") return clampInt(0, 4);
+    if (k == "report_rate" || k == "report_rate_wired") {
+        int want = v.is_number() ? static_cast<int>(std::lround(v.get<double>())) : v.is_string() ? std::atoi(v.get<std::string>().c_str())
+                                                                                                  : 0;
+        static const int rates[] = {125, 250, 500, 1000, 2000, 4000, 8000};
+        int best = 1000;
+        for (int r : rates)
+            if (std::abs(r - want) < std::abs(best - want)) best = r;
+        return json(best);
+    }
+    if (k == "hits" && path.size() == 2) {
+        if (path[1] == "actuation") return clampInt(1, 10);
+        if (path[1] == "rapid_trigger") return clampInt(1, 5);
+        if (path[1] == "rapid_trigger_on") return boolean();
+        if (path[1] == "haptics") return clampInt(0, 5);
     }
     if (k == "smartshift" && path.size() == 2) {
         if (path[1] == "mode") return oneOf({"ratchet", "freespin"});
