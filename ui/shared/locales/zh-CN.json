@@ -965,5 +965,16 @@
  "Use this slot": "使用此档位",
  "Wired": "有线",
  "Wireless": "无线",
- "the switches under the two main buttons": "两个主按键下方的开关"
+ "the switches under the two main buttons": "两个主按键下方的开关",
+ "LIGHTSPEED receiver": "LIGHTSPEED 接收器",
+ "USB cable": "USB 线缆",
+ "The sensor is at {dpi} DPI": "传感器当前为 {dpi} DPI",
+ "In use now": "正在使用",
+ "Taken when the mouse is on this link": "鼠标使用此连接时生效",
+ "Nothing to set": "无可设置项",
+ "This mouse has no wheel settings of its own": "此鼠标没有自己的滚轮设置",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "滚轮转动一格会继续滚动片刻，用于游戏中连跳",
+ "BHOP sensitivity": "BHOP 灵敏度",
+ "How long each notch keeps scrolling": "每一格持续滚动的时间"
 }

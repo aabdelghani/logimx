@@ -1,5 +1,6 @@
 // HID++ 2.0 features used by the MX Master 3S and MX Keys S
 #pragma once
+#include <array>
 #include <map>
 #include <optional>
 #include <string>
@@ -13,11 +14,36 @@ namespace hidpp {
 using json = nlohmann::json;
 
 enum Feature : uint16_t {
-    ROOT = 0x0000, FEATURE_SET = 0x0001, DEVICE_FW = 0x0003, DEVICE_NAME = 0x0005, FRIENDLY_NAME = 0x0007,
-    CONFIG_CHANGE = 0x0020, BATTERY_STATUS = 0x1000, UNIFIED_BATTERY = 0x1004, CHANGE_HOST = 0x1814, HOSTS_INFO = 0x1815,
-    BACKLIGHT2 = 0x1982, HAPTIC = 0x19B0, FORCE_BUTTON = 0x19C0, SPECIAL_KEYS = 0x1B04, WIRELESS_STATUS = 0x1D4B, SMART_SHIFT = 0x2110,
-    SMART_SHIFT_ENHANCED = 0x2111, HIRES_WHEEL = 0x2121, THUMB_WHEEL = 0x2150, ADJUSTABLE_DPI = 0x2201,
-    FN_INVERSION_K375S = 0x40A3, DISABLE_KEYS = 0x4521, MULTIPLATFORM = 0x4531,
+    ROOT = 0x0000,
+    FEATURE_SET = 0x0001,
+    DEVICE_FW = 0x0003,
+    DEVICE_NAME = 0x0005,
+    FRIENDLY_NAME = 0x0007,
+    CONFIG_CHANGE = 0x0020,
+    BATTERY_STATUS = 0x1000,
+    UNIFIED_BATTERY = 0x1004,
+    CHANGE_HOST = 0x1814,
+    HOSTS_INFO = 0x1815,
+    BACKLIGHT2 = 0x1982,
+    HAPTIC = 0x19B0,
+    FORCE_BUTTON = 0x19C0,
+    SPECIAL_KEYS = 0x1B04,
+    WIRELESS_STATUS = 0x1D4B,
+    SMART_SHIFT = 0x2110,
+    SMART_SHIFT_ENHANCED = 0x2111,
+    HIRES_WHEEL = 0x2121,
+    THUMB_WHEEL = 0x2150,
+    ADJUSTABLE_DPI = 0x2201,
+    EXTENDED_DPI = 0x2202,
+    FN_INVERSION_K375S = 0x40A3,
+    DISABLE_KEYS = 0x4521,
+    MULTIPLATFORM = 0x4531,
+    // G-series gaming mice (PRO X3 SUPERSTRIKE)
+    ANALOG_BUTTONS = 0x1B0C,
+    EXTENDED_REPORT_RATE = 0x8061,
+    BUNNY_HOPPING = 0x80E0,
+    ONBOARD_PROFILES = 0x8100,
+    MOUSE_BUTTON_SPY = 0x8110,
 };
 
 struct FeatureInfo {
@@ -51,6 +77,24 @@ struct ForceButton { int index = 0, min = 0, max = 0, def = 0, current = 0; bool
 struct HiResState { bool hidppTarget = false, hires = false, invert = false; int multiplier = 1; bool hasInvert = false, hasRatchetSwitch = false; };
 struct ThumbWheelState { bool diverted = false, invert = false; int nativeRes = 0, divertedRes = 0, capabilities = 0; };
 struct DpiState { int dpi = 0, def = 0; std::vector<int> levels; bool stepped = false; };
+// 0x2202: the sensor's five onboard DPI slots and the one in use (host mode: what the sensor gets)
+struct ExtendedDpiState {
+    int dpi = 0, def = 0, lod = 0, min = 100, max = 48000;
+    std::vector<int> slots, lods;
+    std::vector<std::array<int, 3>> ranges;   // {from, step, to}: the values the sensor takes
+};
+// 0x8061: the report rate on each link, as indices into {125, 250, 500, 1000, 2000, 4000, 8000} Hz
+struct ReportRateState {
+    int wireless = 0, wired = 0, wirelessMask = 0, wiredMask = 0;
+};
+// 0x1B0C: one inductive button's actuation (1..10), rapid trigger (sensitivity 1..5, on or off) and click haptics (0..5)
+struct AnalogButton {
+    int actuation = 5, rapidTrigger = 2, haptics = 3;
+    bool rapidTriggerOn = false;
+};
+struct AnalogCaps {
+    int buttons = 0, maxActuation = 0, maxRapidTrigger = 0, maxHaptics = 0;
+};
 struct BacklightState {
     bool enabled = false;
     int options = 0, supported = 0, effects = 0, level = 0, dho = 0, dhi = 0, dpow = 0, numLevels = 0, currentLevel = 0, status = 0;
@@ -104,6 +148,24 @@ class Device {
     void setThumbwheel(bool diverted, bool invert);
     std::optional<DpiState> dpi();
     void setDpi(int dpi);
+    std::optional<ExtendedDpiState> extendedDpi();
+    void setExtendedDpi(int dpi, int lod = 0);
+    std::optional<ReportRateState> reportRate();
+    void setReportRate(int index);   // the link the device is on
+    std::optional<AnalogCaps> analogCaps();
+    std::optional<AnalogButton> analogButton(int button);
+    void setAnalogButton(int button, const AnalogButton& b);
+    void setAnalogMonitoring(bool buttonEvents, int timeoutSec);
+    std::optional<int> onboardMode();
+    void setOnboardMode(int mode);
+    std::optional<int> bunnyHopTimeout();
+    void setBunnyHopTimeout(int t);
+    int spyButtonCount();
+    Bytes spyButtonMap();
+    void setSpyButtonMap(const Bytes& map);
+    void spy(bool on);
+    static const char* reportRateName(int index);
+    std::optional<std::pair<uint16_t, std::string>> deviceInfo();
     std::optional<BacklightState> backlight();
     void setBacklight(bool enabled, std::optional<int> mode, std::optional<int> level,
                       std::optional<int> dho = std::nullopt, std::optional<int> dhi = std::nullopt, std::optional<int> dpow = std::nullopt);
@@ -129,6 +191,7 @@ class Device {
     void readIdentity();
     void readFirmware();
     void readControls();
+    void synthesizeControls();   // a mouse without 0x1B04 (0x8110 button spy): its buttons as controls
     bool loadCache();   // the tables of a device seen before (same serial and firmware)
     void saveCache();
 

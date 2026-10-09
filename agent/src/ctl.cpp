@@ -9,16 +9,18 @@
 using json = nlohmann::json;
 
 static void usage() {
-    printf("logimxctl <command>\n"
-           "  status                      agent status\n"
-           "  devices                     list devices and their state\n"
-           "  show <id>                   full JSON for one device\n"
-           "  set <id> <path> <value>     e.g. set b034 dpi 1600 | set b034 smartshift.threshold 20 | set b378 backlight.mode manual\n"
-           "  assign <id> <section> <control> <action> [profile]   e.g. assign b034 buttons 195 gesture_navigation\n"
-           "  host <id> <1..3>            Easy-Switch to another host\n"
-           "  presets                     list preset actions\n"
-           "  config                      dump configuration\n"
-           "  reload                      reload config from disk\n");
+    printf(
+        "logimxctl <command>\n"
+        "  status                      agent status\n"
+        "  devices                     list devices and their state\n"
+        "  show <id>                   full JSON for one device\n"
+        "  set <id> <path> <value>     e.g. set b034 dpi 1600 | set b034 smartshift.threshold 20 | set b378 backlight.mode manual\n"
+        "  assign <id> <section> <control> <action> [profile]   e.g. assign b034 buttons 195 gesture_navigation\n"
+        "  host <id> <1..3>            Easy-Switch to another host\n"
+        "  presets                     list preset actions\n"
+        "  config                      dump configuration\n"
+        "  reload                      reload config from disk\n"
+        "  hidpp <id> <feature> <fn> [hex bytes...]   one raw HID++ request, e.g. hidpp 40be 2202 5 00\n");
 }
 
 static json parseValue(const std::string& v) {
@@ -76,6 +78,15 @@ int main(int argc, char** argv) {
             while ((e = a[1].find('.', s)) != std::string::npos) { path.push_back(a[1].substr(s, e - s)); s = e + 1; }
             path.push_back(a[1].substr(s));
             printf("%s\n", c.call("set_setting", {{"id", a[0]}, {"path", path}, {"value", parseValue(a[2])}}).dump(1).c_str());
+        } else if (cmd == "hidpp" && a.size() >= 3) {
+            json params = json::array();
+            for (size_t i = 3; i < a.size(); ++i) params.push_back(a[i]);
+            json r = c.call("hidpp", {{"id", a[0]}, {"feature", a[1]}, {"fn", std::stoi(a[2])}, {"params", params}});
+            if (r.contains("error")) printf("ERROR 0x%02X\n", r["error"].get<int>());
+            else {
+                for (auto& b : r["reply"]) printf("%s ", b.get<std::string>().c_str());
+                printf("\n");
+            }
         } else if (cmd == "assign" && a.size() >= 4) {
             json d = c.call("set_assignment", {{"id", a[0]}, {"section", a[1]}, {"control", a[2]}, {"action", parseValue(a[3])}, {"profile", a.size() > 4 ? a[4] : "default"}});
             printDevice(d);

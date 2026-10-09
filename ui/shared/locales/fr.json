@@ -965,5 +965,16 @@
  "Use this slot": "Utiliser cet emplacement",
  "Wired": "Filaire",
  "Wireless": "Sans fil",
- "the switches under the two main buttons": "les interrupteurs sous les deux boutons principaux"
+ "the switches under the two main buttons": "les interrupteurs sous les deux boutons principaux",
+ "LIGHTSPEED receiver": "Récepteur LIGHTSPEED",
+ "USB cable": "Câble USB",
+ "The sensor is at {dpi} DPI": "Le capteur est à {dpi} DPI",
+ "In use now": "Utilisé maintenant",
+ "Taken when the mouse is on this link": "Appliqué quand la souris est sur cette liaison",
+ "Nothing to set": "Rien à régler",
+ "This mouse has no wheel settings of its own": "Cette souris n’a pas de réglages de molette propres",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "Un cran de molette continue de défiler un instant, pour sauter dans les jeux",
+ "BHOP sensitivity": "Sensibilité BHOP",
+ "How long each notch keeps scrolling": "Combien de temps chaque cran continue de défiler"
 }

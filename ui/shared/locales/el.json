@@ -965,5 +965,16 @@
  "Use this slot": "Χρήση αυτής της θέσης",
  "Wired": "Ενσύρματα",
  "Wireless": "Ασύρματα",
- "the switches under the two main buttons": "οι διακόπτες κάτω από τα δύο κύρια κουμπιά"
+ "the switches under the two main buttons": "οι διακόπτες κάτω από τα δύο κύρια κουμπιά",
+ "LIGHTSPEED receiver": "Δέκτης LIGHTSPEED",
+ "USB cable": "Καλώδιο USB",
+ "The sensor is at {dpi} DPI": "Ο αισθητήρας είναι στα {dpi} DPI",
+ "In use now": "Σε χρήση τώρα",
+ "Taken when the mouse is on this link": "Ισχύει όταν το ποντίκι είναι σε αυτή τη σύνδεση",
+ "Nothing to set": "Τίποτα για ρύθμιση",
+ "This mouse has no wheel settings of its own": "Αυτό το ποντίκι δεν έχει δικές του ρυθμίσεις τροχού",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "Ένα βήμα του τροχού συνεχίζει την κύλιση για λίγο, για άλματα στα παιχνίδια",
+ "BHOP sensitivity": "Ευαισθησία BHOP",
+ "How long each notch keeps scrolling": "Πόσο συνεχίζει την κύλιση κάθε βήμα"
 }

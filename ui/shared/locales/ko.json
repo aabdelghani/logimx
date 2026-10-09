@@ -965,5 +965,16 @@
  "Use this slot": "이 슬롯 사용",
  "Wired": "유선",
  "Wireless": "무선",
- "the switches under the two main buttons": "두 메인 버튼 아래의 스위치"
+ "the switches under the two main buttons": "두 메인 버튼 아래의 스위치",
+ "LIGHTSPEED receiver": "LIGHTSPEED 수신기",
+ "USB cable": "USB 케이블",
+ "The sensor is at {dpi} DPI": "센서가 {dpi} DPI입니다",
+ "In use now": "지금 사용 중",
+ "Taken when the mouse is on this link": "마우스가 이 연결에 있을 때 적용",
+ "Nothing to set": "설정할 항목 없음",
+ "This mouse has no wheel settings of its own": "이 마우스에는 자체 휠 설정이 없습니다",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "휠 한 칸이 잠시 계속 스크롤됩니다 (게임에서 점프용)",
+ "BHOP sensitivity": "BHOP 감도",
+ "How long each notch keeps scrolling": "각 칸이 스크롤을 계속하는 시간"
 }

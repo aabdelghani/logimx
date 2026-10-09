@@ -85,7 +85,7 @@ function pageEasy(d) {
 function pageInfo(d) {
   const b = d.battery || { percent: 0 }; const hist = S.history[d.id] || [];
   const bars = (hist.length ? hist : known(b) ? [b.percent] : []).slice(-14);
-  const rows = [[t('Model'), d.name], [t('Connection'), `${d.transport === 'bolt' ? t('Bolt receiver') : t('Bluetooth')} · ${t('host {n}', { n: ((d.state || {}).hosts || {}).current + 1 || 1 })}`], [t('Firmware'), d.firmware || t('n/a')], [t('Serial'), d.serial || t('n/a')], [t('Protocol'), 'HID++ 2.0'], [t('Wireless PID'), d.id.toUpperCase()]];
+  const rows = [[t('Model'), d.name], [t('Connection'), ({ bolt: t('Bolt receiver'), lightspeed: t('LIGHTSPEED receiver'), usb: t('USB cable') }[d.transport] || t('Bluetooth')) + (((d.state || {}).hosts || {}).count ? ` · ${t('host {n}', { n: d.state.hosts.current + 1 || 1 })}` : '')], [t('Firmware'), d.firmware || t('n/a')], [t('Serial'), d.serial || t('n/a')], [t('Protocol'), 'HID++ 2.0'], [t('Wireless PID'), d.id.toUpperCase()]];
   const est = b.charging ? t('Charging over USB-C') : b.level ? t('Level: {level}', { level: b.level }) : '';
   const thr = S.general.notify_low_threshold ?? 20;
   return `<div class="grid2">

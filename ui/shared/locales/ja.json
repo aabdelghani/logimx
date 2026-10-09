@@ -965,5 +965,16 @@
  "Use this slot": "このスロットを使う",
  "Wired": "有線",
  "Wireless": "ワイヤレス",
- "the switches under the two main buttons": "2 つのメインボタンの下にあるスイッチ"
+ "the switches under the two main buttons": "2 つのメインボタンの下にあるスイッチ",
+ "LIGHTSPEED receiver": "LIGHTSPEED レシーバー",
+ "USB cable": "USB ケーブル",
+ "The sensor is at {dpi} DPI": "センサーは {dpi} DPI です",
+ "In use now": "現在使用中",
+ "Taken when the mouse is on this link": "マウスがこの接続のときに適用",
+ "Nothing to set": "設定項目はありません",
+ "This mouse has no wheel settings of its own": "このマウスには独自のホイール設定がありません",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "ホイールの 1 ノッチで少しの間スクロールが続きます (ゲームでのジャンプ用)",
+ "BHOP sensitivity": "BHOP 感度",
+ "How long each notch keeps scrolling": "各ノッチのスクロールが続く時間"
 }

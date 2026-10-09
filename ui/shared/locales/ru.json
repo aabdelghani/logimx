@@ -965,5 +965,16 @@
  "Use this slot": "Использовать этот слот",
  "Wired": "Проводной",
  "Wireless": "Беспроводной",
- "the switches under the two main buttons": "переключатели под двумя основными кнопками"
+ "the switches under the two main buttons": "переключатели под двумя основными кнопками",
+ "LIGHTSPEED receiver": "Приёмник LIGHTSPEED",
+ "USB cable": "USB-кабель",
+ "The sensor is at {dpi} DPI": "Датчик на {dpi} DPI",
+ "In use now": "Используется сейчас",
+ "Taken when the mouse is on this link": "Применяется, когда мышь подключена этим способом",
+ "Nothing to set": "Нечего настраивать",
+ "This mouse has no wheel settings of its own": "У этой мыши нет собственных настроек колеса",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "Один щелчок колеса продолжает прокрутку ещё мгновение, для прыжков в играх",
+ "BHOP sensitivity": "Чувствительность BHOP",
+ "How long each notch keeps scrolling": "Как долго продолжается прокрутка после каждого щелчка"
 }

@@ -965,5 +965,16 @@
  "Use this slot": "Bruk denne plassen",
  "Wired": "Kablet",
  "Wireless": "Trådløs",
- "the switches under the two main buttons": "bryterne under de to hovedknappene"
+ "the switches under the two main buttons": "bryterne under de to hovedknappene",
+ "LIGHTSPEED receiver": "LIGHTSPEED-mottaker",
+ "USB cable": "USB-kabel",
+ "The sensor is at {dpi} DPI": "Sensoren står på {dpi} DPI",
+ "In use now": "I bruk nå",
+ "Taken when the mouse is on this link": "Brukes når musen er på denne tilkoblingen",
+ "Nothing to set": "Ingenting å stille inn",
+ "This mouse has no wheel settings of its own": "Denne musen har ingen egne hjulinnstillinger",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "Ett hakk på hjulet fortsetter å rulle et øyeblikk, for hopp i spill",
+ "BHOP sensitivity": "BHOP-følsomhet",
+ "How long each notch keeps scrolling": "Hvor lenge hvert hakk fortsetter å rulle"
 }

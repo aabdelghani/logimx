@@ -121,6 +121,15 @@ void ManagedDevice::refreshConfig() {
     }
 }
 
+// "bolt", "unifying", "lightspeed" after the receiver, "bluetooth", or "usb" (a cable)
+std::string ManagedDevice::transportName() const {
+    auto it = hidpp::kReceivers.find(t_.info().product);
+    std::string k = it == hidpp::kReceivers.end() ? "" : it->second;
+    if (k.empty()) return t_.info().bustype == 0x05 ? "bluetooth" : "usb";   // usb: a mouse on its own cable
+    for (auto& c : k) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+    return k;
+}
+
 json ManagedDevice::batteryJson() const {
     if (!battery_) return json();
     json j = battery_->toJson();
@@ -148,11 +157,11 @@ json ManagedDevice::summary() {
         feats.push_back(b);
     }
     return {{"id", id()}, {"pid", pid_}, {"name", dev_->name()}, {"friendly_name", dev_->friendlyName()},
-            {"kind", kind_}, {"firmware", dev_->firmware()}, {"serial", dev_->serial().empty() ? serial_ : dev_->serial()},
-            {"transport", hidpp::kReceivers.count(t_.info().product) ? "bolt" : "bluetooth"},
-            {"index", dev_->index()}, {"online", online_.load()}, {"battery", batteryJson()},
-            {"profile", profileName_}, {"features", feats}, {"controls", controls}, {"state", state_},
-            {"config", cfg_}};
+        {"kind", kind_}, {"firmware", dev_->firmware()}, {"serial", dev_->serial().empty() ? serial_ : dev_->serial()},
+        {"transport", transportName()},
+        {"index", dev_->index()}, {"online", online_.load()}, {"battery", batteryJson()},
+        {"profile", profileName_}, {"features", feats}, {"controls", controls}, {"state", state_},
+        {"config", cfg_}};
 }
 
 json ManagedDevice::readState(bool full) {
@@ -182,6 +191,36 @@ json ManagedDevice::readState(bool full) {
             st["thumbwheel"] = {{"diverted", tw->diverted}, {"invert", tw->invert}, {"native_res", tw->nativeRes}, {"diverted_res", tw->divertedRes}};
         if (auto dp = dev_->dpi())
             st["dpi"] = {{"dpi", dp->dpi}, {"default", dp->def}, {"levels", dp->levels}, {"stepped", dp->stepped}};
+        if (auto xd = dev_->extendedDpi()) {
+            // the slot in use is the one holding the sensor's DPI (the first such; -1 when a value off the list is set)
+            int active = -1;
+            for (size_t i = 0; i < xd->slots.size(); ++i)
+                if (xd->slots[i] == xd->dpi) {
+                    active = static_cast<int>(i);
+                    break;
+                }
+            st["dpi"] = {{"dpi", xd->dpi}, {"default", xd->def}, {"levels", json::array({xd->min, xd->max, 50})}, {"stepped", true},
+                {"slots", xd->slots}, {"lods", xd->lods}, {"lod", xd->lod}, {"active", active}, {"ranges", xd->ranges}};
+        }
+        if (auto rr = dev_->reportRate()) {
+            auto list = [](int mask) { json a = json::array(); for (int i = 0; i < 7; ++i) if (mask & (1 << i)) a.push_back(std::atoi(hidpp::Device::reportRateName(i))); return a; };
+            st["report_rate"] = {{"report_rate", rr->wireless >= 0 ? json(std::atoi(hidpp::Device::reportRateName(rr->wireless))) : json()},
+                {"report_rate_wired", rr->wired >= 0 ? json(std::atoi(hidpp::Device::reportRateName(rr->wired))) : json()},
+                {"wireless", list(rr->wirelessMask)}, {"wired", list(rr->wiredMask)}};
+        }
+        if (auto ac = dev_->analogCaps()) {
+            json buttons = json::array();
+            for (int b = 0; b < ac->buttons; ++b)
+                if (auto ab = dev_->analogButton(b))
+                    buttons.push_back({{"button", b}, {"actuation", ab->actuation}, {"rapid_trigger", ab->rapidTrigger}, {"rapid_trigger_on", ab->rapidTriggerOn}, {"haptics", ab->haptics}});
+            st["hits"] = {{"max_actuation", ac->maxActuation}, {"max_rapid_trigger", ac->maxRapidTrigger}, {"max_haptics", ac->maxHaptics}, {"buttons", buttons}};
+        }
+        if (auto bh = dev_->bunnyHopTimeout()) {
+            // 0 is off; 0xFF is what the mouse holds before any software set it, also off
+            bool on = *bh > 0 && *bh < 0xFF;
+            st["bunny_hop"] = {{"enabled", on}, {"timeout", on ? json(*bh * 10) : json()}};
+        }
+        if (auto om = dev_->onboardMode()) st["onboard_mode"] = *om;
         if (auto bl = dev_->backlight())
             st["backlight"] = {{"enabled", bl->enabled}, {"mode", bl->mode()}, {"level", bl->level}, {"num_levels", bl->numLevels},
                                {"current_level", bl->currentLevel}, {"status", bl->status}, {"auto_supported", bl->autoSupported()},
@@ -242,6 +281,15 @@ void ManagedDevice::applySettings(const std::string& only) {
     const json& s = cfg_.value("settings", json::object());
     auto want = [&](const char* k) { return s.contains(k) && (only.empty() || only == k); };
     try {
+        // a gaming mouse runs its own onboard profile until a host takes over; the settings below
+        // only apply in host mode (G HUB does the same while it runs)
+        if (dev_->has(hidpp::ONBOARD_PROFILES) && only.empty()) {
+            auto m = dev_->onboardMode();
+            if (m && *m != 2) {
+                dev_->setOnboardMode(2);
+                INFO("%s: onboard profiles -> host mode", dev_->name().c_str());
+            }
+        }
         // a gaming mouse: the DPI slot in use is what the sensor gets, and "dpi" keeps that value too
         if (s.contains("dpi_slots") && s["dpi_slots"].is_object() && (want("dpi_slots") || want("dpi_active"))) {
             const std::string slot = std::to_string(s.value("dpi_active", 1));
@@ -249,9 +297,45 @@ void ManagedDevice::applySettings(const std::string& only) {
                 const int dpi = s["dpi_slots"][slot].get<int>();
                 daemon_.config().setSetting(pid_, {"dpi"}, dpi);
                 if (dev_->has(hidpp::ADJUSTABLE_DPI)) dev_->setDpi(dpi);
+                else if (dev_->has(hidpp::EXTENDED_DPI)) dev_->setExtendedDpi(dpi);
             }
         }
         if (dev_->has(hidpp::ADJUSTABLE_DPI) && want("dpi")) dev_->setDpi(s["dpi"].get<int>());
+        else if (dev_->has(hidpp::EXTENDED_DPI) && want("dpi") && !s.contains("dpi_slots")) dev_->setExtendedDpi(s["dpi"].get<int>());
+        if (dev_->has(hidpp::EXTENDED_REPORT_RATE)) {
+            // the rate as an index into 125..8000 Hz, only when the link offers it
+            auto rr = dev_->reportRate();
+            auto apply = [&](const char* key, bool wireless) {
+                if (!want(key) || !s[key].is_number() || !rr) return;
+                int hz = s[key].get<int>(), idx = -1;
+                for (int i = 0; i < 7; ++i)
+                    if (std::atoi(hidpp::Device::reportRateName(i)) == hz) idx = i;
+                int mask = wireless ? rr->wirelessMask : rr->wiredMask, cur = wireless ? rr->wireless : rr->wired;
+                if (idx < 0 || !(mask & (1 << idx))) {
+                    WARN("%s: %s %d Hz is not offered on this link", dev_->name().c_str(), key, hz);
+                    return;
+                }
+                if (idx != cur) dev_->setReportRate(idx);
+            };
+            // the mouse takes a rate for the link it is on (checked on the PRO X3 SUPERSTRIKE: a wired
+            // rate sent over the receiver lands on the wireless link); the other one waits for its link
+            if (transportName() == "usb") apply("report_rate_wired", false);
+            else apply("report_rate", true);
+        }
+        if (dev_->has(hidpp::ANALOG_BUTTONS) && want("hits") && s["hits"].is_object()) {
+            // the same three values for both inductive buttons, as G HUB's "All (L+R)" does
+            const json& h = s["hits"];
+            hidpp::AnalogButton b;
+            b.actuation = h.value("actuation", 5);
+            b.rapidTrigger = h.value("rapid_trigger", 2);
+            b.rapidTriggerOn = h.value("rapid_trigger_on", false);
+            b.haptics = h.value("haptics", 3);
+            for (int btn = 0; btn < 2; ++btn) dev_->setAnalogButton(btn, b);
+        }
+        if (dev_->has(hidpp::BUNNY_HOPPING) && want("bunny_hop") && s["bunny_hop"].is_object()) {
+            const json& b = s["bunny_hop"];
+            dev_->setBunnyHopTimeout(b.value("enabled", false) ? b.value("timeout", 100) / 10 : 0);
+        }
         if ((dev_->has(hidpp::SMART_SHIFT) || dev_->has(hidpp::SMART_SHIFT_ENHANCED)) && want("smartshift")) {
             // the wheel's mode (ratchet unless chosen otherwise) and SmartShift, which frees a ratchet
             // wheel when it is flicked faster than the threshold; off, the device never frees it (255)
@@ -334,8 +418,36 @@ void ManagedDevice::applyAssignments() {
             if (a.is_object() && a.value("type", "native") != "native") wanted[cid] = a;
         }
     }
+    if (!dev_->has(hidpp::SPECIAL_KEYS) && dev_->has(hidpp::MOUSE_BUTTON_SPY)) {
+        // no 0x1B04: a button with an action of its own stops sending its HID button (remapped to
+        // none) and the button spy reports every press; everything else keeps its own button
+        try {
+            if (spyMap_.empty()) spyMap_ = dev_->spyButtonMap();
+            hidpp::Bytes map = spyMap_;
+            std::set<int> now;
+            for (auto& [cid, ctl] : dev_->controls()) {
+                size_t i = ctl.position ? ctl.position - 1 : 0;
+                if (i >= map.size()) continue;
+                bool want = wanted.count(cid) > 0;
+                map[i] = want ? 0 : static_cast<uint8_t>(i + 1);
+                if (want) now.insert(cid);
+            }
+            if (map != spyMap_) {
+                dev_->setSpyButtonMap(map);
+                spyMap_ = map;
+            }
+            bool spyOn = !now.empty();
+            if (spyOn != spying_) {
+                dev_->spy(spyOn);
+                spying_ = spyOn;
+            }
+            diverted_ = now;
+        } catch (const std::exception& e) {
+            WARN("%s: button spy: %s", dev_->name().c_str(), e.what());
+        }
+    }
     for (auto& [cid, ctl] : dev_->controls()) {
-        if (!ctl.divertable()) continue;
+        if (!ctl.divertable() || !dev_->has(hidpp::SPECIAL_KEYS)) continue;
         bool want = wanted.count(cid) > 0;
         // gestures and the action ring both take the mouse's movement while the control is held
         // (the ring can be told to leave the pointer alone: general.ring.free_pointer)
@@ -376,6 +488,26 @@ void ManagedDevice::applyAssignments() {
 
 void ManagedDevice::releaseAll() {
     std::lock_guard<std::recursive_mutex> lk(m_);
+    if (!dev_->has(hidpp::SPECIAL_KEYS) && dev_->has(hidpp::MOUSE_BUTTON_SPY)) {
+        try {
+            hidpp::Bytes map;
+            for (size_t i = 0; i < std::max<size_t>(spyMap_.size(), dev_->controls().size()); ++i) map.push_back(static_cast<uint8_t>(i + 1));
+            if (!map.empty()) dev_->setSpyButtonMap(map);
+            spyMap_ = map;
+            if (spying_) dev_->spy(false);
+            spying_ = false;
+        } catch (...) {
+        }
+        diverted_.clear();
+        rawDiverted_.clear();
+        // the mouse's own profile again, as it ran before NotLogi took over
+        if (dev_->has(hidpp::ONBOARD_PROFILES)) {
+            try {
+                dev_->setOnboardMode(1);
+            } catch (...) {}
+        }
+        return;
+    }
     for (int cid : diverted_) {
         try {
             auto it = dev_->controls().find(static_cast<uint16_t>(cid));
@@ -512,6 +644,8 @@ void ManagedDevice::reapply() {
     try {
         std::lock_guard<std::recursive_mutex> lk(m_);
         diverted_.clear();
+        spyMap_.clear();
+        spying_ = false;
         dev_->invalidateFnHost();
         applySettings();
         applyAssignments();
@@ -764,9 +898,18 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
     std::string serial;
     if (node.isReceiver()) {
         auto pi = t.pairingInfo(idx);
-        if (!pi) return false;
-        pid = pi->wpid;
-        serial = pi->serial;
+        if (pi) {
+            pid = pi->wpid;
+            serial = pi->serial;
+        } else if (auto di = dev->deviceInfo()) {
+            // LIGHTSPEED receivers answer neither pairing register: the device says who it is
+            INFO("%s/%d: pairing info unavailable, using the device's own model id %04X", t.path().c_str(), idx, di->first);
+            pid = di->first;
+            serial = di->second;
+        } else {
+            DEBUG("%s/%d: no pairing info and no device info", t.path().c_str(), idx);
+            return false;
+        }
     }
     if (pid == 0) return false;
     std::string key = Config::key(pid);
@@ -799,7 +942,7 @@ bool Daemon::attach(hidpp::Transport& t, uint8_t idx, const hidpp::Node& node) {
     // write this computer's hostname back so Easy-Switch shows a meaningful name
     try {
         json st = md->summary()["state"];
-        if (st.contains("hosts")) {
+        if (st.contains("hosts") && md->dev().has(hidpp::HOSTS_INFO)) {
             int cur = st["hosts"].value("current", 0);
             std::string name = st["hosts"]["names"].size() > static_cast<size_t>(cur) ? st["hosts"]["names"][cur].value("name", "") : "";
             std::string host = platform::hostName().substr(0, 24);
@@ -1027,9 +1170,14 @@ void Daemon::changeHostFrom(ManagedDevice& src, int host) {
 }
 
 // Checks and clamps a settings write. Throws on unknown keys or wrong types.
-static json validateSetting(const json& summary, const std::vector<std::string>& path, const json& v) {
+static json validateSetting(const json& summary, const std::vector<std::string>& path, const json& vIn) {
+    json v = vIn;
     if (path.empty()) throw std::runtime_error("empty setting path");
     const json& st = summary.value("state", json::object());
+    if (v.is_string()) {   // "2" from a data attribute is 2
+        const std::string& sv = v.get_ref<const std::string&>();
+        if (!sv.empty() && sv.find_first_not_of("-0123456789.") == std::string::npos) v = json(std::atof(sv.c_str()));
+    }
     auto clampInt = [&](int lo, int hi) {
         if (!v.is_number()) throw std::runtime_error(path.back() + " must be a number");
         return json(std::max(lo, std::min(hi, static_cast<int>(std::lround(v.get<double>())))));
@@ -1055,7 +1203,29 @@ static json validateSetting(const json& summary, const std::vector<std::string>&
         for (auto n : {"caps_lock", "num_lock", "scroll_lock", "insert", "win"}) if (path[1] == n) return boolean();
     }
     // a gaming mouse: DPI slots, report rates and the HITS switches (kept until the features are mapped)
-    if (k == "dpi_slots" && path.size() == 2) return clampInt(100, 44000);
+    if (k == "dpi_slots" && path.size() == 2) {
+        int lo = 100, hi = 48000;
+        if (st.contains("dpi") && st["dpi"].contains("slots") && st["dpi"]["levels"].size() == 3) {
+            lo = st["dpi"]["levels"][0];
+            hi = st["dpi"]["levels"][1];
+        }
+        int want = clampInt(lo, hi).get<int>();
+        // onto the sensor's own steps (1 under 200 ... 200 above 32000), the nearest one
+        if (st.contains("dpi") && st["dpi"].contains("ranges"))
+            for (auto& r : st["dpi"]["ranges"]) {
+                int from = r[0], step = r[1], to = r[2];
+                if (want < from || want > to || step <= 0) continue;
+                return json(std::min(to, from + (want - from + step / 2) / step * step));
+            }
+        return json(want);
+    }
+    if (k == "bunny_hop" && path.size() == 2) {
+        if (path[1] == "enabled") return boolean();
+        if (path[1] == "timeout") {
+            json c = clampInt(100, 1000);
+            return json((c.get<int>() + 50) / 100 * 100);
+        }   // ms, G HUB's 100 ms steps
+    }
     if (k == "dpi_enabled" && path.size() == 2) return boolean();
     if (k == "dpi_active") return clampInt(0, 4);
     if (k == "report_rate" || k == "report_rate_wired") {
@@ -1213,6 +1383,25 @@ json Daemon::rpc(const std::string& method, const json& p) {
         return json{{"ok", true}};
     }
     if (method == "record_cancel") { recorder_.cancel(); return json{{"ok", true}}; }
+    if (method == "hidpp") {
+        // one raw HID++ 2.0 request to a device, for diagnostics: feature id, function, parameter bytes
+        auto md = need(p);
+        uint16_t feature = static_cast<uint16_t>(std::stoul(p.value("feature", "0"), nullptr, 16));
+        hidpp::Bytes params;
+        for (auto& b : p.value("params", json::array())) params.push_back(static_cast<uint8_t>(b.is_string() ? std::stoul(b.get<std::string>(), nullptr, 16) : b.get<int>()));
+        try {
+            hidpp::Bytes r = md->dev().req(feature, static_cast<uint8_t>(p.value("fn", 0)), params);
+            json out = json::array();
+            for (auto b : r) {
+                char h[4];
+                snprintf(h, sizeof(h), "%02X", b);
+                out.push_back(h);
+            }
+            return json{{"reply", out}};
+        } catch (const hidpp::HidppError& e) {
+            return json{{"error", e.code}};
+        }
+    }
     if (method == "haptic_play") {
         auto md = need(p);
         md->dev().playHaptic(p.value("waveform", 0));
@@ -1310,6 +1499,22 @@ json Daemon::rpc(const std::string& method, const json& p) {
         json st = md->readState(true);
         json& settings = config_.device(md->pid(), md->dev().kind())["settings"];
         if (st.contains("dpi")) settings["dpi"] = st["dpi"]["dpi"];
+        if (st.contains("dpi") && st["dpi"].contains("slots")) {
+            for (size_t i = 0; i < st["dpi"]["slots"].size(); ++i) settings["dpi_slots"][std::to_string(i)] = st["dpi"]["slots"][i];
+            if (st["dpi"].value("active", -1) >= 0) settings["dpi_active"] = st["dpi"]["active"];
+        }
+        if (st.contains("report_rate")) {
+            if (st["report_rate"]["report_rate"].is_number()) settings["report_rate"] = st["report_rate"]["report_rate"];
+            if (st["report_rate"]["report_rate_wired"].is_number()) settings["report_rate_wired"] = st["report_rate"]["report_rate_wired"];
+        }
+        if (st.contains("hits") && !st["hits"]["buttons"].empty()) {
+            const json& b = st["hits"]["buttons"][0];
+            for (auto k : {"actuation", "rapid_trigger", "rapid_trigger_on", "haptics"}) settings["hits"][k] = b[k];
+        }
+        if (st.contains("bunny_hop")) {
+            settings["bunny_hop"]["enabled"] = st["bunny_hop"].value("enabled", false);
+            if (st["bunny_hop"]["timeout"].is_number()) settings["bunny_hop"]["timeout"] = st["bunny_hop"]["timeout"];
+        }
         if (st.contains("smartshift")) {
             settings["smartshift"]["mode"] = st["smartshift"]["mode"];
             settings["smartshift"]["enabled"] = st["smartshift"]["enabled"];

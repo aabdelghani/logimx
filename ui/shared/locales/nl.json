@@ -965,5 +965,16 @@
  "Use this slot": "Dit slot gebruiken",
  "Wired": "Bekabeld",
  "Wireless": "Draadloos",
- "the switches under the two main buttons": "de schakelaars onder de twee hoofdknoppen"
+ "the switches under the two main buttons": "de schakelaars onder de twee hoofdknoppen",
+ "LIGHTSPEED receiver": "LIGHTSPEED-ontvanger",
+ "USB cable": "USB-kabel",
+ "The sensor is at {dpi} DPI": "De sensor staat op {dpi} DPI",
+ "In use now": "Nu in gebruik",
+ "Taken when the mouse is on this link": "Geldt zodra de muis via deze verbinding werkt",
+ "Nothing to set": "Niets in te stellen",
+ "This mouse has no wheel settings of its own": "Deze muis heeft geen eigen wielinstellingen",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "Eén tik van het wiel blijft even scrollen, om te springen in games",
+ "BHOP sensitivity": "BHOP-gevoeligheid",
+ "How long each notch keeps scrolling": "Hoelang elke tik blijft scrollen"
 }

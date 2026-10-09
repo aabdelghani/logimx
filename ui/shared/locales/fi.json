@@ -965,5 +965,16 @@
  "Use this slot": "Käytä tätä paikkaa",
  "Wired": "Langallinen",
  "Wireless": "Langaton",
- "the switches under the two main buttons": "kytkimet kahden pääpainikkeen alla"
+ "the switches under the two main buttons": "kytkimet kahden pääpainikkeen alla",
+ "LIGHTSPEED receiver": "LIGHTSPEED-vastaanotin",
+ "USB cable": "USB-kaapeli",
+ "The sensor is at {dpi} DPI": "Anturi on {dpi} DPI:ssä",
+ "In use now": "Käytössä nyt",
+ "Taken when the mouse is on this link": "Otetaan käyttöön, kun hiiri on tällä yhteydellä",
+ "Nothing to set": "Ei asetettavaa",
+ "This mouse has no wheel settings of its own": "Tällä hiirellä ei ole omia rullan asetuksia",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "Yksi rullan pykälä vierittää hetken lisää, hyppimiseen peleissä",
+ "BHOP sensitivity": "BHOP-herkkyys",
+ "How long each notch keeps scrolling": "Kuinka kauan kukin pykälä jatkaa vieritystä"
 }

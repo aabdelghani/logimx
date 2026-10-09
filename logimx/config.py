@@ -162,12 +162,11 @@ MX_KEYS_MINI_MAC = _keyboard(_MINI_ROW + ["do_not_disturb"], **_S_STYLE)
 PRO_X3_SUPERSTRIKE = {
     "settings": {
         "dpi": 800,
-        "dpi_slots": {"0": 400, "1": 800, "2": 1600, "3": 3200, "4": 6400},
-        "dpi_enabled": {"0": True, "1": True, "2": True, "3": True, "4": False},
-        "dpi_active": 1,
+        "dpi_slots": {"0": 800, "1": 1200, "2": 1600, "3": 2400, "4": 3200},
+        "dpi_enabled": {"0": True, "1": True, "2": True, "3": True, "4": True},
+        "dpi_active": 0,
         "report_rate": 1000, "report_rate_wired": 1000,
-        "hits": {"actuation": 5, "rapid_trigger_on": False, "rapid_trigger": 3, "haptics": 3},
-        "hires": {"enabled": False, "invert": False},
+        "hits": {"actuation": 5, "rapid_trigger_on": False, "rapid_trigger": 2, "haptics": 3},
     },
     "profiles": {
         "default": {

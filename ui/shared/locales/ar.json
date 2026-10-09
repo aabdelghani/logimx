@@ -965,5 +965,16 @@
  "Use this slot": "استخدم هذه الخانة",
  "Wired": "سلكي",
  "Wireless": "لاسلكي",
- "the switches under the two main buttons": "المفاتيح تحت الزرين الرئيسيين"
+ "the switches under the two main buttons": "المفاتيح تحت الزرين الرئيسيين",
+ "LIGHTSPEED receiver": "مستقبِل LIGHTSPEED",
+ "USB cable": "كابل USB",
+ "The sensor is at {dpi} DPI": "المستشعر على {dpi} DPI",
+ "In use now": "قيد الاستخدام الآن",
+ "Taken when the mouse is on this link": "يُطبَّق حين يكون الماوس على هذا الاتصال",
+ "Nothing to set": "لا شيء لضبطه",
+ "This mouse has no wheel settings of its own": "لا توجد لهذا الماوس إعدادات خاصة بالعجلة",
+ "BHOP": "BHOP",
+ "One notch of the wheel keeps scrolling for a moment, for jumping in games": "تستمر نقرة واحدة من العجلة في التمرير لحظة، للقفز في الألعاب",
+ "BHOP sensitivity": "حساسية BHOP",
+ "How long each notch keeps scrolling": "المدة التي تستمر فيها كل نقرة في التمرير"
 }

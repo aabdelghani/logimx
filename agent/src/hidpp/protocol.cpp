@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cctype>
 #include <tuple>
 #include "protocol.h"
 
@@ -52,6 +54,7 @@ bool Device::enumerate() {
     }
     readIdentity();
     if (has(SPECIAL_KEYS)) readControls();
+    else if (has(MOUSE_BUTTON_SPY)) synthesizeControls();
     saveCache();
     return true;
 }
@@ -143,15 +146,24 @@ void Device::readIdentity() {
 void Device::readFirmware() {
     try {
         if (has(DEVICE_FW)) {
-            int cnt = req(DEVICE_FW, 0)[0];
+            Bytes info = req(DEVICE_FW, 0);
+            int cnt = info.empty() ? 0 : info[0];
+            // the main firmware: entity type 0 in the old layout; newer devices (0x0003 v9, the PRO X3
+            // SUPERSTRIKE) number their entities differently and flag the active one (bit 0 of byte 8),
+            // so an active entry with a readable prefix is taken when no type-0 entry exists
+            std::string fallback;
             for (int e = 0; e < cnt; ++e) {
                 Bytes r = req(DEVICE_FW, 1, {static_cast<uint8_t>(e)});
-                if (r.size() >= 8 && r[0] == 0) {
-                    char buf[48];
-                    snprintf(buf, sizeof(buf), "%c%c%c %02X.%02X.B%04X", r[1], r[2], r[3], r[4], r[5], be16(r, 6));
-                    firmware_ = buf;
-                }
+                if (r.size() < 8) continue;
+                std::string prefix;
+                for (int i = 1; i <= 3; ++i)
+                    if (isprint(r[i])) prefix += static_cast<char>(r[i]);
+                char buf[48];
+                snprintf(buf, sizeof(buf), "%s %02X.%02X.B%04X", prefix.c_str(), r[4], r[5], be16(r, 6));
+                if (r[0] == 0) firmware_ = buf;
+                else if (fallback.empty() && r.size() >= 9 && (r[8] & 0x01) && !prefix.empty() && isalpha(static_cast<unsigned char>(prefix[0]))) fallback = buf;
             }
+            if (firmware_.empty()) firmware_ = fallback;
             if (features_[DEVICE_FW].version >= 4) {
                 Bytes r = req(DEVICE_FW, 2);
                 std::string s(reinterpret_cast<const char*>(r.data()), std::min<size_t>(12, r.size()));
@@ -160,6 +172,39 @@ void Device::readFirmware() {
             }
         }
     } catch (const std::exception&) {
+    }
+}
+
+// 0x0003 getDeviceInfo (v4 and later): unit id (bytes 1..4) and the first model id (bytes 7..8), for a
+// device on a receiver that answers no pairing register (LIGHTSPEED)
+std::optional<std::pair<uint16_t, std::string>> Device::deviceInfo() {
+    if (!has(DEVICE_FW)) return std::nullopt;
+    try {
+        Bytes r = req(DEVICE_FW, 0);
+        if (r.size() < 9) return std::nullopt;
+        uint16_t pid = be16(r, 7);
+        if (!pid) return std::nullopt;
+        char s[9];
+        snprintf(s, sizeof(s), "%02X%02X%02X%02X", r[1], r[2], r[3], r[4]);
+        return std::make_pair(pid, std::string(s));
+    } catch (const std::exception&) {
+        return std::nullopt;
+    }
+}
+
+// a gaming mouse without 0x1B04 (PRO X3 SUPERSTRIKE): its buttons come from the button spy (0x8110),
+// as many as it reports, in G HUB's order (left, right, middle, back, forward); every one divertable
+void Device::synthesizeControls() {
+    controls_.clear();
+    int n = spyButtonCount();
+    static const uint16_t cids[] = {0x50, 0x51, 0x52, 0x53, 0x56};
+    for (int i = 0; i < n && i < 16; ++i) {
+        ControlInfo c;
+        c.cid = i < 5 ? cids[i] : static_cast<uint16_t>(0x57 + i - 5);
+        c.taskId = c.cid;
+        c.flags = 0x01 | 0x20;   // mouse button, divertable
+        c.position = static_cast<uint8_t>(i + 1);
+        controls_[c.cid] = c;
     }
 }
 
@@ -361,6 +406,183 @@ void Device::setDpi(int dpi) {
     req(ADJUSTABLE_DPI, 3, {0, static_cast<uint8_t>(dpi >> 8), static_cast<uint8_t>(dpi)});
 }
 
+// ---------------------------------------------------------------- G-series features
+// 0x2202 Extended adjustable DPI, sensor 0: fn3 getSensorDpiList (five slots), fn4 getSensorLodList,
+// fn5 getSensorDpiParameters (sensor, dpiX, defX, dpiY, defY, lod), fn6 setSensorDpiParameters (sensor,
+// dpiX, dpiY, lod); fn2 getSensorDpiRanges gives the stepped table the sensor accepts
+std::optional<ExtendedDpiState> Device::extendedDpi() {
+    if (!has(EXTENDED_DPI)) return std::nullopt;
+    ExtendedDpiState s;
+    Bytes p = req(EXTENDED_DPI, 5, {0});
+    if (p.size() < 10) return std::nullopt;
+    s.dpi = be16(p, 1);
+    s.def = be16(p, 3);
+    s.lod = p[9];
+    Bytes l = req(EXTENDED_DPI, 3, {0});
+    for (size_t i = 2; i + 1 < l.size() && s.slots.size() < 5; i += 2) {
+        int v = be16(l, i);
+        if (!v) break;
+        s.slots.push_back(v);
+    }
+    try {
+        Bytes lods = req(EXTENDED_DPI, 4, {0});
+        for (size_t i = 1; i < lods.size() && i <= s.slots.size(); ++i) s.lods.push_back(lods[i]);
+    } catch (const std::exception&) {
+    }
+    try {
+        // the table of values the sensor takes, over as many pages as it fills: a value, then
+        // pairs of a step (0xE000 | step) and the value it steps up to; 0 ends it
+        // (the pages carry a byte stream: a value can start on one page and end on the next)
+        Bytes raw;
+        std::vector<int> seq;
+        for (uint8_t page = 0; page < 8; ++page) {
+            Bytes r = req(EXTENDED_DPI, 2, {0, 0, page});
+            if (r.size() <= 3) break;
+            raw.insert(raw.end(), r.begin() + 3, r.end());
+            bool end = false;
+            seq.clear();
+            for (size_t i = 0; i + 1 < raw.size(); i += 2) {
+                int v = be16(raw, i);
+                if (!v) {
+                    end = true;
+                    break;
+                }
+                seq.push_back(v);
+            }
+            if (end) break;
+        }
+        int from = 0, step = 0;
+        for (int v : seq) {
+            if ((v & 0xE000) == 0xE000) {
+                step = v & 0x1FFF;
+                continue;
+            }
+            if (from && step) s.ranges.push_back({from, step, v});
+            from = v;
+            step = 0;
+        }
+        if (!s.ranges.empty()) {
+            s.min = s.ranges.front()[0];
+            s.max = s.ranges.back()[2];
+        }
+    } catch (const std::exception&) {
+    }
+    return s;
+}
+void Device::setExtendedDpi(int dpi, int lod) {
+    uint8_t hi = static_cast<uint8_t>(dpi >> 8), lo = static_cast<uint8_t>(dpi);
+    if (!lod) {
+        try {
+            Bytes p = req(EXTENDED_DPI, 5, {0});
+            if (p.size() >= 10) lod = p[9];
+        } catch (const std::exception&) {}
+        if (!lod) lod = 2;
+    }
+    req(EXTENDED_DPI, 6, {0, hi, lo, hi, lo, static_cast<uint8_t>(lod)});
+}
+
+// 0x8061 Extended report rate: fn0 getReportRateList(conn) -> bitmask of the rates a link offers (bit n
+// = index n), fn2 getReportRate(conn) -> index, fn3 setReportRate(index) for the link in use; conn 0
+// wired, 1 wireless
+static const int kReportRates[] = {125, 250, 500, 1000, 2000, 4000, 8000};
+const char* Device::reportRateName(int index) {
+    static const char* names[] = {"125", "250", "500", "1000", "2000", "4000", "8000"};
+    return index >= 0 && index < 7 ? names[index] : "?";
+}
+std::optional<ReportRateState> Device::reportRate() {
+    if (!has(EXTENDED_REPORT_RATE)) return std::nullopt;
+    ReportRateState s;
+    for (uint8_t conn = 0; conn < 2; ++conn) {
+        int mask = 0, idx = -1;
+        try {
+            Bytes r = req(EXTENDED_REPORT_RATE, 0, {conn});
+            if (r.size() >= 2) mask = r[1];
+        } catch (const std::exception&) {}
+        try {
+            Bytes r = req(EXTENDED_REPORT_RATE, 2, {conn});
+            if (!r.empty()) idx = r[0];
+        } catch (const std::exception&) {}
+        if (conn) {
+            s.wirelessMask = mask;
+            s.wireless = idx;
+        } else {
+            s.wiredMask = mask;
+            s.wired = idx;
+        }
+    }
+    if (s.wireless < 0 && s.wired < 0) return std::nullopt;
+    return s;
+}
+void Device::setReportRate(int index) { req(EXTENDED_REPORT_RATE, 3, {static_cast<uint8_t>(index)}); }
+
+// 0x1B0C Analog buttons (HITS): fn0 getCapabilities (?, settings per button, max actuation, max rapid
+// trigger, max haptics, ?), fn1 setConfig(button, actuation, rapid, haptics), fn2 getConfig(button),
+// fn3 setMonitoringMode(options, timeout s), fn4 getMonitoringMode. Each value is the step times 4;
+// the rapid trigger's bit 0 is its switch. Button 0 is the left button, 1 the right one.
+std::optional<AnalogCaps> Device::analogCaps() {
+    if (!has(ANALOG_BUTTONS)) return std::nullopt;
+    Bytes r = req(ANALOG_BUTTONS, 0);
+    if (r.size() < 5) return std::nullopt;
+    AnalogCaps c;
+    c.buttons = 2;
+    c.maxActuation = r[2] / 4;
+    c.maxRapidTrigger = r[3] / 4;
+    c.maxHaptics = r[4] / 4;
+    return c;
+}
+std::optional<AnalogButton> Device::analogButton(int button) {
+    if (!has(ANALOG_BUTTONS)) return std::nullopt;
+    Bytes r = req(ANALOG_BUTTONS, 2, {static_cast<uint8_t>(button)});
+    if (r.size() < 4) return std::nullopt;
+    AnalogButton b;
+    b.actuation = r[1] / 4;
+    b.rapidTrigger = r[2] / 4;
+    b.rapidTriggerOn = (r[2] & 0x01) != 0;
+    b.haptics = r[3] / 4;
+    return b;
+}
+void Device::setAnalogButton(int button, const AnalogButton& b) {
+    auto clamp = [](int v, int lo, int hi) { return std::max(lo, std::min(hi, v)); };
+    req(ANALOG_BUTTONS, 1, {static_cast<uint8_t>(button), static_cast<uint8_t>(clamp(b.actuation, 1, 10) * 4), static_cast<uint8_t>(clamp(b.rapidTrigger, 1, 5) * 4 | (b.rapidTriggerOn ? 1 : 0)), static_cast<uint8_t>(clamp(b.haptics, 0, 5) * 4)});
+}
+void Device::setAnalogMonitoring(bool buttonEvents, int timeoutSec) {
+    req(ANALOG_BUTTONS, 3, {static_cast<uint8_t>(buttonEvents ? 1 : 0), static_cast<uint8_t>(timeoutSec)});
+}
+
+// 0x8100 Onboard profiles: fn1 setOnboardMode (1 = the mouse's own profile, 2 = host software), fn2 getOnboardMode
+std::optional<int> Device::onboardMode() {
+    if (!has(ONBOARD_PROFILES)) return std::nullopt;
+    Bytes r = req(ONBOARD_PROFILES, 2);
+    return r.empty() ? std::nullopt : std::optional<int>(r[0]);
+}
+void Device::setOnboardMode(int mode) { req(ONBOARD_PROFILES, 1, {static_cast<uint8_t>(mode)}); }
+
+// 0x80E0 Bunny hopping: fn0 getCapabilities, fn1 getTimeout, fn2 setTimeout. The timeout is in 10 ms
+// steps (G HUB offers 100..1000 ms); 0 turns it off
+std::optional<int> Device::bunnyHopTimeout() {
+    if (!has(BUNNY_HOPPING)) return std::nullopt;
+    Bytes r = req(BUNNY_HOPPING, 1);
+    if (r.empty()) return std::nullopt;
+    return r[0];
+}
+void Device::setBunnyHopTimeout(int t) { req(BUNNY_HOPPING, 2, {static_cast<uint8_t>(std::max(0, std::min(255, t)))}); }
+
+// 0x8110 Mouse button spy: fn0 getButtonCount, fn1 startSpy, fn2 stopSpy, fn3 getRemapping (the HID
+// button each physical button sends, 1 based, 0 = none), fn4 setRemapping; event 0 = the buttons down
+int Device::spyButtonCount() {
+    if (!has(MOUSE_BUTTON_SPY)) return 0;
+    Bytes r = req(MOUSE_BUTTON_SPY, 0);
+    return r.empty() ? 0 : r[0];
+}
+Bytes Device::spyButtonMap() {
+    Bytes r = req(MOUSE_BUTTON_SPY, 3);
+    int n = spyButtonCount();
+    r.resize(std::min<size_t>(r.size(), static_cast<size_t>(n)));
+    return r;
+}
+void Device::setSpyButtonMap(const Bytes& map) { req(MOUSE_BUTTON_SPY, 4, map); }
+void Device::spy(bool on) { req(MOUSE_BUTTON_SPY, on ? 1 : 2); }
+
 std::optional<BacklightState> Device::backlight() {
     if (!has(BACKLIGHT2)) return std::nullopt;
     Bytes r = req(BACKLIGHT2, 0);
@@ -524,6 +746,19 @@ std::optional<Event> Device::classify(const Notification& n) const {
                 return Event{"buttons", {{"down", cids}}};
             }
             if (n.event == 1 && d.size() >= 4) return Event{"raw_xy", {{"dx", sbe16(d, 0)}, {"dy", sbe16(d, 2)}}};
+            break;
+        case MOUSE_BUTTON_SPY:
+            if (n.event == 0 && d.size() >= 2) {
+                static const uint16_t cids[] = {0x50, 0x51, 0x52, 0x53, 0x56};
+                uint16_t mask = be16(d, 0);
+                json down = json::array();
+                for (int i = 0; i < 16; ++i)
+                    if (mask & (1u << i)) down.push_back(i < 5 ? cids[i] : 0x57 + i - 5);
+                return Event{"buttons", {{"down", down}}};
+            }
+            break;
+        case EXTENDED_REPORT_RATE:
+            if (n.event == 0 && d.size() >= 2) return Event{"report_rate", {{"wireless", d[0] == 1}, {"index", d[1]}}};
             break;
         case FN_INVERSION_K375S:
             if (n.event == 0 && d.size() >= 2) return Event{"fn_swap", {{"host", d[0]}, {"on", d[1] != 0}}};

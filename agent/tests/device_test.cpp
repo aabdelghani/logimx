@@ -174,3 +174,156 @@ TEST_CASE("a feature the device lacks is an error, not a crash") {
     CHECK_FALSE(r.d->smartshift());
     CHECK_THROWS_AS(r.d->req(SMART_SHIFT, 0), HidppError);
 }
+
+// ---------------------------------------------------------------- a G-series gaming mouse (PRO X3 SUPERSTRIKE)
+// replies as read from the real mouse over its LIGHTSPEED receiver
+static fake::Feature extendedDpi(std::vector<Bytes>* written = nullptr) {
+    return {EXTENDED_DPI, 0, 0, [written](uint8_t fn, const Bytes& p) -> fake::Reply {
+                if (fn == 2) {   // the step table, as a byte stream over pages of 13 bytes
+                    static const Bytes stream = {0x00, 0x64, 0xE0, 0x01, 0x00, 0xC8, 0xE0, 0x02, 0x01, 0xF4, 0xE0, 0x05, 0x03, 0xE8, 0xE0, 0x0A, 0x07, 0xD0,
+                        0xE0, 0x14, 0x13, 0x88, 0xE0, 0x32, 0x27, 0x10, 0xE0, 0x64, 0x4E, 0x20, 0xE0, 0x7D, 0x7D, 0x00, 0xE0, 0xC8, 0xBB, 0x80, 0x00, 0x00};
+                    Bytes r = {0, p.size() > 1 ? p[1] : uint8_t(0), p.size() > 2 ? p[2] : uint8_t(0)};
+                    size_t from = (p.size() > 2 ? p[2] : 0) * 13u;
+                    for (size_t i = from; i < from + 13; ++i) r.push_back(i < stream.size() ? stream[i] : 0);
+                    return {r};
+                }
+                if (fn == 3) return {{0, 0, 0x03, 0x20, 0x04, 0xB0, 0x06, 0x40, 0x09, 0x60, 0x0C, 0x80}};   // 800 1200 1600 2400 3200
+                if (fn == 4) return {{0, 2, 2, 2, 2, 2}};
+                if (fn == 5) return {{0, 0x03, 0x20, 0x03, 0x20, 0x03, 0x20, 0x03, 0x20, 2}};
+                if (fn == 6) {
+                    if (written) written->push_back(p);
+                    return {p};
+                }
+                return fake::Reply::err(0x05);
+            }};
+}
+
+TEST_CASE("Extended DPI (0x2202): five slots, the sensor's value, and the step table across pages") {
+    testdirs::fresh();
+    std::vector<Bytes> sets;
+    Rig r(mouse({extendedDpi(&sets)}));
+    REQUIRE(r.d->enumerate());
+    auto s = r.d->extendedDpi();
+    REQUIRE(s);
+    CHECK(s->dpi == 800);
+    CHECK(s->slots == std::vector<int>{800, 1200, 1600, 2400, 3200});
+    CHECK(s->lod == 2);
+    REQUIRE(s->ranges.size() == 9);
+    CHECK(s->ranges[3] == std::array<int, 3>{1000, 10, 2000});   // 0x03 | 0xE8 split over two pages
+    CHECK(s->min == 100);
+    CHECK(s->max == 48000);
+    r.d->setExtendedDpi(1200);
+    REQUIRE(sets.size() == 1);
+    CHECK(Bytes(sets[0].begin(), sets[0].begin() + 6) == Bytes{0, 0x04, 0xB0, 0x04, 0xB0, 2});   // X and Y alike, the lift-off distance kept
+}
+
+TEST_CASE("Report rate (0x8061): the offered rates per link, the one in use, and a set sends only the index") {
+    testdirs::fresh();
+    Bytes lastSet;
+    fake::Feature rr{EXTENDED_REPORT_RATE, 0, 0, [&lastSet](uint8_t fn, const Bytes& p) -> fake::Reply {
+                         if (fn == 0) return {{0x00, static_cast<uint8_t>(p[0] ? 0x0F : 0x7F)}};
+                         if (fn == 2) return {{static_cast<uint8_t>(p[0] ? 3 : 6)}};
+                         if (fn == 3) {
+                             lastSet = p;
+                             return {{}};
+                         }
+                         return fake::Reply::err(0x05);
+                     }};
+    Rig r(mouse({rr}));
+    REQUIRE(r.d->enumerate());
+    auto s = r.d->reportRate();
+    REQUIRE(s);
+    CHECK(s->wireless == 3);   // 1000 Hz
+    CHECK(s->wired == 6);      // 8000 Hz
+    CHECK(s->wirelessMask == 0x0F);
+    CHECK(std::string(Device::reportRateName(s->wired)) == "8000");
+    r.d->setReportRate(4);
+    CHECK(lastSet.size() >= 1);
+    CHECK(lastSet[0] == 4);
+}
+
+TEST_CASE("HITS (0x1B0C): each value is its step times 4, the rapid trigger's switch in bit 0") {
+    testdirs::fresh();
+    std::vector<Bytes> sets;
+    fake::Feature hits{ANALOG_BUTTONS, 1, 0, [&sets](uint8_t fn, const Bytes& p) -> fake::Reply {
+                           if (fn == 0) return {{0x00, 0x03, 0x28, 0x14, 0x14, 0x01}};
+                           if (fn == 2) return {{p[0], 0x08, 0x0D, 0x0C}};   // G HUB's "Kscerato" left button
+                           if (fn == 1) {
+                               sets.push_back(p);
+                               return {p};
+                           }
+                           return fake::Reply::err(0x05);
+                       }};
+    Rig r(mouse({hits}));
+    REQUIRE(r.d->enumerate());
+    auto c = r.d->analogCaps();
+    REQUIRE(c);
+    CHECK(c->maxActuation == 10);
+    CHECK(c->maxRapidTrigger == 5);
+    auto b = r.d->analogButton(0);
+    REQUIRE(b);
+    CHECK(b->actuation == 2);
+    CHECK(b->rapidTrigger == 3);
+    CHECK(b->rapidTriggerOn);
+    CHECK(b->haptics == 3);
+    AnalogButton w;
+    w.actuation = 3;
+    w.rapidTrigger = 2;
+    w.rapidTriggerOn = true;
+    w.haptics = 1;
+    r.d->setAnalogButton(1, w);
+    REQUIRE(sets.size() == 1);
+    CHECK(Bytes(sets[0].begin(), sets[0].begin() + 4) == Bytes{1, 0x0C, 0x09, 0x04});
+}
+
+TEST_CASE("a mouse without 0x1B04 gets its buttons from the button spy (0x8110), and spy events are button events") {
+    testdirs::fresh();
+    fake::Feature spy{MOUSE_BUTTON_SPY, 0, 0, [](uint8_t fn, const Bytes&) -> fake::Reply {
+                          if (fn == 0) return {{5}};
+                          if (fn == 3) return {{1, 2, 3, 4, 5, 0, 0, 0}};
+                          return {{}};
+                      }};
+    Rig r(mouse({spy}));
+    REQUIRE(r.d->enumerate());
+    REQUIRE(r.d->controls().size() == 5);
+    CHECK(r.d->controls().count(0x50));
+    CHECK(r.d->controls().count(0x56));
+    CHECK(r.d->controls().at(0x53).position == 4);
+    CHECK(r.d->controls().at(0x53).divertable());
+    CHECK(r.d->spyButtonMap() == Bytes{1, 2, 3, 4, 5});
+    Notification n;
+    n.deviceIndex = 0xFF;
+    n.featureIndex = r.dev->indexOf(MOUSE_BUTTON_SPY);
+    n.event = 0;
+    n.data = {0x00, 0x18};   // buttons 4 and 5
+    auto ev = r.d->classify(n);
+    REQUIRE(ev);
+    CHECK(ev->kind == "buttons");
+    CHECK(ev->data["down"] == json::array({0x53, 0x56}));
+}
+
+TEST_CASE("bunny hopping (0x80E0): the timeout in 10 ms steps") {
+    testdirs::fresh();
+    Bytes last;
+    fake::Feature bh{BUNNY_HOPPING, 0, 0, [&last](uint8_t fn, const Bytes& p) -> fake::Reply {
+                         if (fn == 1) return {{0x0A}};
+                         if (fn == 2) {
+                             last = p;
+                             return {p};
+                         }
+                         return {{0}};
+                     }};
+    Rig r(mouse({bh}));
+    REQUIRE(r.d->enumerate());
+    CHECK(r.d->bunnyHopTimeout() == 10);
+    r.d->setBunnyHopTimeout(30);
+    CHECK(last.at(0) == 30);
+}
+
+TEST_CASE("device info (0x0003 v4+): the model id and unit id, for a receiver without pairing registers") {
+    testdirs::fresh();
+    Rig r(mouse());
+    REQUIRE(r.d->enumerate());
+    // the test firmware feature answers fn0 with a one-byte entity count: too short for device info
+    CHECK_FALSE(r.d->deviceInfo());
+}

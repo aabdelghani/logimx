@@ -13,7 +13,7 @@ function pageHome() {
     const off = isOffline(d);
     const b = d.battery, st = batteryState(b), src = homePhotoSrc(d);
     const hosts = (d.state || {}).hosts, host = hosts && typeof hosts.current === 'number' ? t('host {n}', { n: hosts.current + 1 }) : '';
-    const link = (d.transport === 'bolt' ? t('Bolt receiver') : d.transport === 'bluetooth' ? 'Bluetooth' : d.transport || t('Connected')) + (host ? ` · ${host}` : '');
+    const link = ({ bolt: t('Bolt receiver'), lightspeed: t('LIGHTSPEED receiver'), usb: t('USB cable'), bluetooth: 'Bluetooth' }[d.transport] || d.transport || t('Connected')) + (host ? ` · ${host}` : '');
     // photo, battery and state only: the name is in the tooltip, the link is an icon
     const linkIcon = d.transport === 'bluetooth' ? '<i class="fa-brands fa-bluetooth-b"></i>' : '<i class="fa-solid fa-wifi"></i>';
     return `<div class="dev-card ${isMouse(d) ? 'mouse' : 'kbd'} ${off ? 'off' : ''}" data-act="home-open" data-key="${esc(d.id)}" title="${esc(d.name)} · ${off ? t('Not connected') : esc(link)}">
