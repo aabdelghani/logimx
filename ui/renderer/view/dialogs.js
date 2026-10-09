@@ -68,9 +68,7 @@ function renderWish() {
   return `<div class="scrim" data-act="close-dlg"><div class="dlg" style="width:560px" data-stop>
     <div class="dlg-head">${t('Make a wish')}<button class="hbtn close" data-act="close-dlg"><i class="fa-solid fa-xmark"></i></button></div>
     <div class="dlg-body">
-      <div class="wish-hero"><i class="fa-solid fa-wand-magic-sparkles"></i><div>${t('Tell me what NotLogi should do for you. A button, a gesture, a device, anything: I read every wish.')}<div class="wish-pledge">${t('My promise: your wish lands within 24 hours. Rub the lamp, I\'m already coding.')}</div></div></div>
       <label class="hint">${t('Your wish')}<textarea class="text" data-field="wish" rows="5" style="display:block;width:100%;margin-top:4px;resize:vertical;font:inherit" placeholder="${t('I wish NotLogi could…')}">${esc(w.what || '')}</textarea></label>
-      <div class="hint"><i class="fa-solid fa-circle-info"></i> ${t('Nothing is sent by NotLogi. Your browser opens a new issue on GitHub with your wish, the NotLogi version, the system and the device names; it becomes public when you press Submit there.')}</div>
     </div>
     <div class="dlg-foot"><span></span><div class="r"><button class="btn" data-act="close-dlg">${t('Cancel')}</button><button class="btn primary" data-act="wish-open" ${(w.what || '').trim() ? '' : 'disabled'}><i class="fa-solid fa-arrow-up-right-from-square"></i>${t('Send my wish on GitHub')}</button></div></div></div></div>`;
 }

@@ -932,9 +932,7 @@ button.rs-hub { border: 0; cursor: pointer; font: inherit; }
 .wish-line .btn { font-size: 15px; padding: 9px 16px; border-radius: 9px; }
 .wish-line .btn i { font-size: 16px !important; }
 .wish-line .btn.primary i { color: #fff; }
-.wish-hero { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 10px; background: color-mix(in srgb, var(--accbg) 12%, transparent); margin-bottom: 12px; line-height: 1.45; }
-.wish-hero > i { font-size: 24px !important; color: var(--accbg); }
-.wish-pledge { margin-top: 8px; font-weight: 700; color: var(--accbg); }
+
 /* Add device over Bluetooth: devices in pairing mode, found live */
 .bt-pulse { position: relative; }
 .bt-pulse::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--accbg); opacity: 0; animation: bt-pulse 1.8s ease-out infinite; }
