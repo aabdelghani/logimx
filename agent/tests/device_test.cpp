@@ -327,3 +327,25 @@ TEST_CASE("device info (0x0003 v4+): the model id and unit id, for a receiver wi
     // the test firmware feature answers fn0 with a one-byte entity count: too short for device info
     CHECK_FALSE(r.d->deviceInfo());
 }
+
+TEST_CASE("Easy-Switch names: a name cut inside a character loses the broken character") {
+    testdirs::fresh();
+    // "Ahmed’s" with the reply for the second piece missing: the first 14 bytes end inside "’"
+    const std::string full = "Ahmed\xE2\x80\x99s MacBook Pro";
+    fake::Feature hosts{HOSTS_INFO, 1, 0, [full](uint8_t fn, const Bytes& p) -> fake::Reply {
+                            if (fn == 0) return {{0x01, 0, 1}};
+                            if (fn == 1) return {{0, 1, 1, 0, static_cast<uint8_t>(full.size())}};
+                            if (fn == 3 && p[1] == 0) {
+                                Bytes r = {p[0], 0};
+                                for (size_t i = 0; i < 7; ++i) r.push_back(static_cast<uint8_t>(full[i]));
+                                return {r};
+                            }
+                            return {{p[0], p[1]}};   // nothing more
+                        }};
+    Rig r(mouse({hosts}));
+    REQUIRE(r.d->enumerate());
+    auto h = r.d->hosts();
+    REQUIRE(h.size() == 1);
+    CHECK(h[0].name == "Ahmed");
+    CHECK_NOTHROW(json(h[0].name).dump());
+}

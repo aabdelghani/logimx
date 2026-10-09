@@ -58,7 +58,7 @@ void Server::serve(const std::shared_ptr<Conn>& c) {
             } catch (const std::exception& e) {
                 resp = {{"id", reqId}, {"error", e.what()}};
             }
-            if (!c->send(resp.dump() + "\n")) break;
+            if (!c->send(resp.dump(-1, ' ', false, json::error_handler_t::replace) + "\n")) break;
         }
     }
     std::lock_guard<std::mutex> lk(clientsMutex_);
@@ -68,7 +68,7 @@ void Server::serve(const std::shared_ptr<Conn>& c) {
 }
 
 void Server::broadcast(const std::string& event, const json& data) {
-    std::string msg = json{{"event", event}, {"data", data}}.dump() + "\n";
+    std::string msg = json{{"event", event}, {"data", data}}.dump(-1, ' ', false, json::error_handler_t::replace) + "\n";
     std::lock_guard<std::mutex> lk(clientsMutex_);
     for (auto& c : clients_) c->send(msg);
 }
@@ -77,7 +77,7 @@ Client::Client(const std::string& path) : conn_(connect(path)) {}
 
 json Client::call(const std::string& method, const json& params) {
     json req = {{"id", ++id_}, {"method", method}, {"params", params}};
-    if (!conn_->send(req.dump() + "\n")) throw std::runtime_error("send failed");
+    if (!conn_->send(req.dump(-1, ' ', false, json::error_handler_t::replace) + "\n")) throw std::runtime_error("send failed");
     char tmp[4096];
     for (;;) {
         size_t nl = buf_.find('\n');

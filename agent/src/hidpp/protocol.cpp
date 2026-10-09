@@ -646,6 +646,17 @@ std::vector<HostInfo> Device::hosts() {
                 name.append(reinterpret_cast<const char*>(piece.data() + 2), take);
             }
         }
+        // a name read only in part (the device stopped answering) can end in padding or inside a character
+        if (auto z = name.find('\0'); z != std::string::npos) name.resize(z);
+        size_t cut = name.size();
+        while (cut > 0 && (static_cast<unsigned char>(name[cut - 1]) & 0xC0) == 0x80) --cut;
+        if (cut > 0 && (static_cast<unsigned char>(name[cut - 1]) & 0x80)) {
+            unsigned char lead = static_cast<unsigned char>(name[cut - 1]);
+            size_t need = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3
+                : lead >= 0xC0                            ? 2
+                                                          : 1;
+            if (name.size() - (cut - 1) < need) name.resize(cut - 1);
+        }
         hi.name = name;
         out.push_back(hi);
     }
