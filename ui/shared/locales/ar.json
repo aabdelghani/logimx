@@ -935,5 +935,11 @@
  "{pct}% · charge soon": "{pct}% · اشحنه قريبًا",
  "{pct}% · charging": "{pct}% · جارٍ الشحن",
  "{s} s": "{s} ث",
- "{tool} stopped": "توقف {tool}"
+ "{tool} stopped": "توقف {tool}",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>يحتاج NotLogi إلى إمكانية الوصول</strong> ليضغط المفاتيح والأزرار نيابةً عنك: فعّله من الخصوصية والأمن > إمكانية الوصول. مفعّل أصلًا؟ أزل NotLogi من تلك القائمة بـ − ثم أضفه مجددًا بـ +: المفتاح ما زال يخص الإصدار السابق للتحديث.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>يحتاج NotLogi إلى مراقبة الإدخال</strong> للوصول إلى الأجهزة عبر Bluetooth: فعّله من الخصوصية والأمن > مراقبة الإدخال. مفعّل أصلًا؟ أزل NotLogi من تلك القائمة بـ − ثم أضفه مجددًا بـ +.",
+ "Double-click": "نقر مزدوج",
+ "Stay on while plugged in": "يبقى مضاءً أثناء الشحن",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "إعدادات النظام > الخصوصية والأمن > إمكانية الوصول: فعّل NotLogi (مفعّل أصلًا بعد التحديث؟ أزله بـ − ثم أضفه مجددًا بـ +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "ساعتان بعد آخر ضغطة، وهو أقصى ما تسمح به لوحة المفاتيح؛ أي مفتاح يضيئها من جديد"
 }

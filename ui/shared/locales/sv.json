@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Parkopplad men syns inte?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Anslut en Bolt- eller Unifying-mottagare för att parkoppla med den",
  "Waiting for it to connect…": "Väntar på anslutning…",
- "Update": "Uppdatera"
+ "Update": "Uppdatera",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi behöver Hjälpmedel</strong> för att trycka på tangenter och knappar åt dig: slå på det under Integritet och säkerhet > Hjälpmedel. Redan på? Ta bort NotLogi från listan med − och lägg till det igen med +: reglaget tillhör fortfarande versionen före uppdateringen.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi behöver Övervakning av inmatning</strong> för att nå enheter via Bluetooth: slå på det under Integritet och säkerhet > Övervakning av inmatning. Redan på? Ta bort NotLogi från listan med − och lägg till det igen med +.",
+ "Double-click": "Dubbelklick",
+ "Stay on while plugged in": "Förbli tänd när den är ansluten",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Systeminställningar > Integritet och säkerhet > Hjälpmedel: slå på NotLogi (redan på efter en uppdatering? ta bort det med − och lägg till det igen med +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Två timmar efter den sista tangenten, det mesta tangentbordet tillåter; vilken tangent som helst tänder den igen"
 }

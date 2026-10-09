@@ -935,5 +935,11 @@
  "Paired but not showing up?": "페어링했는데 보이지 않나요?",
  "Plug in a Bolt or Unifying receiver to pair with it": "페어링하려면 Bolt 또는 Unifying 수신기를 연결하세요",
  "Waiting for it to connect…": "연결을 기다리는 중…",
- "Update": "업데이트"
+ "Update": "업데이트",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi에 손쉬운 사용 권한이 필요합니다</strong>. 키와 버튼을 대신 누르기 위해서입니다. 개인정보 보호 및 보안 > 손쉬운 사용에서 켜세요. 이미 켜져 있나요? 목록에서 −로 NotLogi를 제거하고 +로 다시 추가하세요. 스위치는 아직 업데이트 이전 버전의 것입니다.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi에 입력 모니터링 권한이 필요합니다</strong>. Bluetooth로 기기에 연결하기 위해서입니다. 개인정보 보호 및 보안 > 입력 모니터링에서 켜세요. 이미 켜져 있나요? 목록에서 −로 NotLogi를 제거하고 +로 다시 추가하세요.",
+ "Double-click": "더블 클릭",
+ "Stay on while plugged in": "연결 중에는 켜진 상태 유지",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용: NotLogi를 켜세요 (업데이트 후에도 켜져 있나요? −로 제거하고 +로 다시 추가하세요)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "마지막 키 입력 후 두 시간, 키보드가 허용하는 최대 시간입니다. 아무 키나 누르면 다시 켜집니다"
 }

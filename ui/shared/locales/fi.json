@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Pari muodostettu, mutta laite ei näy?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Liitä Bolt- tai Unifying-vastaanotin muodostaaksesi parin sen kanssa",
  "Waiting for it to connect…": "Odotetaan yhteyttä…",
- "Update": "Päivitä"
+ "Update": "Päivitä",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi tarvitsee Käyttöavun</strong> painaakseen näppäimiä ja painikkeita puolestasi: ota se käyttöön kohdassa Tietosuoja ja suojaus > Käyttöapu. Jo käytössä? Poista NotLogi luettelosta painikkeella − ja lisää se uudelleen painikkeella +: kytkin kuuluu yhä päivitystä edeltäneelle versiolle.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi tarvitsee Syötteen valvonnan</strong> tavoittaakseen laitteet Bluetoothin kautta: ota se käyttöön kohdassa Tietosuoja ja suojaus > Syötteen valvonta. Jo käytössä? Poista NotLogi luettelosta painikkeella − ja lisää se uudelleen painikkeella +.",
+ "Double-click": "Kaksoisnapsautus",
+ "Stay on while plugged in": "Pysyy päällä, kun laite on kytkettynä",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Järjestelmäasetukset > Tietosuoja ja suojaus > Käyttöapu: ota NotLogi käyttöön (jo käytössä päivityksen jälkeen? poista se painikkeella − ja lisää uudelleen painikkeella +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Kaksi tuntia viimeisestä näppäilystä, enintään mitä näppäimistö sallii; mikä tahansa näppäin sytyttää sen uudelleen"
 }

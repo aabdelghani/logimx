@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Sparowane, ale się nie pojawia?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Podłącz odbiornik Bolt lub Unifying, aby z nim sparować",
  "Waiting for it to connect…": "Czekam na połączenie…",
- "Update": "Aktualizuj"
+ "Update": "Aktualizuj",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi potrzebuje Dostępności</strong>, aby naciskać klawisze i przyciski za Ciebie: włącz ją w Prywatność i ochrona > Dostępność. Już włączona? Usuń NotLogi z tej listy przyciskiem − i dodaj ponownie przyciskiem +: przełącznik nadal należy do wersji sprzed aktualizacji.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi potrzebuje Monitorowania wprowadzania</strong>, aby docierać do urządzeń przez Bluetooth: włącz je w Prywatność i ochrona > Monitorowanie wprowadzania. Już włączone? Usuń NotLogi z tej listy przyciskiem − i dodaj ponownie przyciskiem +.",
+ "Double-click": "Dwuklik",
+ "Stay on while plugged in": "Nie gaś, gdy jest podłączona",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Ustawienia systemowe > Prywatność i ochrona > Dostępność: włącz NotLogi (po aktualizacji już włączone? usuń je przyciskiem − i dodaj ponownie przyciskiem +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Dwie godziny po ostatnim klawiszu, najwięcej, na ile pozwala klawiatura; każdy klawisz zapala je ponownie"
 }

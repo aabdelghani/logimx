@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Έγινε σύζευξη αλλά δεν εμφανίζεται;",
  "Plug in a Bolt or Unifying receiver to pair with it": "Συνδέστε έναν δέκτη Bolt ή Unifying για σύζευξη με αυτόν",
  "Waiting for it to connect…": "Αναμονή σύνδεσης…",
- "Update": "Ενημέρωση"
+ "Update": "Ενημέρωση",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>Το NotLogi χρειάζεται την Προσβασιμότητα</strong> για να πατά πλήκτρα και κουμπιά για εσάς: ενεργοποιήστε την στο Απόρρητο και ασφάλεια > Προσβασιμότητα. Ήδη ενεργή; Αφαιρέστε το NotLogi από τη λίστα με − και προσθέστε το ξανά με +: ο διακόπτης ανήκει ακόμη στην έκδοση πριν την ενημέρωση.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>Το NotLogi χρειάζεται την Παρακολούθηση εισόδου</strong> για να φτάνει τις συσκευές μέσω Bluetooth: ενεργοποιήστε την στο Απόρρητο και ασφάλεια > Παρακολούθηση εισόδου. Ήδη ενεργή; Αφαιρέστε το NotLogi από τη λίστα με − και προσθέστε το ξανά με +.",
+ "Double-click": "Διπλό κλικ",
+ "Stay on while plugged in": "Παραμένει αναμμένος όσο είναι συνδεδεμένο",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Ρυθμίσεις συστήματος > Απόρρητο και ασφάλεια > Προσβασιμότητα: ενεργοποιήστε το NotLogi (ήδη ενεργό μετά από ενημέρωση; αφαιρέστε το με − και προσθέστε το ξανά με +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Δύο ώρες μετά το τελευταίο πλήκτρο, το μέγιστο που επιτρέπει το πληκτρολόγιο· οποιοδήποτε πλήκτρο τον ανάβει ξανά"
 }

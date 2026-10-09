@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Parret, men vises ikke?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Sæt en Bolt- eller Unifying-modtager i for at parre med den",
  "Waiting for it to connect…": "Venter på, at den tilsluttes…",
- "Update": "Opdater"
+ "Update": "Opdater",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi har brug for Tilgængelighed</strong> for at trykke på taster og knapper for dig: slå det til under Anonymitet & sikkerhed > Tilgængelighed. Allerede slået til? Fjern NotLogi fra listen med − og tilføj det igen med +: kontakten hører stadig til versionen fra før opdateringen.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi har brug for Inputovervågning</strong> for at nå enheder via Bluetooth: slå det til under Anonymitet & sikkerhed > Inputovervågning. Allerede slået til? Fjern NotLogi fra listen med − og tilføj det igen med +.",
+ "Double-click": "Dobbeltklik",
+ "Stay on while plugged in": "Forbliv tændt, mens den er tilsluttet",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Systemindstillinger > Anonymitet & sikkerhed > Tilgængelighed: slå NotLogi til (allerede slået til efter en opdatering? fjern det med − og tilføj det igen med +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "To timer efter det sidste tastetryk, det meste tastaturet tillader; enhver tast tænder det igen"
 }

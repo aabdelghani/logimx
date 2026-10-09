@@ -935,5 +935,11 @@
  "Paired but not showing up?": "已配对但没有显示？",
  "Plug in a Bolt or Unifying receiver to pair with it": "插入 Bolt 或 Unifying 接收器即可与其配对",
  "Waiting for it to connect…": "正在等待连接…",
- "Update": "更新"
+ "Update": "更新",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi 需要辅助功能权限</strong>，以便替你按下按键和按钮：请在“隐私与安全性”>“辅助功能”中开启。已经开启？用 − 把 NotLogi 从列表中移除，再用 + 重新添加：该开关仍属于更新前的版本。",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi 需要输入监控权限</strong>，以便通过 Bluetooth 连接设备：请在“隐私与安全性”>“输入监控”中开启。已经开启？用 − 把 NotLogi 从列表中移除，再用 + 重新添加。",
+ "Double-click": "双击",
+ "Stay on while plugged in": "接通电源时保持常亮",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "系统设置 > 隐私与安全性 > 辅助功能：开启 NotLogi（更新后仍显示已开启？用 − 移除后再用 + 重新添加）",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "最后一次按键后两小时，这是键盘允许的最长时间；按任意键会再次点亮"
 }

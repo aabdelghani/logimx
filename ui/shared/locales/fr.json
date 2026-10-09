@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Associé mais introuvable ?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Branchez un récepteur Bolt ou Unifying pour l’associer",
  "Waiting for it to connect…": "En attente de la connexion…",
- "Update": "Mettre à jour"
+ "Update": "Mettre à jour",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi a besoin de l’Accessibilité</strong> pour appuyer sur les touches et boutons à votre place : activez-la dans Confidentialité et sécurité > Accessibilité. Déjà activée ? Retirez NotLogi de cette liste avec − et ajoutez-le de nouveau avec + : l’interrupteur appartient encore à la version d’avant la mise à jour.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi a besoin de la Surveillance de l’entrée</strong> pour atteindre les appareils en Bluetooth : activez-la dans Confidentialité et sécurité > Surveillance de l’entrée. Déjà activée ? Retirez NotLogi de cette liste avec − et ajoutez-le de nouveau avec +.",
+ "Double-click": "Double-clic",
+ "Stay on while plugged in": "Rester allumé tant qu’il est branché",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Réglages Système > Confidentialité et sécurité > Accessibilité : activez NotLogi (déjà activé après une mise à jour ? retirez-le avec − et ajoutez-le de nouveau avec +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Deux heures après la dernière touche, le maximum permis par le clavier ; n’importe quelle touche le rallume"
 }

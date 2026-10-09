@@ -935,5 +935,11 @@
  "Paired but not showing up?": "ペアリングしたのに表示されない場合",
  "Plug in a Bolt or Unifying receiver to pair with it": "Bolt または Unifying レシーバーを接続するとペアリングできます",
  "Waiting for it to connect…": "接続を待っています…",
- "Update": "更新"
+ "Update": "更新",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi にはアクセシビリティが必要です</strong>。キーやボタンを代わりに押すためです。「プライバシーとセキュリティ」>「アクセシビリティ」でオンにしてください。すでにオンの場合は、リストから − で NotLogi を削除し、+ で追加し直してください。スイッチはアップデート前のバージョンのものになっています。",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi には入力監視が必要です</strong>。Bluetooth 経由でデバイスにアクセスするためです。「プライバシーとセキュリティ」>「入力監視」でオンにしてください。すでにオンの場合は、リストから − で NotLogi を削除し、+ で追加し直してください。",
+ "Double-click": "ダブルクリック",
+ "Stay on while plugged in": "接続中は点灯したままにする",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "システム設定 > プライバシーとセキュリティ > アクセシビリティ: NotLogi をオンにします（アップデート後もオンのままの場合は、− で削除して + で追加し直してください）",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "最後のキー入力から 2 時間、キーボードが許す最長時間です。どのキーを押しても再び点灯します"
 }

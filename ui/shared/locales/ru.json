@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Сопряжено, но не появляется?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Подключите приёмник Bolt или Unifying, чтобы выполнить сопряжение с ним",
  "Waiting for it to connect…": "Ожидание подключения…",
- "Update": "Обновить"
+ "Update": "Обновить",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi нужен Универсальный доступ</strong>, чтобы нажимать клавиши и кнопки за вас: включите его в разделе Конфиденциальность и безопасность > Универсальный доступ. Уже включён? Удалите NotLogi из списка кнопкой − и добавьте снова кнопкой +: переключатель всё ещё относится к версии до обновления.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi нужен Мониторинг ввода</strong>, чтобы подключаться к устройствам по Bluetooth: включите его в разделе Конфиденциальность и безопасность > Мониторинг ввода. Уже включён? Удалите NotLogi из списка кнопкой − и добавьте снова кнопкой +.",
+ "Double-click": "Двойной щелчок",
+ "Stay on while plugged in": "Не выключать, пока подключена",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Системные настройки > Конфиденциальность и безопасность > Универсальный доступ: включите NotLogi (после обновления уже включён? удалите его кнопкой − и добавьте снова кнопкой +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Два часа после последней клавиши, максимум, который допускает клавиатура; любая клавиша зажигает её снова"
 }

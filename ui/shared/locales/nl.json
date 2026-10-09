@@ -935,5 +935,11 @@
  "Paired but not showing up?": "Gekoppeld maar niet zichtbaar?",
  "Plug in a Bolt or Unifying receiver to pair with it": "Sluit een Bolt- of Unifying-ontvanger aan om ermee te koppelen",
  "Waiting for it to connect…": "Wachten op verbinding…",
- "Update": "Bijwerken"
+ "Update": "Bijwerken",
+ "<strong>NotLogi needs Accessibility</strong> to press keys and buttons for you: switch it on under Privacy & Security > Accessibility. Already on? Remove NotLogi from that list with − and add it again with +: the switch still belongs to the version before the update.": "<strong>NotLogi heeft Toegankelijkheid nodig</strong> om toetsen en knoppen voor je in te drukken: zet het aan onder Privacy en beveiliging > Toegankelijkheid. Staat het al aan? Verwijder NotLogi uit die lijst met − en voeg het opnieuw toe met +: de schakelaar hoort nog bij de versie van vóór de update.",
+ "<strong>NotLogi needs Input Monitoring</strong> to reach devices over Bluetooth: switch it on under Privacy & Security > Input Monitoring. Already on? Remove NotLogi from that list with − and add it again with +.": "<strong>NotLogi heeft Invoermonitoring nodig</strong> om apparaten via Bluetooth te bereiken: zet het aan onder Privacy en beveiliging > Invoermonitoring. Staat het al aan? Verwijder NotLogi uit die lijst met − en voeg het opnieuw toe met +.",
+ "Double-click": "Dubbelklik",
+ "Stay on while plugged in": "Aan blijven zolang het is aangesloten",
+ "System Settings > Privacy & Security > Accessibility: switch on NotLogi (already on after an update? remove it with − and add it again with +)": "Systeeminstellingen > Privacy en beveiliging > Toegankelijkheid: zet NotLogi aan (na een update al aan? verwijder het met − en voeg het opnieuw toe met +)",
+ "Two hours after the last key, the most the keyboard allows; any key lights it again": "Twee uur na de laatste toets, het maximum dat het toetsenbord toelaat; elke toets zet het weer aan"
 }
